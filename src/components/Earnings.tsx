@@ -37,10 +37,12 @@ import {
   type PayPeriod,
 } from '../lib/earnings';
 import {
+  canonicalizeClockPairForWorkDay,
   combineDateAndTime,
   formatDate,
   formatTime,
   getWorkDayHoursWithLunch,
+  getWorkDayHoursWithLunchAnchored,
   toLocalDateInputValue,
   toLocalTimeInputValue,
 } from '../lib/time';
@@ -201,10 +203,15 @@ export function Earnings({
       nextEndHhmm: string | null,
     ) => {
       if (!d.workDayClockSource || !d.dayStartTime || !d.dayEndTime) return;
-      const startIso =
+      const baseStartIso =
         nextStartHhmm != null ? combineDateAndTime(d.date, nextStartHhmm) : d.dayStartTime;
-      const endIso =
+      const baseEndIso =
         nextEndHhmm != null ? combineDateAndTime(d.date, nextEndHhmm) : d.dayEndTime;
+      const { startIso, endIso } = canonicalizeClockPairForWorkDay(
+        d.date,
+        baseStartIso,
+        baseEndIso,
+      );
       const { hours } = getWorkDayHoursWithLunch(startIso, endIso);
       if (hours <= 0) {
         onError('End time must be after start time on that day.');
@@ -342,7 +349,12 @@ export function Earnings({
     }
     const startIso = combineDateAndTime(quickDate, quickStart);
     const endIso = combineDateAndTime(quickDate, quickEnd);
-    const { hours: payHours } = getWorkDayHoursWithLunch(startIso, endIso);
+    const { startIso: canonStart, endIso: canonEnd } = canonicalizeClockPairForWorkDay(
+      quickDate,
+      startIso,
+      endIso,
+    );
+    const { hours: payHours } = getWorkDayHoursWithLunch(canonStart, canonEnd);
     if (payHours <= 0) {
       onError('End time must be after start time on that day.');
       return;
@@ -351,8 +363,8 @@ export function Earnings({
     try {
       const { error } = await supabase.from('jobs').insert({
         job_date: quickDate,
-        start_time: startIso,
-        end_time: endIso,
+        start_time: canonStart,
+        end_time: canonEnd,
         hours_worked: payHours,
         activity: 'Hours',
         site: '',
@@ -573,7 +585,8 @@ export function Earnings({
                       </thead>
                       <tbody>
                         {duplicateSourceJobs.map((j) => {
-                          const hrs = getWorkDayHoursWithLunch(
+                          const hrs = getWorkDayHoursWithLunchAnchored(
+                            j.job_date,
                             j.start_time,
                             j.end_time,
                           ).hours.toFixed(2);
@@ -1233,7 +1246,11 @@ export function Earnings({
                           {formatDate(j.job_date)}
                         </td>
                         <td className="px-4 py-2 text-right font-semibold text-gray-800">
-                          {getWorkDayHoursWithLunch(j.start_time, j.end_time).hours.toFixed(2)}
+                          {getWorkDayHoursWithLunchAnchored(
+                            j.job_date,
+                            j.start_time,
+                            j.end_time,
+                          ).hours.toFixed(2)}
                         </td>
                         <td className="px-4 py-2 text-gray-600">
                           {j.site ? (

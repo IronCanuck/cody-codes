@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Job, Settings } from './supabase';
-import { formatTime, formatDate, getWorkDayHoursWithLunch } from './time';
+import { formatTime, formatDate, getWorkDayHoursWithLunchAnchored } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
 import { payPeriodHoursTrackerFilename, reportEmployeeLabel } from './export-filename';
 import { ALBERTA_NET_DISCLAIMER, estimateAlbertaEmploymentNet } from './canada-alberta-estimate';
@@ -199,7 +199,11 @@ export function buildDailyWorkReportPdf(
   const doc = new jsPDF();
   drawHeader(doc, 'Daily Work Report', formatDate(date));
 
-  const { hours: dayHrs, lunchDeducted } = getWorkDayHoursWithLunch(dayStartIso, dayEndIso);
+  const { hours: dayHrs, lunchDeducted } = getWorkDayHoursWithLunchAnchored(
+    date,
+    dayStartIso,
+    dayEndIso,
+  );
   const lunchNote = lunchDeducted ? ' — 30 min unpaid lunch deducted' : '';
   doc.setFontSize(10);
   doc.setTextColor(60, 60, 60);

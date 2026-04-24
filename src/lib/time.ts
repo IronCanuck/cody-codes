@@ -142,6 +142,45 @@ export function combineDateAndTime(date: string, time: string): string {
   return d.toISOString();
 }
 
+/** Next calendar day as `YYYY-MM-DD` (local), for overnight shifts. */
+export function addOneCalendarDayYmd(ymd: string): string {
+  const d = new Date(ymd + 'T12:00:00');
+  d.setDate(d.getDate() + 1);
+  return toLocalDateInputValue(d);
+}
+
+/**
+ * Rebuild start/end instants on `anchorYmd` using the local wall-clock from stored
+ * ISO strings. Fixes rows where `job_date` was changed (e.g. duplicate day) but
+ * timestamps were left on the source date, which inflated spans by multiples of 24h.
+ * If end is not after start on the anchor day, end is placed on the following day
+ * (overnight shift).
+ */
+export function canonicalizeClockPairForWorkDay(
+  anchorYmd: string,
+  startIso: string,
+  endIso: string,
+): { startIso: string; endIso: string } {
+  const startHhmm = toLocalTimeInputValue(new Date(startIso));
+  const endHhmm = toLocalTimeInputValue(new Date(endIso));
+  let startComb = combineDateAndTime(anchorYmd, startHhmm);
+  let endComb = combineDateAndTime(anchorYmd, endHhmm);
+  if (computeHours(startComb, endComb) <= 0) {
+    endComb = combineDateAndTime(addOneCalendarDayYmd(anchorYmd), endHhmm);
+  }
+  return { startIso: startComb, endIso: endComb };
+}
+
+/** {@link getWorkDayHoursWithLunch} after {@link canonicalizeClockPairForWorkDay}. */
+export function getWorkDayHoursWithLunchAnchored(
+  anchorYmd: string,
+  startIso: string,
+  endIso: string,
+): WorkDayHoursWithLunch {
+  const { startIso: s, endIso: e } = canonicalizeClockPairForWorkDay(anchorYmd, startIso, endIso);
+  return getWorkDayHoursWithLunch(s, e);
+}
+
 export function getWeekBounds(date: Date): { start: Date; end: Date } {
   const day = date.getDay();
   const diff = date.getDate() - day + (day === 0 ? -6 : 1);

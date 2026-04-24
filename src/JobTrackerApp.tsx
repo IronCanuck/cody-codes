@@ -19,6 +19,7 @@ import {
   DEFAULT_SETTINGS,
   SavedDailyReport,
 } from './lib/supabase';
+import { canonicalizeClockPairForWorkDay, getWorkDayHoursWithLunch } from './lib/time';
 
 const SETTINGS_ROW_INSERT = {
   hourly_rate: DEFAULT_SETTINGS.hourly_rate,
@@ -340,15 +341,23 @@ export function JobTrackerApp() {
       setToast({ message: 'Invalid target date.', type: 'error' });
       return false;
     }
-    const rows = dayJobs.map((j) => ({
-      job_date: targetDate,
-      start_time: j.start_time,
-      end_time: j.end_time,
-      hours_worked: j.hours_worked,
-      activity: j.activity,
-      site: j.site,
-      notes: j.notes,
-    }));
+    const rows = dayJobs.map((j) => {
+      const { startIso, endIso } = canonicalizeClockPairForWorkDay(
+        targetDate,
+        j.start_time,
+        j.end_time,
+      );
+      const { hours } = getWorkDayHoursWithLunch(startIso, endIso);
+      return {
+        job_date: targetDate,
+        start_time: startIso,
+        end_time: endIso,
+        hours_worked: hours,
+        activity: j.activity,
+        site: j.site,
+        notes: j.notes,
+      };
+    });
     const { error } = await supabase.from('jobs').insert(rows);
     if (error) {
       setToast({ message: error.message, type: 'error' });

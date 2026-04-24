@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { supabase, Job } from '../lib/supabase';
 import {
+  canonicalizeClockPairForWorkDay,
   combineDateAndTime,
   computeHours,
   getWorkDayHoursWithLunch,
@@ -239,7 +240,11 @@ function SingleJobForm({
 
   const startIso = combineDateAndTime(form.date, form.startTime);
   const endIso = combineDateAndTime(form.date, form.endTime);
-  const { hours: payHours } = getWorkDayHoursWithLunch(startIso, endIso);
+  const editClockCanon = canonicalizeClockPairForWorkDay(form.date, startIso, endIso);
+  const { hours: payHours } = getWorkDayHoursWithLunch(
+    editClockCanon.startIso,
+    editClockCanon.endIso,
+  );
 
   const stampNow = (field: 'startTime' | 'endTime') => {
     setForm((f) => ({ ...f, [field]: toLocalTimeInputValue(new Date()) }));
@@ -264,8 +269,8 @@ function SingleJobForm({
     try {
       const payload = {
         job_date: form.date,
-        start_time: startIso,
-        end_time: endIso,
+        start_time: editClockCanon.startIso,
+        end_time: editClockCanon.endIso,
         hours_worked: payHours,
         activity: form.activity.trim(),
         site: form.site.trim(),
@@ -519,9 +524,10 @@ function DailyJobTrackerForm({
 
   const dayStartIso = combineDateAndTime(form.workDate, form.dayStartTime);
   const dayEndIso = combineDateAndTime(form.workDate, form.dayEndTime);
+  const dayClockCanon = canonicalizeClockPairForWorkDay(form.workDate, dayStartIso, dayEndIso);
   const { hours: dayHours, lunchDeducted: dayLunchDeducted } = getWorkDayHoursWithLunch(
-    dayStartIso,
-    dayEndIso,
+    dayClockCanon.startIso,
+    dayClockCanon.endIso,
   );
 
   const stampDayNow = (field: 'dayStartTime' | 'dayEndTime') => {
@@ -595,15 +601,16 @@ function DailyJobTrackerForm({
       }
       const s = combineDateAndTime(form.workDate, b.startTime);
       const en = combineDateAndTime(form.workDate, b.endTime);
-      if (computeHours(s, en) <= 0) {
+      const { startIso: sCan, endIso: eCan } = canonicalizeClockPairForWorkDay(form.workDate, s, en);
+      if (computeHours(sCan, eCan) <= 0) {
         onError(`Task ${i + 1}: end time must be after start time.`);
         return;
       }
       taskRows.push({
         job_date: form.workDate,
-        start_time: s,
-        end_time: en,
-        hours_worked: computeHours(s, en),
+        start_time: sCan,
+        end_time: eCan,
+        hours_worked: computeHours(sCan, eCan),
         activity: b.activity.trim(),
         site: b.site.trim(),
         notes: b.notes.trim(),
@@ -616,8 +623,8 @@ function DailyJobTrackerForm({
         : [
             {
               job_date: form.workDate,
-              start_time: dayStartIso,
-              end_time: dayEndIso,
+              start_time: dayClockCanon.startIso,
+              end_time: dayClockCanon.endIso,
               hours_worked: dayHours,
               activity: DAY_HOURS_ONLY_ACTIVITY,
               site: '',
@@ -637,14 +644,14 @@ function DailyJobTrackerForm({
 
       const pdfBlob = dailyWorkReportPdfBlob(
         form.workDate,
-        dayStartIso,
-        dayEndIso,
+        dayClockCanon.startIso,
+        dayClockCanon.endIso,
         inserted as Job[],
       );
       const pngBlob = await dailyWorkReportPngBlob(
         form.workDate,
-        dayStartIso,
-        dayEndIso,
+        dayClockCanon.startIso,
+        dayClockCanon.endIso,
         inserted as Job[],
       );
 
@@ -665,8 +672,8 @@ function DailyJobTrackerForm({
       if (!upPdf && !upPng) {
         const { error: repErr } = await supabase.from('saved_daily_reports').insert({
           report_date: form.workDate,
-          day_start_time: dayStartIso,
-          day_end_time: dayEndIso,
+          day_start_time: dayClockCanon.startIso,
+          day_end_time: dayClockCanon.endIso,
           day_hours: dayHours,
           job_count: inserted.length,
           pdf_storage_path: pdfPath,

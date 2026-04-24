@@ -1,5 +1,5 @@
 import { Job, Settings, SavedDailyReport } from './supabase';
-import { getWorkDayHoursWithLunch, toLocalDateInputValue } from './time';
+import { getWorkDayHoursWithLunchAnchored, toLocalDateInputValue } from './time';
 
 export type PayPeriod = {
   start: Date;
@@ -157,14 +157,14 @@ function buildDayBreakdowns(
     let singleJobId: string | null = null;
 
     if (hasReportClock) {
-      totalHours = getWorkDayHoursWithLunch(repStart!, repEnd!).hours;
+      totalHours = getWorkDayHoursWithLunchAnchored(date, repStart!, repEnd!).hours;
       dayStartTime = repStart!;
       dayEndTime = repEnd!;
       workDayClockSource = 'report';
       dailyReportId = report!.id;
     } else if (dayJobs.length === 1 && hasSingleJobClock) {
       const j = dayJobs[0];
-      totalHours = getWorkDayHoursWithLunch(j.start_time, j.end_time).hours;
+      totalHours = getWorkDayHoursWithLunchAnchored(date, j.start_time, j.end_time).hours;
       dayStartTime = j.start_time;
       dayEndTime = j.end_time;
       workDayClockSource = 'single_job';

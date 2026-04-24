@@ -1,6 +1,6 @@
 import html2canvas from 'html2canvas';
 import { Job, Settings } from './supabase';
-import { formatTime, formatDate, getWorkDayHoursWithLunch } from './time';
+import { formatTime, formatDate, getWorkDayHoursWithLunchAnchored } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
 import { payPeriodHoursTrackerFilename, reportEmployeeLabel } from './export-filename';
 import { ALBERTA_NET_DISCLAIMER, estimateAlbertaEmploymentNet } from './canada-alberta-estimate';
@@ -134,8 +134,8 @@ async function renderAndDownload(html: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-function dayWorkSummaryLine(dayStartIso: string, dayEndIso: string): string {
-  const { hours, lunchDeducted } = getWorkDayHoursWithLunch(dayStartIso, dayEndIso);
+function dayWorkSummaryLine(date: string, dayStartIso: string, dayEndIso: string): string {
+  const { hours, lunchDeducted } = getWorkDayHoursWithLunchAnchored(date, dayStartIso, dayEndIso);
   const foot = lunchDeducted
     ? '<div style="margin-top:8px; font-size: 11px; color: #3d3d3d; line-height:1.35;">0.5 hr (30 min) unpaid lunch subtracted from clock time (shifts over 6 hr).</div>'
     : '<div style="margin-top:8px; font-size: 11px; color: #5a5a5a; line-height:1.35;">Shifts over 6 hr: 0.5 hr unpaid lunch is subtracted from clock time in the total above.</div>';
@@ -153,7 +153,7 @@ export async function dailyWorkReportPngBlob(
   dayEndIso: string,
   jobs: Job[],
 ): Promise<Blob> {
-  const body = dayWorkSummaryLine(dayStartIso, dayEndIso) + jobsTable(jobs);
+  const body = dayWorkSummaryLine(date, dayStartIso, dayEndIso) + jobsTable(jobs);
   const html = renderShell(
     `Daily Work Report – ${formatDate(date)}`,
     `${jobs.length} line${jobs.length === 1 ? '' : 's'}`,
