@@ -18,8 +18,6 @@ import {
   DEFAULT_SETTINGS,
   SavedDailyReport,
 } from './lib/supabase';
-import { toLocalDateInputValue } from './lib/time';
-
 export function JobTrackerDashboardPage() {
   const { jobs, settings, dailyReports } = useJobTrackerOutlet();
   return <StatsBar jobs={jobs} settings={settings} dailyReports={dailyReports} />;
@@ -302,33 +300,30 @@ export function JobTrackerApp() {
     }
   };
 
-  const addOneCalendarDayYmd = (ymd: string) => {
-    const d = new Date(ymd + 'T12:00:00');
-    d.setDate(d.getDate() + 1);
-    return toLocalDateInputValue(d);
-  };
-
-  const handleDuplicateDay = async (date: string) => {
+  const handleDuplicateDay = async (
+    sourceDate: string,
+    targetDate: string,
+  ): Promise<boolean> => {
     const dayJobs = jobs
-      .filter((j) => j.job_date === date)
+      .filter((j) => j.job_date === sourceDate)
       .sort((a, b) => a.start_time.localeCompare(b.start_time));
     if (dayJobs.length === 0) {
       setToast({
         message: 'No job entries to duplicate. Add tasks on the log page for that day first.',
         type: 'error',
       });
-      return;
+      return false;
     }
-    const nextDate = addOneCalendarDayYmd(date);
-    if (
-      !confirm(
-        `Add ${dayJobs.length} copied ${dayJobs.length === 1 ? 'entry' : 'entries'} to ${nextDate} (the day after ${date})?`,
-      )
-    ) {
-      return;
+    if (targetDate === sourceDate) {
+      setToast({ message: 'Choose a different day than the source to copy to.', type: 'error' });
+      return false;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
+      setToast({ message: 'Invalid target date.', type: 'error' });
+      return false;
     }
     const rows = dayJobs.map((j) => ({
-      job_date: nextDate,
+      job_date: targetDate,
       start_time: j.start_time,
       end_time: j.end_time,
       hours_worked: j.hours_worked,
@@ -339,10 +334,14 @@ export function JobTrackerApp() {
     const { error } = await supabase.from('jobs').insert(rows);
     if (error) {
       setToast({ message: error.message, type: 'error' });
-    } else {
-      setToast({ message: `Duplicated to ${nextDate}`, type: 'success' });
-      loadJobs();
+      return false;
     }
+    setToast({
+      message: `Copied ${dayJobs.length} ${dayJobs.length === 1 ? 'entry' : 'entries'} to ${targetDate}`,
+      type: 'success',
+    });
+    loadJobs();
+    return true;
   };
 
   const outletContext: JobTrackerOutletContext = {

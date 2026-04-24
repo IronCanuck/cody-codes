@@ -48,7 +48,7 @@ type Props = {
   onError: (msg: string) => void;
   onEditJob: (j: Job) => void;
   onDeleteJobsForDate: (date: string) => Promise<void>;
-  onDuplicateDay: (date: string) => Promise<void>;
+  onDuplicateDay: (sourceDate: string, targetDate: string) => Promise<boolean>;
 };
 
 function isDateInPayPeriod(ymd: string, p: PayPeriod): boolean {
@@ -61,6 +61,12 @@ function defaultLogDateForPeriod(p: PayPeriod): string {
   const today = toLocalDateInputValue(new Date());
   if (isDateInPayPeriod(today, p)) return today;
   return toLocalDateInputValue(p.start);
+}
+
+function addOneCalendarDayYmd(ymd: string): string {
+  const d = new Date(ymd + 'T12:00:00');
+  d.setDate(d.getDate() + 1);
+  return toLocalDateInputValue(d);
 }
 
 export function Earnings({
@@ -77,6 +83,9 @@ export function Earnings({
   const navigate = useNavigate();
   const [period, setPeriod] = useState(() => getPayPeriodForDate(new Date(), settings));
   const [dayActionBusy, setDayActionBusy] = useState<string | null>(null);
+  const [duplicateSource, setDuplicateSource] = useState<string | null>(null);
+  const [duplicateTarget, setDuplicateTarget] = useState('');
+  const [duplicateSaving, setDuplicateSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [quickDate, setQuickDate] = useState(() => toLocalDateInputValue(new Date()));
@@ -90,6 +99,18 @@ export function Earnings({
     () => computeEarnings(jobs, period, settings, dailyReports),
     [jobs, period, settings, dailyReports],
   );
+
+  const duplicateSourceJobs = useMemo(() => {
+    if (!duplicateSource) return [];
+    return jobs
+      .filter((j) => j.job_date === duplicateSource)
+      .sort((a, b) => a.start_time.localeCompare(b.start_time));
+  }, [duplicateSource, jobs]);
+
+  const existingJobsOnTarget = useMemo(() => {
+    if (!duplicateTarget || !/^\d{4}-\d{2}-\d{2}$/.test(duplicateTarget)) return 0;
+    return jobs.filter((j) => j.job_date === duplicateTarget).length;
+  }, [jobs, duplicateTarget]);
 
   const currency = settings.currency_symbol;
   const otRate = Number(settings.hourly_rate) * Number(settings.overtime_multiplier);
@@ -182,6 +203,27 @@ export function Earnings({
       onError(err instanceof Error ? err.message : 'Could not save hours');
     } finally {
       setQuickSaving(false);
+    }
+  };
+
+  const closeDuplicateModal = () => {
+    if (duplicateSaving) return;
+    setDuplicateSource(null);
+    setDuplicateTarget('');
+  };
+
+  const confirmDuplicate = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!duplicateSource) return;
+    setDuplicateSaving(true);
+    try {
+      const ok = await onDuplicateDay(duplicateSource, duplicateTarget);
+      if (ok) {
+        setDuplicateSource(null);
+        setDuplicateTarget('');
+      }
+    } finally {
+      setDuplicateSaving(false);
     }
   };
 
@@ -284,6 +326,147 @@ export function Earnings({
                 className="px-4 py-2 text-sm font-semibold bg-jd-green-600 hover:bg-jd-green-700 text-white rounded-lg disabled:opacity-60"
               >
                 {quickSaving ? 'Saving…' : 'Save hours'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {duplicateSource && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40"
+          role="presentation"
+          onClick={closeDuplicateModal}
+        >
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="duplicate-day-title"
+            onClick={(ev) => ev.stopPropagation()}
+            onSubmit={confirmDuplicate}
+            className="w-full max-w-lg max-h-[min(90vh,640px)] flex flex-col bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden"
+          >
+            <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between gap-3 bg-slate-50">
+              <div>
+                <h2 id="duplicate-day-title" className="text-lg font-bold text-slate-900">
+                  Duplicate work day
+                </h2>
+                <p className="text-sm text-slate-600 mt-0.5">
+                  Copying from <span className="font-semibold">{formatDate(duplicateSource)}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeDuplicateModal}
+                className="p-1.5 rounded-lg text-slate-700 hover:bg-slate-200 shrink-0"
+                aria-label="Close"
+                disabled={duplicateSaving}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4 overflow-y-auto min-h-0">
+              {duplicateSourceJobs.length === 0 && (
+                <p className="text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  No job entries found for this day anymore. Close and try again.
+                </p>
+              )}
+              <div>
+                <label
+                  htmlFor="duplicate-target-date"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Copy to date
+                </label>
+                <input
+                  id="duplicate-target-date"
+                  type="date"
+                  value={duplicateTarget}
+                  onChange={(e) => setDuplicateTarget(e.target.value)}
+                  className="w-full sm:max-w-xs border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1.5">
+                  Defaults to the day after the source. Change this if the copies should land on
+                  a different work day.
+                </p>
+              </div>
+              {existingJobsOnTarget > 0 && (
+                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  {formatDate(duplicateTarget)} already has {existingJobsOnTarget}{' '}
+                  {existingJobsOnTarget === 1 ? 'entry' : 'entries'}. The duplicate will be added
+                  in addition to those.
+                </p>
+              )}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                  {duplicateSourceJobs.length} job {duplicateSourceJobs.length === 1 ? 'row' : 'rows'}{' '}
+                  to copy
+                </h3>
+                <div className="border border-gray-200 rounded-lg overflow-hidden text-xs sm:text-sm">
+                  <div className="max-h-48 overflow-y-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-gray-100 text-gray-600 sticky top-0">
+                        <tr>
+                          <th className="px-2 sm:px-3 py-2 font-medium">Time</th>
+                          <th className="px-2 sm:px-3 py-2 font-medium text-right">Hrs</th>
+                          <th className="px-2 sm:px-3 py-2 font-medium">Activity</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {duplicateSourceJobs.map((j) => {
+                          const hrs = getWorkDayHoursWithLunch(
+                            j.start_time,
+                            j.end_time,
+                          ).hours.toFixed(2);
+                          const timeRange = `${formatTime(j.start_time)} – ${formatTime(j.end_time)}`;
+                          return (
+                            <tr key={j.id} className="border-t border-gray-100">
+                              <td className="px-2 sm:px-3 py-1.5 text-gray-700 whitespace-nowrap">
+                                {timeRange}
+                              </td>
+                              <td className="px-2 sm:px-3 py-1.5 text-right font-medium text-gray-800">
+                                {hrs}
+                              </td>
+                              <td className="px-2 sm:px-3 py-1.5 text-gray-600">
+                                {j.site ? (
+                                  <span className="font-medium text-gray-800">{j.site} — </span>
+                                ) : null}
+                                {j.activity}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Times and details are copied as shown. To adjust them after duplicating, open{' '}
+                  <span className="font-medium">Log</span> for the target day.
+                </p>
+              </div>
+            </div>
+            <div className="px-5 py-4 bg-gray-50 border-t border-gray-200 flex flex-wrap justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={closeDuplicateModal}
+                disabled={duplicateSaving}
+                className="px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-300 rounded-lg hover:bg-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={
+                  duplicateSaving ||
+                  duplicateSourceJobs.length === 0 ||
+                  !duplicateTarget ||
+                  duplicateSource === duplicateTarget
+                }
+                className="px-4 py-2 text-sm font-semibold bg-jd-green-600 hover:bg-jd-green-700 text-white rounded-lg disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {duplicateSaving ? 'Copying…' : 'Copy jobs to this date'}
               </button>
             </div>
           </form>
@@ -669,20 +852,14 @@ export function Earnings({
                             <button
                               type="button"
                               disabled={!hasJobs || busy}
-                              onClick={async () => {
-                                setDayActionBusy(d.date);
-                                try {
-                                  await onDuplicateDay(d.date);
-                                } catch (e) {
-                                  onError(e instanceof Error ? e.message : 'Duplicate failed');
-                                } finally {
-                                  setDayActionBusy(null);
-                                }
+                              onClick={() => {
+                                setDuplicateSource(d.date);
+                                setDuplicateTarget(addOneCalendarDayYmd(d.date));
                               }}
                               className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-200 disabled:opacity-40 disabled:pointer-events-none"
                               title={
                                 hasJobs
-                                  ? 'Copy all job entries to the next calendar day'
+                                  ? 'Copy all job entries — choose the target day in the dialog'
                                   : 'No job entries to duplicate'
                               }
                             >
