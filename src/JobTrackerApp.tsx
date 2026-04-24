@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Header, Tab } from './components/Header';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Header } from './components/Header';
 import { useAuth } from './contexts/AuthContext';
 import { JobForm } from './components/JobForm';
 import { JobList } from './components/JobList';
@@ -9,6 +9,8 @@ import { StatsBar } from './components/StatsBar';
 import { Earnings } from './components/Earnings';
 import { Settings } from './components/Settings';
 import { Toast, ToastState } from './components/Toast';
+import type { JobTrackerOutletContext } from './lib/job-tracker-outlet';
+import { useJobTrackerOutlet } from './lib/job-tracker-outlet';
 import {
   supabase,
   Job,
@@ -16,9 +18,83 @@ import {
   DEFAULT_SETTINGS,
 } from './lib/supabase';
 
+export function JobTrackerDashboardPage() {
+  const { jobs, settings } = useJobTrackerOutlet();
+  return <StatsBar jobs={jobs} settings={settings} />;
+}
+
+export function JobTrackerLogPage() {
+  const { editing, setEditing, onSaved, onError } = useJobTrackerOutlet();
+  return (
+    <div className="grid gap-6 lg:grid-cols-5">
+      <div className="lg:col-span-3">
+        <JobForm
+          editing={editing}
+          onSaved={onSaved}
+          onError={onError}
+          onCancelEdit={() => setEditing(null)}
+        />
+      </div>
+      <div className="lg:col-span-2">
+        <div className="bg-gradient-to-br from-jd-yellow-400 to-jd-yellow-500 rounded-xl shadow-lg border-2 border-jd-green-600 p-5">
+          <h3 className="font-bold text-jd-green-800 text-lg mb-2">Quick Tips</h3>
+          <ul className="text-jd-green-800 text-sm space-y-2">
+            <li className="flex gap-2">
+              <span className="font-bold">•</span>
+              <span>Use the "Now" buttons to instantly stamp the current time.</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="font-bold">•</span>
+              <span>Hours are auto-calculated as you set start and end times.</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="font-bold">•</span>
+              <span>
+                Open the Earnings page to see estimated wages for each pay period.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="font-bold">•</span>
+              <span>Set your hourly rate and overtime rules in Settings.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function JobTrackerHistoryPage() {
+  const { jobs, loading, onEdit, onDelete } = useJobTrackerOutlet();
+  return <JobList jobs={jobs} onEdit={onEdit} onDelete={onDelete} loading={loading} />;
+}
+
+export function JobTrackerEarningsPage() {
+  const { jobs, settings, onEarningsSuccess } = useJobTrackerOutlet();
+  if (!settings) {
+    return <div className="text-gray-500 text-center py-12">Loading settings...</div>;
+  }
+  return (
+    <Earnings jobs={jobs} settings={settings} onSuccess={onEarningsSuccess} />
+  );
+}
+
+export function JobTrackerReportsPage() {
+  const { jobs, onReportSuccess } = useJobTrackerOutlet();
+  return <Reports jobs={jobs} onSuccess={onReportSuccess} />;
+}
+
+export function JobTrackerSettingsPage() {
+  const { settings, onSettingsSave } = useJobTrackerOutlet();
+  if (!settings) {
+    return <div className="text-gray-500 text-center py-12">Loading settings...</div>;
+  }
+  return <Settings settings={settings} onSave={onSettingsSave} />;
+}
+
 export function JobTrackerApp() {
   const { signOut } = useAuth();
-  const [tab, setTab] = useState<Tab>('log');
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [settings, setSettings] = useState<SettingsType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -108,7 +184,7 @@ export function JobTrackerApp() {
 
   const handleEdit = (j: Job) => {
     setEditing(j);
-    setTab('log');
+    navigate('/consaltyapp/log');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -123,88 +199,28 @@ export function JobTrackerApp() {
     }
   };
 
+  const outletContext: JobTrackerOutletContext = {
+    jobs,
+    settings,
+    loading,
+    editing,
+    setEditing,
+    onSaved: handleSaved,
+    onError: handleError,
+    onEdit: handleEdit,
+    onDelete: handleDelete,
+    onSettingsSave: handleSaveSettings,
+    onReportSuccess: (m) => setToast({ message: m, type: 'success' }),
+    onEarningsSuccess: (m) => setToast({ message: m, type: 'success' }),
+  };
+
   return (
     <div className="min-h-screen bg-white">
-      <Header
-        active={tab}
-        onChange={setTab}
-        onSignOut={() => void signOut()}
-      />
+      <Header onSignOut={() => void signOut()} />
       <Toast toast={toast} onClose={() => setToast(null)} />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        <StatsBar jobs={jobs} settings={settings} />
-
-        {tab === 'log' && (
-          <div className="grid gap-6 lg:grid-cols-5">
-            <div className="lg:col-span-3">
-              <JobForm
-                editing={editing}
-                onSaved={handleSaved}
-                onError={handleError}
-                onCancelEdit={() => setEditing(null)}
-              />
-            </div>
-            <div className="lg:col-span-2">
-              <div className="bg-gradient-to-br from-jd-yellow-400 to-jd-yellow-500 rounded-xl shadow-lg border-2 border-jd-green-600 p-5">
-                <h3 className="font-bold text-jd-green-800 text-lg mb-2">Quick Tips</h3>
-                <ul className="text-jd-green-800 text-sm space-y-2">
-                  <li className="flex gap-2">
-                    <span className="font-bold">•</span>
-                    <span>Use the "Now" buttons to instantly stamp the current time.</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="font-bold">•</span>
-                    <span>Hours are auto-calculated as you set start and end times.</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="font-bold">•</span>
-                    <span>
-                      Visit the Earnings tab to see estimated wages for each pay period.
-                    </span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="font-bold">•</span>
-                    <span>
-                      Set your hourly rate and overtime rules in Settings.
-                    </span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {tab === 'history' && (
-          <JobList
-            jobs={jobs}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            loading={loading}
-          />
-        )}
-
-        {tab === 'earnings' &&
-          (settings ? (
-            <Earnings
-              jobs={jobs}
-              settings={settings}
-              onSuccess={(m) => setToast({ message: m, type: 'success' })}
-            />
-          ) : (
-            <div className="text-gray-500 text-center py-12">Loading settings...</div>
-          ))}
-
-        {tab === 'reports' && (
-          <Reports jobs={jobs} onSuccess={(m) => setToast({ message: m, type: 'success' })} />
-        )}
-
-        {tab === 'settings' &&
-          (settings ? (
-            <Settings settings={settings} onSave={handleSaveSettings} />
-          ) : (
-            <div className="text-gray-500 text-center py-12">Loading settings...</div>
-          ))}
+        <Outlet context={outletContext} />
       </main>
 
       <footer className="mt-12 py-6 border-t border-gray-200 text-center text-sm text-gray-500 space-y-2">
