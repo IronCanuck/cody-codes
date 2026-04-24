@@ -210,8 +210,8 @@ export function JobTrackerApp() {
       <footer className="mt-12 py-6 border-t border-gray-200 text-center text-sm text-gray-500 space-y-2">
         <p>Landscape Log — track your work, one job at a time</p>
         <p>
-          <Link to="/" className="text-jd-green-600 hover:text-jd-green-700 font-medium">
-            ← codycodes.ca
+          <Link to="/dashboard" className="text-jd-green-600 hover:text-jd-green-700 font-medium">
+            ← Your apps
           </Link>
         </p>
       </footer>

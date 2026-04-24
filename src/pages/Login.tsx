@@ -6,7 +6,7 @@ import { resolveAuthEmail } from '../lib/auth-identities';
 import { supabase } from '../lib/supabase';
 
 function defaultAfterLoginPath(): string {
-  return '/consaltyapp';
+  return '/dashboard';
 }
 
 export function Login() {

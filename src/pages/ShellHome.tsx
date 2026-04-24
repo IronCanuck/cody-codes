@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ExternalLink, Sparkles, Timer } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const SHOWCASE_PROJECTS = [
   {
@@ -56,6 +57,8 @@ const SHOWCASE_PROJECTS = [
 ] as const;
 
 export function ShellHome() {
+  const { session } = useAuth();
+
   useEffect(() => {
     document.title = 'Codycodes.ca · Cody Codes';
   }, []);
@@ -92,19 +95,21 @@ export function ShellHome() {
             >
               Showcase
             </a>
-            <Link
-              to="/login"
-              className="text-sm font-medium text-slate-600 hover:text-cody-finnish transition-colors"
-            >
-              Sign in
-            </Link>
-            <Link
-              to="/consaltyapp"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-cody-finnish px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cody-finnish-dark transition-colors ring-1 ring-cody-finnish-dark/20"
-            >
-              Open Consalty
-              <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-            </Link>
+            {session ? (
+              <Link
+                to="/dashboard"
+                className="text-sm font-medium text-cody-finnish hover:text-cody-finnish-dark transition-colors"
+              >
+                My apps
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="text-sm font-medium text-slate-600 hover:text-cody-finnish transition-colors"
+              >
+                Sign in
+              </Link>
+            )}
           </nav>
         </div>
       </header>
