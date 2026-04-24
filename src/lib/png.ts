@@ -2,6 +2,7 @@ import html2canvas from 'html2canvas';
 import { Job, Settings } from './supabase';
 import { formatTime, formatDate, getWorkDayHoursWithLunch } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
+import { ALBERTA_NET_DISCLAIMER, estimateAlbertaEmploymentNet } from './canada-alberta-estimate';
 
 const JD_GREEN = '#367C2B';
 const JD_YELLOW = '#FFDE00';
@@ -174,6 +175,47 @@ export async function generateMonthlyPNG(year: number, month: number, jobs: Job[
   );
 }
 
+function buildPayPeriodAlbertaNetHtml(earnings: EarningsSummary, settings: Settings): string {
+  const currency = settings.currency_symbol;
+  const payLen = settings.pay_period_length_days;
+  if (earnings.totalPay <= 0) {
+    return `<div style="font-size: 12px; color: #64748b; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 18px;">Log pay in this period to see an Alberta net estimate.</div>`;
+  }
+  const ab = estimateAlbertaEmploymentNet(earnings.totalPay, payLen);
+  const disc = `${ALBERTA_NET_DISCLAIMER} Varies with RRSP, dependents, other income, and actual payroll settings.`;
+  return `
+  <div style="border: 2px solid #e2e8f0; border-radius: 12px; background: linear-gradient(to bottom, #f8fafc, #fff); margin-bottom: 18px; overflow: hidden;">
+    <div style="background: #f1f5f9; border-bottom: 1px solid #e2e8f0; padding: 12px 14px;">
+      <div style="font-size: 14px; font-weight: 700; color: #0f172a;">Estimated take-home (Alberta)</div>
+      <div style="font-size: 10px; color: #475569; margin-top: 6px; line-height: 1.45;">Gross for this pay period is annualized (× 365 / ${payLen} days) and run through 2025 federal and Alberta tax brackets, basic personal credits, plus CPP and EI—similar to a salaried paycheque, not a contractor invoice.</div>
+    </div>
+    <div style="padding: 16px 14px 12px;">
+      <div style="font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #64748b;">Est. net (this pay period)</div>
+      <div style="font-size: 28px; font-weight: 700; color: ${JD_GREEN}; margin-top: 4px;">${formatMoney(ab.periodNet, currency)}</div>
+      <div style="font-size: 10px; color: #64748b; margin-top: 4px; line-height: 1.35;">After about ${(ab.effectiveTotalRate * 100).toFixed(1)}% in tax + CPP + EI; annualized gross ≈ ${formatMoney(ab.annualGross, currency)}/yr</div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-top: 12px;">
+        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+          <div style="font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em;">Federal</div>
+          <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-top: 4px;">${formatMoney(ab.periodFederalTax, currency)}</div>
+        </div>
+        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+          <div style="font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em;">Alberta</div>
+          <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-top: 4px;">${formatMoney(ab.periodAbTax, currency)}</div>
+        </div>
+        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+          <div style="font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em;">CPP</div>
+          <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-top: 4px;">${formatMoney(ab.periodCpp, currency)}</div>
+        </div>
+        <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+          <div style="font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em;">EI</div>
+          <div style="font-size: 14px; font-weight: 600; color: #1e293b; margin-top: 4px;">${formatMoney(ab.periodEi, currency)}</div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size: 10px; color: #64748b; line-height: 1.45; border-top: 1px solid #e2e8f0; margin: 0; padding: 12px 14px;">${disc}</p>
+  </div>`;
+}
+
 export async function generatePayPeriodPNG(
   period: PayPeriod,
   earnings: EarningsSummary,
@@ -252,11 +294,14 @@ export async function generatePayPeriodPNG(
       return a.start_time.localeCompare(b.start_time);
     });
 
+  const albertaHtml = buildPayPeriodAlbertaNetHtml(earnings, settings);
+
   const body = `
     <div style="font-size: 10px; color: #5a5a5a; margin-bottom: 14px;">
       Rate: ${formatMoney(rate, currency)}/hr &nbsp;|&nbsp; OT: Mon–Fri after 8 hrs/day, Sat after 4 hrs/day, Sun all hrs @ ${otMultiplier.toFixed(2)}x (${formatMoney(rate * otMultiplier, currency)}/hr)
     </div>
     ${summaryTable}
+    ${albertaHtml}
     ${weeklyTable}
     ${allJobs.length > 0 ? `<div style="font-size: 13px; font-weight: 700; color: ${JD_GREEN}; margin-bottom: 6px;">Job Log</div>${jobsTable(allJobs)}` : ''}
   `;

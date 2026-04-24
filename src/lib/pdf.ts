@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 import { Job, Settings } from './supabase';
 import { formatTime, formatDate, computeHours, getWorkDayHoursWithLunch } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
+import { ALBERTA_NET_DISCLAIMER, estimateAlbertaEmploymentNet } from './canada-alberta-estimate';
 
 const JD_GREEN: [number, number, number] = [54, 124, 43];
 const JD_YELLOW: [number, number, number] = [255, 222, 0];
@@ -217,6 +218,114 @@ export function generateMonthlyPDF(year: number, month: number, jobs: Job[]) {
   doc.save(`landscape-log-monthly-${year}-${String(month + 1).padStart(2, '0')}.pdf`);
 }
 
+function drawWrappedLines(
+  doc: jsPDF,
+  lines: string[],
+  x: number,
+  y: number,
+  lineHeight: number,
+): number {
+  let yy = y;
+  for (const line of lines) {
+    doc.text(line, x, yy);
+    yy += lineHeight;
+  }
+  return yy;
+}
+
+/** Alberta net estimate block (matches Earnings “Estimated take-home”). */
+function drawPayPeriodAlbertaNet(
+  doc: jsPDF,
+  startY: number,
+  settings: Settings,
+  earnings: EarningsSummary,
+): number {
+  const pageW = doc.internal.pageSize.getWidth();
+  const maxW = pageW - 28;
+  const m = 14;
+  const lineH = 3.8;
+  let y = startY;
+  const currency = settings.currency_symbol;
+  const payLen = settings.pay_period_length_days;
+
+  if (earnings.totalPay <= 0) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text('Log pay in this period to see an Alberta net estimate.', m, y);
+    return y + 6;
+  }
+
+  const ab = estimateAlbertaEmploymentNet(earnings.totalPay, payLen);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Estimated take-home (Alberta)', m, y);
+  y += lineH + 1;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  const desc = `Gross for this pay period is annualized (× 365 / ${payLen} days) and run through 2025 federal and Alberta tax brackets, basic personal credits, plus CPP and EI—similar to a salaried paycheque, not a contractor invoice.`;
+  y = drawWrappedLines(doc, doc.splitTextToSize(desc, maxW), m, y, 3.6);
+  y += 2;
+
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Est. net (this pay period)', m, y);
+  y += 3.5;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(...JD_GREEN);
+  doc.text(formatMoney(ab.periodNet, currency), m, y);
+  y += 6;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  const sub = `After about ${(ab.effectiveTotalRate * 100).toFixed(1)}% in tax + CPP + EI; annualized gross ≈ ${formatMoney(ab.annualGross, currency)}/yr`;
+  y = drawWrappedLines(doc, doc.splitTextToSize(sub, maxW), m, y, 3.5);
+  y += 2;
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Federal', 'Alberta', 'CPP', 'EI']],
+    body: [
+      [
+        formatMoney(ab.periodFederalTax, currency),
+        formatMoney(ab.periodAbTax, currency),
+        formatMoney(ab.periodCpp, currency),
+        formatMoney(ab.periodEi, currency),
+      ],
+    ],
+    theme: 'grid',
+    headStyles: {
+      fillColor: [241, 245, 249] as [number, number, number],
+      textColor: [71, 85, 105] as [number, number, number],
+      fontSize: 8,
+    },
+    bodyStyles: { fontSize: 9, textColor: TEXT_DARK, fontStyle: 'bold' },
+    columnStyles: {
+      0: { halign: 'right' },
+      1: { halign: 'right' },
+      2: { halign: 'right' },
+      3: { halign: 'right' },
+    },
+    margin: { left: m, right: m },
+  });
+
+  y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 3;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(100, 100, 100);
+  const disc = `${ALBERTA_NET_DISCLAIMER} Varies with RRSP, dependents, other income, and actual payroll settings.`;
+  y = drawWrappedLines(doc, doc.splitTextToSize(disc, maxW), m, y, 3);
+  y += 4;
+  return y;
+}
+
 export function generatePayPeriodPDF(
   period: PayPeriod,
   earnings: EarningsSummary,
@@ -276,7 +385,9 @@ export function generatePayPeriodPDF(
     margin: { left: 14, right: 14 },
   });
 
-  let cursorY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+  let cursorY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+  cursorY = drawPayPeriodAlbertaNet(doc, cursorY, settings, earnings);
+  cursorY += 2;
 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
