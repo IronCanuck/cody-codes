@@ -9,6 +9,7 @@ import {
   Plus,
   Trash2,
   Send,
+  BookmarkPlus,
 } from 'lucide-react';
 import { supabase, Job } from '../lib/supabase';
 import {
@@ -20,6 +21,13 @@ import {
 } from '../lib/time';
 import { dailyWorkReportPdfBlob } from '../lib/pdf';
 import { dailyWorkReportPngBlob } from '../lib/png';
+import {
+  getTaskPresets,
+  subscribeTaskPresets,
+  addTaskPresetLocation,
+  addTaskPresetActivity,
+  type TaskPresets,
+} from '../lib/task-presets';
 
 type Props = {
   editing?: Job | null;
@@ -164,6 +172,8 @@ export function JobForm({ editing, initialWorkDate, onSaved, onError, onCancelEd
   );
 }
 
+const PRESET_SITES_LIST_ID = 'jt-preset-sites';
+
 function SingleJobForm({
   job,
   onSaved,
@@ -177,6 +187,11 @@ function SingleJobForm({
 }) {
   const [form, setForm] = useState(emptySingleJobState());
   const [saving, setSaving] = useState(false);
+  const [presets, setPresets] = useState<TaskPresets>(() => getTaskPresets());
+
+  useEffect(() => {
+    return subscribeTaskPresets(() => setPresets(getTaskPresets()));
+  }, []);
 
   useEffect(() => {
     const s = new Date(job.start_time);
@@ -316,6 +331,12 @@ function SingleJobForm({
           </span>
         </div>
 
+        <datalist id={PRESET_SITES_LIST_ID}>
+          {presets.locations.map((loc) => (
+            <option key={loc} value={loc} />
+          ))}
+        </datalist>
+
         <div>
           <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-1.5">
             <MapPin size={14} /> Site / Location
@@ -325,15 +346,46 @@ function SingleJobForm({
             type="text"
             value={form.site}
             onChange={(e) => setForm({ ...form, site: e.target.value })}
+            list={presets.locations.length ? PRESET_SITES_LIST_ID : undefined}
             placeholder="e.g., Johnson Residence, Oak Street"
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
           />
+          {form.site.trim() ? (
+            <button
+              type="button"
+              onClick={() => {
+                addTaskPresetLocation(form.site);
+                setPresets(getTaskPresets());
+              }}
+              className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-jd-green-800 hover:text-jd-green-900"
+            >
+              <BookmarkPlus size={14} aria-hidden />
+              Save location to common list
+            </button>
+          ) : null}
         </div>
 
         <div>
           <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-1.5">
             <ClipboardList size={14} /> Work Activity Completed
           </label>
+          {presets.activities.length > 0 ? (
+            <select
+              value=""
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v) setForm((f) => ({ ...f, activity: v }));
+              }}
+              className="w-full mb-2 px-4 py-2 border border-jd-green-200 rounded-lg text-sm text-jd-green-900 bg-jd-green-50/80 focus:ring-2 focus:ring-jd-green-500 outline-none"
+            >
+              <option value="">Fill from saved task…</option>
+              {presets.activities.map((a) => (
+                <option key={a} value={a}>
+                  {a.length > 80 ? `${a.slice(0, 80)}…` : a}
+                </option>
+              ))}
+            </select>
+          ) : null}
           <textarea
             value={form.activity}
             onChange={(e) => setForm({ ...form, activity: e.target.value })}
@@ -342,6 +394,19 @@ function SingleJobForm({
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none resize-none"
             required
           />
+          {form.activity.trim() ? (
+            <button
+              type="button"
+              onClick={() => {
+                addTaskPresetActivity(form.activity);
+                setPresets(getTaskPresets());
+              }}
+              className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-jd-green-800 hover:text-jd-green-900"
+            >
+              <BookmarkPlus size={14} aria-hidden />
+              Save task text to common list
+            </button>
+          ) : null}
         </div>
 
         <div>
@@ -400,6 +465,11 @@ function DailyJobTrackerForm({
     return { ...emptyDailyState(), workDate: wd };
   });
   const [submitting, setSubmitting] = useState(false);
+  const [presets, setPresets] = useState<TaskPresets>(() => getTaskPresets());
+
+  useEffect(() => {
+    return subscribeTaskPresets(() => setPresets(getTaskPresets()));
+  }, []);
 
   useEffect(() => {
     if (!validInitial) return;
@@ -627,6 +697,12 @@ function DailyJobTrackerForm({
       </div>
 
       <div className="p-6 space-y-5">
+        <datalist id={PRESET_SITES_LIST_ID}>
+          {presets.locations.map((loc) => (
+            <option key={loc} value={loc} />
+          ))}
+        </datalist>
+
         <div>
           <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-1.5">
             <Calendar size={14} /> Work day
@@ -724,6 +800,8 @@ function DailyJobTrackerForm({
                 index={index}
                 block={block}
                 workDate={form.workDate}
+                presets={presets}
+                onPresetsUpdated={() => setPresets(getTaskPresets())}
                 onChange={(p) => updateBlock(block.id, p)}
                 onSaveDraft={saveTaskDraft}
                 onRemove={() => removeBlock(block.id)}
@@ -764,6 +842,8 @@ function TaskBlockCard({
   index,
   block,
   workDate,
+  presets,
+  onPresetsUpdated,
   onChange,
   onSaveDraft,
   onRemove,
@@ -772,6 +852,8 @@ function TaskBlockCard({
   index: number;
   block: TaskBlock;
   workDate: string;
+  presets: TaskPresets;
+  onPresetsUpdated: () => void;
   onChange: (p: Partial<TaskBlock>) => void;
   onSaveDraft: () => void;
   onRemove: () => void;
@@ -872,9 +954,23 @@ function TaskBlockCard({
           type="text"
           value={block.site}
           onChange={(e) => onChange({ site: e.target.value })}
+          list={presets.locations.length ? PRESET_SITES_LIST_ID : undefined}
           placeholder="e.g., Johnson Residence, Oak Street"
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none bg-white"
         />
+        {block.site.trim() ? (
+          <button
+            type="button"
+            onClick={() => {
+              addTaskPresetLocation(block.site);
+              onPresetsUpdated();
+            }}
+            className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-jd-green-800 hover:text-jd-green-900"
+          >
+            <BookmarkPlus size={14} aria-hidden />
+            Save location to common list
+          </button>
+        ) : null}
       </div>
 
       <div>
@@ -882,6 +978,23 @@ function TaskBlockCard({
           <ClipboardList size={14} /> Work activity completed
           <span className="text-gray-400 font-normal">(if you add a task)</span>
         </label>
+        {presets.activities.length > 0 ? (
+          <select
+            value=""
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v) onChange({ activity: v });
+            }}
+            className="w-full mb-2 px-4 py-2 border border-jd-green-200 rounded-lg text-sm text-jd-green-900 bg-jd-green-50/80 focus:ring-2 focus:ring-jd-green-500 outline-none"
+          >
+            <option value="">Fill from saved task…</option>
+            {presets.activities.map((a) => (
+              <option key={a} value={a}>
+                {a.length > 80 ? `${a.slice(0, 80)}…` : a}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <textarea
           value={block.activity}
           onChange={(e) => onChange({ activity: e.target.value })}
@@ -889,6 +1002,19 @@ function TaskBlockCard({
           rows={3}
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none resize-none bg-white"
         />
+        {block.activity.trim() ? (
+          <button
+            type="button"
+            onClick={() => {
+              addTaskPresetActivity(block.activity);
+              onPresetsUpdated();
+            }}
+            className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-jd-green-800 hover:text-jd-green-900"
+          >
+            <BookmarkPlus size={14} aria-hidden />
+            Save task text to common list
+          </button>
+        ) : null}
       </div>
 
       <div>

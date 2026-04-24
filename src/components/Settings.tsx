@@ -6,6 +6,7 @@ import {
   setTaskPresets,
   removeTaskPresetLocation,
   removeTaskPresetActivity,
+  subscribeTaskPresets,
 } from '../lib/task-presets';
 
 type Props = {
@@ -29,13 +30,11 @@ export function Settings({ settings, onSave }: Props) {
     const p = getTaskPresets();
     setPresetLocations(p.locations);
     setPresetActivities(p.activities);
-    const sync = () => {
+    return subscribeTaskPresets(() => {
       const next = getTaskPresets();
       setPresetLocations(next.locations);
       setPresetActivities(next.activities);
-    };
-    window.addEventListener('jobTracker:taskPresets', sync);
-    return () => window.removeEventListener('jobTracker:taskPresets', sync);
+    });
   }, []);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -232,6 +231,118 @@ export function Settings({ settings, onSave }: Props) {
           </button>
         </div>
       </form>
+
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 space-y-6 mt-6">
+        <section>
+          <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+            <ClipboardList size={18} className="text-jd-green-600" /> Common tasks &amp; locations
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Saved on this device. Use them when logging your daily task chart: locations autocomplete,
+            and tasks can be picked from a list. Add or remove entries here anytime.
+          </p>
+
+          <div className="space-y-6">
+            <div>
+              <h4 className="text-sm font-bold text-jd-green-800 mb-2 flex items-center gap-2">
+                <MapPin size={16} /> Locations / sites
+              </h4>
+              <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                <input
+                  type="text"
+                  value={newLocation}
+                  onChange={(e) => setNewLocation(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addLocationPreset();
+                    }
+                  }}
+                  placeholder="e.g., Johnson Residence"
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={addLocationPreset}
+                  className="sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-jd-green-600 hover:bg-jd-green-700 text-white font-semibold rounded-lg"
+                >
+                  <Plus size={18} />
+                  Add
+                </button>
+              </div>
+              {presetLocations.length === 0 ? (
+                <p className="text-sm text-gray-400">No saved locations yet.</p>
+              ) : (
+                <ul className="space-y-2 max-h-48 overflow-y-auto border border-gray-100 rounded-lg p-2 bg-gray-50/80">
+                  {presetLocations.map((loc) => (
+                    <li
+                      key={loc}
+                      className="flex items-start justify-between gap-2 text-sm bg-white border border-gray-200 rounded-md px-3 py-2"
+                    >
+                      <span className="text-gray-800 break-words">{loc}</span>
+                      <button
+                        type="button"
+                        onClick={() => deleteLocation(loc)}
+                        className="shrink-0 text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
+                        title="Remove"
+                      >
+                        <Trash2 size={16} aria-hidden />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-gray-100">
+              <h4 className="text-sm font-bold text-jd-green-800 mb-2 flex items-center gap-2">
+                <ClipboardList size={16} /> Task descriptions
+              </h4>
+              <div className="space-y-2 mb-3">
+                <textarea
+                  value={newActivity}
+                  onChange={(e) => setNewActivity(e.target.value)}
+                  placeholder="e.g., Mowed lawn, trimmed hedges, blew walkways"
+                  rows={2}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none resize-none"
+                />
+                <button
+                  type="button"
+                  onClick={addActivityPreset}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-jd-green-600 hover:bg-jd-green-700 text-white font-semibold rounded-lg"
+                >
+                  <Plus size={18} />
+                  Add task text
+                </button>
+              </div>
+              {presetActivities.length === 0 ? (
+                <p className="text-sm text-gray-400">No saved task descriptions yet.</p>
+              ) : (
+                <ul className="space-y-2 max-h-64 overflow-y-auto border border-gray-100 rounded-lg p-2 bg-gray-50/80">
+                  {presetActivities.map((act) => (
+                    <li
+                      key={act}
+                      className="flex items-start justify-between gap-2 text-sm bg-white border border-gray-200 rounded-md px-3 py-2"
+                    >
+                      <span className="text-gray-800 whitespace-pre-wrap break-words" title={act}>
+                        {act.length > 200 ? `${act.slice(0, 200)}…` : act}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => deleteActivity(act)}
+                        className="shrink-0 text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
+                        title="Remove"
+                      >
+                        <Trash2 size={16} aria-hidden />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
