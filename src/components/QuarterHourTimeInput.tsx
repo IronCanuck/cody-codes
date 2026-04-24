@@ -22,6 +22,11 @@ type Props = {
   className?: string;
   required?: boolean;
   disabled?: boolean;
+  /**
+   * When true, `onChange` runs only after the picker closes (hour/minute/AM-PM
+   * adjustments stay local until then). Default false for existing forms.
+   */
+  deferCommit?: boolean;
 };
 
 export function QuarterHourTimeInput({
@@ -31,18 +36,35 @@ export function QuarterHourTimeInput({
   className = '',
   required: _required,
   disabled = false,
+  deferCommit = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<TwelveHourParts>(defaultPartsFromNow);
   const wrapRef = useRef<HTMLDivElement>(null);
   const prevOpen = useRef(false);
+  const draftRef = useRef(draft);
+  const openedSnapshotRef = useRef('');
 
   useEffect(() => {
-    if (open && !prevOpen.current) {
-      setDraft(timeInputToTwelveHour(value) ?? defaultPartsFromNow());
+    draftRef.current = draft;
+  }, [draft]);
+
+  useEffect(() => {
+    const wasOpen = prevOpen.current;
+    if (open && !wasOpen) {
+      const p = timeInputToTwelveHour(value) ?? defaultPartsFromNow();
+      openedSnapshotRef.current = value;
+      setDraft(p);
+      draftRef.current = p;
+    }
+    if (!open && wasOpen && deferCommit) {
+      const nextHhmm = twelveHourToTimeInput(draftRef.current);
+      if (nextHhmm !== openedSnapshotRef.current) {
+        onChange(nextHhmm);
+      }
     }
     prevOpen.current = open;
-  }, [open, value]);
+  }, [open, value, deferCommit, onChange]);
 
   useEffect(() => {
     if (!open) return;
@@ -64,7 +86,10 @@ export function QuarterHourTimeInput({
 
   const apply = (next: TwelveHourParts) => {
     setDraft(next);
-    onChange(twelveHourToTimeInput(next));
+    draftRef.current = next;
+    if (!deferCommit) {
+      onChange(twelveHourToTimeInput(next));
+    }
   };
 
   const display = value ? formatTimeInputDisplay(value) : '';
@@ -97,7 +122,7 @@ export function QuarterHourTimeInput({
                 <button
                   key={h}
                   type="button"
-                  onClick={() => apply({ ...draft, hour12: h })}
+                  onClick={() => apply({ ...draftRef.current, hour12: h })}
                   className={`flex w-full items-center justify-center px-2 py-2 text-sm font-semibold transition-colors ${
                     draft.hour12 === h
                       ? 'bg-blue-600 text-white'
@@ -113,7 +138,7 @@ export function QuarterHourTimeInput({
                 <button
                   key={m}
                   type="button"
-                  onClick={() => apply({ ...draft, minute: m })}
+                  onClick={() => apply({ ...draftRef.current, minute: m })}
                   className={`flex w-full items-center justify-center px-2 py-2 text-sm font-semibold transition-colors ${
                     draft.minute === m
                       ? 'bg-blue-600 text-white'
@@ -129,7 +154,7 @@ export function QuarterHourTimeInput({
                 <button
                   key={p}
                   type="button"
-                  onClick={() => apply({ ...draft, period: p })}
+                  onClick={() => apply({ ...draftRef.current, period: p })}
                   className={`flex w-full items-center justify-center px-2 py-2 text-sm font-semibold transition-colors ${
                     draft.period === p
                       ? 'bg-blue-600 text-white'

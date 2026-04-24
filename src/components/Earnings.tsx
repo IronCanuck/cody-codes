@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   DollarSign,
@@ -26,6 +33,7 @@ import {
   formatPeriodLabel,
   getPayPeriodForDate,
   shiftPayPeriod,
+  type DayBreakdown,
   type PayPeriod,
 } from '../lib/earnings';
 import {
@@ -34,6 +42,7 @@ import {
   formatTime,
   getWorkDayHoursWithLunch,
   toLocalDateInputValue,
+  toLocalTimeInputValue,
 } from '../lib/time';
 import { QuarterHourTimeInput } from './QuarterHourTimeInput';
 import { generatePayPeriodPDF } from '../lib/pdf';
@@ -95,6 +104,7 @@ export function Earnings({
   const [summarySelectedDates, setSummarySelectedDates] = useState<string[]>([]);
   const [summaryBulkMode, setSummaryBulkMode] = useState(false);
   const [summaryBulkBusy, setSummaryBulkBusy] = useState(false);
+  const [dayTimeSaving, setDayTimeSaving] = useState<string | null>(null);
   const summarySelectAllRef = useRef<HTMLInputElement>(null);
 
   const defaultLogDate = useMemo(() => defaultLogDateForPeriod(period), [period]);
@@ -183,6 +193,63 @@ export function Earnings({
     setDuplicateTarget(addOneCalendarDayYmd(d));
     setSummarySelectedDates([]);
   };
+
+  const persistWorkDayTimes = useCallback(
+    async (
+      d: DayBreakdown,
+      nextStartHhmm: string | null,
+      nextEndHhmm: string | null,
+    ) => {
+      if (!d.workDayClockSource || !d.dayStartTime || !d.dayEndTime) return;
+      const startIso =
+        nextStartHhmm != null ? combineDateAndTime(d.date, nextStartHhmm) : d.dayStartTime;
+      const endIso =
+        nextEndHhmm != null ? combineDateAndTime(d.date, nextEndHhmm) : d.dayEndTime;
+      const { hours } = getWorkDayHoursWithLunch(startIso, endIso);
+      if (hours <= 0) {
+        onError('End time must be after start time on that day.');
+        return;
+      }
+      setDayTimeSaving(d.date);
+      try {
+        if (d.workDayClockSource === 'report') {
+          if (!d.dailyReportId) {
+            onError('Missing report record for this day.');
+            return;
+          }
+          const { error } = await supabase
+            .from('saved_daily_reports')
+            .update({
+              day_start_time: startIso,
+              day_end_time: endIso,
+              day_hours: hours,
+            })
+            .eq('id', d.dailyReportId);
+          if (error) throw error;
+        } else {
+          if (!d.singleJobId) {
+            onError('Missing job entry for this day.');
+            return;
+          }
+          const { error } = await supabase
+            .from('jobs')
+            .update({
+              start_time: startIso,
+              end_time: endIso,
+              hours_worked: hours,
+            })
+            .eq('id', d.singleJobId);
+          if (error) throw error;
+        }
+        onSaved('Work day times updated');
+      } catch (e) {
+        onError(e instanceof Error ? e.message : 'Could not save times');
+      } finally {
+        setDayTimeSaving(null);
+      }
+    },
+    [onError, onSaved],
+  );
 
   const runBulkDeleteSummary = async () => {
     const sorted = [...summarySelectedDates].sort();
@@ -943,7 +1010,11 @@ export function Earnings({
                 </div>
               </div>
             )}
-            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+            <div
+              className={`border border-gray-200 rounded-lg ${
+                summaryBulkMode ? 'overflow-visible' : 'overflow-x-auto'
+              }`}
+            >
               <table className="w-full text-sm">
                 <thead className="bg-jd-green-600 text-white">
                   <tr>
@@ -1001,7 +1072,40 @@ export function Earnings({
                         <td className="px-4 py-2 text-gray-700 whitespace-nowrap">
                           {formatDate(d.date)}
                         </td>
-                        <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{range}</td>
+                        <td
+                          className={`px-2 sm:px-4 py-2 text-gray-600 align-middle ${
+                            summaryBulkMode && d.workDayClockSource
+                              ? 'relative z-20 whitespace-normal min-w-[11rem]'
+                              : 'whitespace-nowrap'
+                          }`}
+                        >
+                          {summaryBulkMode &&
+                          d.workDayClockSource &&
+                          d.dayStartTime &&
+                          d.dayEndTime ? (
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <QuarterHourTimeInput
+                                value={toLocalTimeInputValue(new Date(d.dayStartTime))}
+                                onChange={(hhmm) => void persistWorkDayTimes(d, hhmm, null)}
+                                deferCommit
+                                disabled={dayTimeSaving === d.date || busy}
+                                className="w-[5.25rem] text-xs px-1 py-0.5 rounded border border-gray-300 bg-white"
+                              />
+                              <span className="text-gray-400 shrink-0" aria-hidden>
+                                –
+                              </span>
+                              <QuarterHourTimeInput
+                                value={toLocalTimeInputValue(new Date(d.dayEndTime))}
+                                onChange={(hhmm) => void persistWorkDayTimes(d, null, hhmm)}
+                                deferCommit
+                                disabled={dayTimeSaving === d.date || busy}
+                                className="w-[5.25rem] text-xs px-1 py-0.5 rounded border border-gray-300 bg-white"
+                              />
+                            </div>
+                          ) : (
+                            range
+                          )}
+                        </td>
                         <td className="px-4 py-2 text-right font-semibold text-gray-800">
                           {d.totalHours.toFixed(2)}
                         </td>

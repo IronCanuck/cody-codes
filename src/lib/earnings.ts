@@ -111,6 +111,10 @@ export type DayBreakdown = {
   jobs: Job[];
   dayStartTime: string | null;
   dayEndTime: string | null;
+  /** Set when start/end come from an archived daily report (editable in bulk mode). */
+  workDayClockSource: 'report' | 'single_job' | null;
+  dailyReportId: string | null;
+  singleJobId: string | null;
 };
 
 function buildDayBreakdowns(
@@ -148,16 +152,23 @@ function buildDayBreakdowns(
     let totalHours: number;
     let dayStartTime: string | null = null;
     let dayEndTime: string | null = null;
+    let workDayClockSource: DayBreakdown['workDayClockSource'] = null;
+    let dailyReportId: string | null = null;
+    let singleJobId: string | null = null;
 
     if (hasReportClock) {
       totalHours = getWorkDayHoursWithLunch(repStart!, repEnd!).hours;
       dayStartTime = repStart!;
       dayEndTime = repEnd!;
+      workDayClockSource = 'report';
+      dailyReportId = report!.id;
     } else if (dayJobs.length === 1 && hasSingleJobClock) {
       const j = dayJobs[0];
       totalHours = getWorkDayHoursWithLunch(j.start_time, j.end_time).hours;
       dayStartTime = j.start_time;
       dayEndTime = j.end_time;
+      workDayClockSource = 'single_job';
+      singleJobId = j.id;
     } else {
       totalHours = report != null ? Number(report.day_hours) : fromTasks;
     }
@@ -177,6 +188,9 @@ function buildDayBreakdowns(
       jobs: dayJobs,
       dayStartTime,
       dayEndTime,
+      workDayClockSource,
+      dailyReportId,
+      singleJobId,
     });
   }
 
