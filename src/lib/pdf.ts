@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Job, Settings } from './supabase';
-import { formatTime, formatDate, computeHours } from './time';
+import { formatTime, formatDate, computeHours, getWorkDayHoursWithLunch } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
 
 const JD_GREEN: [number, number, number] = [54, 124, 43];
@@ -138,12 +138,13 @@ export function buildDailyWorkReportPdf(
   const doc = new jsPDF();
   drawHeader(doc, 'Daily Work Report', formatDate(date));
 
-  const dayHrs = computeHours(dayStartIso, dayEndIso);
+  const { hours: dayHrs, lunchDeducted } = getWorkDayHoursWithLunch(dayStartIso, dayEndIso);
+  const lunchNote = lunchDeducted ? ' — 30 min unpaid lunch deducted' : '';
   doc.setFontSize(10);
   doc.setTextColor(60, 60, 60);
   doc.setFont('helvetica', 'normal');
   doc.text(
-    `Work day: ${formatTime(dayStartIso)} – ${formatTime(dayEndIso)} (${dayHrs.toFixed(2)} hrs)`,
+    `Work day: ${formatTime(dayStartIso)} – ${formatTime(dayEndIso)} (${dayHrs.toFixed(2)} hrs)${lunchNote}`,
     14,
     58,
   );

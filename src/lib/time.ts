@@ -6,6 +6,38 @@ export function computeHours(start: string, end: string): number {
   return Math.round(((e - s) / (1000 * 60 * 60)) * 100) / 100;
 }
 
+/** Raw span over this many hours gets an unpaid lunch deduction. */
+const WORK_DAY_LUNCH_DEDUCT_AFTER_HOURS = 6;
+const UNPAID_LUNCH_HOURS = 0.5;
+
+export type WorkDayHoursWithLunch = {
+  /** Hours used for pay/totals (after lunch deduction when applicable). */
+  hours: number;
+  /** Uncorrected clock span. */
+  rawHours: number;
+  /** True when raw span exceeded the threshold and lunch was subtracted. */
+  lunchDeducted: boolean;
+};
+
+/**
+ * Work-day span in hours, with 30 min unpaid lunch removed when the raw span
+ * is strictly longer than 6 hours.
+ */
+export function getWorkDayHoursWithLunch(
+  start: string,
+  end: string,
+): WorkDayHoursWithLunch {
+  const rawHours = computeHours(start, end);
+  if (rawHours <= 0) {
+    return { hours: 0, rawHours: 0, lunchDeducted: false };
+  }
+  const lunchDeducted = rawHours > WORK_DAY_LUNCH_DEDUCT_AFTER_HOURS;
+  const hours = lunchDeducted
+    ? Math.max(0, Math.round((rawHours - UNPAID_LUNCH_HOURS) * 100) / 100)
+    : rawHours;
+  return { hours, rawHours, lunchDeducted };
+}
+
 export function formatTime(iso: string): string {
   if (!iso) return '';
   const d = new Date(iso);

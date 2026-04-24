@@ -1,6 +1,6 @@
 import html2canvas from 'html2canvas';
 import { Job, Settings } from './supabase';
-import { formatTime, formatDate, computeHours } from './time';
+import { formatTime, formatDate, getWorkDayHoursWithLunch } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
 
 const JD_GREEN = '#367C2B';
@@ -113,11 +113,15 @@ async function renderAndDownload(html: string, filename: string) {
 }
 
 function dayWorkSummaryLine(dayStartIso: string, dayEndIso: string): string {
-  const h = computeHours(dayStartIso, dayEndIso);
+  const { hours, lunchDeducted } = getWorkDayHoursWithLunch(dayStartIso, dayEndIso);
+  const foot = lunchDeducted
+    ? '<div style="margin-top:8px; font-size: 11px; color: #3d3d3d; line-height:1.35;">0.5 hr (30 min) unpaid lunch subtracted from clock time (shifts over 6 hr).</div>'
+    : '<div style="margin-top:8px; font-size: 11px; color: #5a5a5a; line-height:1.35;">Shifts over 6 hr: 0.5 hr unpaid lunch is subtracted from clock time in the total above.</div>';
   return `<div style="background: #f1f8ee; border: 1px solid #367C2B; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #1a1a1a;">
     <strong style="color: #367C2B;">Work day</strong>
     &nbsp; ${formatTime(dayStartIso)} – ${formatTime(dayEndIso)}
-    &nbsp; <span style="font-weight: 700; color: #367C2B;">${h.toFixed(2)} hrs</span>
+    &nbsp; <span style="font-weight: 700; color: #367C2B;">${hours.toFixed(2)} hrs</span>
+    ${foot}
   </div>`;
 }
 

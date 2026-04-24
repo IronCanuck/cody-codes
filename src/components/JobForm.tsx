@@ -14,6 +14,7 @@ import { supabase, Job } from '../lib/supabase';
 import {
   combineDateAndTime,
   computeHours,
+  getWorkDayHoursWithLunch,
   toLocalDateInputValue,
   toLocalTimeInputValue,
 } from '../lib/time';
@@ -406,7 +407,10 @@ function DailyJobTrackerForm({
 
   const dayStartIso = combineDateAndTime(form.workDate, form.dayStartTime);
   const dayEndIso = combineDateAndTime(form.workDate, form.dayEndTime);
-  const dayHours = computeHours(dayStartIso, dayEndIso);
+  const { hours: dayHours, lunchDeducted: dayLunchDeducted } = getWorkDayHoursWithLunch(
+    dayStartIso,
+    dayEndIso,
+  );
 
   const stampDayNow = (field: 'dayStartTime' | 'dayEndTime') => {
     setForm((f) => ({ ...f, [field]: toLocalTimeInputValue(new Date()) }));
@@ -646,12 +650,19 @@ function DailyJobTrackerForm({
           </div>
         </div>
 
-        <div className="bg-jd-green-50 border border-jd-green-200 rounded-lg px-4 py-3 flex items-center justify-between">
-          <span className="text-sm font-medium text-jd-green-800">Total work day</span>
-          <span className="text-2xl font-bold text-jd-green-700">
-            {dayHours.toFixed(2)}
-            <span className="text-sm font-medium ml-1 text-jd-green-600">hrs</span>
-          </span>
+        <div className="bg-jd-green-50 border border-jd-green-200 rounded-lg overflow-hidden">
+          <div className="px-4 py-3 flex items-center justify-between">
+            <span className="text-sm font-medium text-jd-green-800">Total work day</span>
+            <span className="text-2xl font-bold text-jd-green-700">
+              {dayHours.toFixed(2)}
+              <span className="text-sm font-medium ml-1 text-jd-green-600">hrs</span>
+            </span>
+          </div>
+          <p className="px-4 pb-3 text-xs text-jd-green-800/80 leading-snug border-t border-jd-green-200/80 pt-2">
+            {dayLunchDeducted
+              ? '0.5 hr (30 min) unpaid lunch has been subtracted from your clock time; this total is what gets saved for the day.'
+              : 'If your shift is longer than 6 hours, 0.5 hr (30 min) unpaid lunch is subtracted from clock time in the total above.'}
+          </p>
         </div>
 
         <div className="pt-1 border-t border-gray-100">
