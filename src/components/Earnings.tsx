@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
   DollarSign,
@@ -14,8 +14,9 @@ import {
   Pencil,
   List,
   Landmark,
+  X,
 } from 'lucide-react';
-import { Job, Settings, SavedDailyReport } from '../lib/supabase';
+import { supabase, Job, Settings, SavedDailyReport } from '../lib/supabase';
 import { estimateAlbertaEmploymentNet, ALBERTA_NET_DISCLAIMER } from '../lib/canada-alberta-estimate';
 import {
   computeEarnings,
@@ -25,7 +26,13 @@ import {
   shiftPayPeriod,
   type PayPeriod,
 } from '../lib/earnings';
-import { formatDate, formatTime, toLocalDateInputValue } from '../lib/time';
+import {
+  combineDateAndTime,
+  computeHours,
+  formatDate,
+  formatTime,
+  toLocalDateInputValue,
+} from '../lib/time';
 import { generatePayPeriodPDF } from '../lib/pdf';
 import { generatePayPeriodPNG } from '../lib/png';
 
@@ -34,6 +41,8 @@ type Props = {
   settings: Settings;
   dailyReports: SavedDailyReport[];
   onSuccess: (msg: string) => void;
+  onSaved: (msg: string) => void;
+  onError: (msg: string) => void;
   onEditJob: (j: Job) => void;
 };
 
@@ -49,9 +58,22 @@ function defaultLogDateForPeriod(p: PayPeriod): string {
   return toLocalDateInputValue(p.start);
 }
 
-export function Earnings({ jobs, settings, dailyReports, onSuccess, onEditJob }: Props) {
+export function Earnings({
+  jobs,
+  settings,
+  dailyReports,
+  onSuccess,
+  onSaved,
+  onError,
+  onEditJob,
+}: Props) {
   const [period, setPeriod] = useState(() => getPayPeriodForDate(new Date(), settings));
   const [exporting, setExporting] = useState(false);
+  const [quickLogOpen, setQuickLogOpen] = useState(false);
+  const [quickDate, setQuickDate] = useState(() => toLocalDateInputValue(new Date()));
+  const [quickStart, setQuickStart] = useState('');
+  const [quickEnd, setQuickEnd] = useState('');
+  const [quickSaving, setQuickSaving] = useState(false);
 
   const defaultLogDate = useMemo(() => defaultLogDateForPeriod(period), [period]);
 
@@ -113,8 +135,150 @@ export function Earnings({ jobs, settings, dailyReports, onSuccess, onEditJob }:
     }
   };
 
+  const openQuickLog = () => {
+    setQuickDate(defaultLogDate);
+    setQuickStart('');
+    setQuickEnd('');
+    setQuickLogOpen(true);
+  };
+
+  const submitQuickLog = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!quickDate || !quickStart || !quickEnd) {
+      onError('Set date, start time, and end time.');
+      return;
+    }
+    const startIso = combineDateAndTime(quickDate, quickStart);
+    const endIso = combineDateAndTime(quickDate, quickEnd);
+    const hours = computeHours(startIso, endIso);
+    if (hours <= 0) {
+      onError('End time must be after start time on that day.');
+      return;
+    }
+    setQuickSaving(true);
+    try {
+      const { error } = await supabase.from('jobs').insert({
+        job_date: quickDate,
+        start_time: startIso,
+        end_time: endIso,
+        hours_worked: hours,
+        activity: 'Hours',
+        site: '',
+        notes: '',
+      });
+      if (error) throw error;
+      onSaved(`Logged ${hours.toFixed(2)} hours for ${formatDate(quickDate)}`);
+      setQuickLogOpen(false);
+    } catch (err) {
+      onError(err instanceof Error ? err.message : 'Could not save hours');
+    } finally {
+      setQuickSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {quickLogOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40"
+          role="presentation"
+          onClick={() => !quickSaving && setQuickLogOpen(false)}
+        >
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="quick-log-title"
+            onClick={(ev) => ev.stopPropagation()}
+            onSubmit={submitQuickLog}
+            className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden"
+          >
+            <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between gap-3 bg-jd-green-50">
+              <h2 id="quick-log-title" className="text-lg font-bold text-jd-green-800">
+                Add hours
+              </h2>
+              <button
+                type="button"
+                onClick={() => !quickSaving && setQuickLogOpen(false)}
+                className="p-1.5 rounded-lg text-jd-green-800 hover:bg-jd-green-100"
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label htmlFor="quick-log-date" className="block text-sm font-medium text-gray-700 mb-1">
+                  Date
+                </label>
+                <input
+                  id="quick-log-date"
+                  type="date"
+                  value={quickDate}
+                  onChange={(e) => setQuickDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label
+                    htmlFor="quick-log-start"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Start
+                  </label>
+                  <input
+                    id="quick-log-start"
+                    type="time"
+                    value={quickStart}
+                    onChange={(e) => setQuickStart(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="quick-log-end"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    End
+                  </label>
+                  <input
+                    id="quick-log-end"
+                    type="time"
+                    value={quickEnd}
+                    onChange={(e) => setQuickEnd(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    required
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500">
+                Saves as a single work block with activity &ldquo;Hours&rdquo;. Use Log work for
+                full daily details and daily reports.
+              </p>
+            </div>
+            <div className="px-5 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setQuickLogOpen(false)}
+                disabled={quickSaving}
+                className="px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-300 rounded-lg hover:bg-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={quickSaving}
+                className="px-4 py-2 text-sm font-semibold bg-jd-green-600 hover:bg-jd-green-700 text-white rounded-lg disabled:opacity-60"
+              >
+                {quickSaving ? 'Saving…' : 'Save hours'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <div className="bg-gradient-to-br from-jd-green-600 to-jd-green-700 rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-5 flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-start gap-4">
@@ -177,11 +341,18 @@ export function Earnings({ jobs, settings, dailyReports, onSuccess, onEditJob }:
             These totals use hours from logged jobs. Add or change entries below, or on Log Job.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Link
-              to={`/consaltyapp/log?date=${encodeURIComponent(defaultLogDate)}`}
+            <button
+              type="button"
+              onClick={openQuickLog}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-jd-green-600 hover:bg-jd-green-700 text-white text-sm font-semibold rounded-lg shadow-sm"
             >
-              <Plus size={16} /> Log work
+              <Plus size={16} /> Add hours
+            </button>
+            <Link
+              to={`/consaltyapp/log?date=${encodeURIComponent(defaultLogDate)}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-jd-green-600 text-jd-green-800 text-sm font-semibold rounded-lg hover:bg-jd-green-50"
+            >
+              Log work
             </Link>
             <Link
               to="/consaltyapp/history"
@@ -389,12 +560,21 @@ export function Earnings({ jobs, settings, dailyReports, onSuccess, onEditJob }:
             {earnings.weeks.length === 0 && (
               <div className="text-sm text-gray-500 text-center py-8 space-y-3">
                 <p>No hours logged in this pay period.</p>
-                <Link
-                  to={`/consaltyapp/log?date=${encodeURIComponent(defaultLogDate)}`}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-jd-green-600 hover:bg-jd-green-700 text-white font-semibold rounded-lg text-sm"
-                >
-                  <Plus size={16} /> Log work for this period
-                </Link>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={openQuickLog}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-jd-green-600 hover:bg-jd-green-700 text-white font-semibold rounded-lg text-sm"
+                  >
+                    <Plus size={16} /> Add hours
+                  </button>
+                  <Link
+                    to={`/consaltyapp/log?date=${encodeURIComponent(defaultLogDate)}`}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 border border-jd-green-600 text-jd-green-800 font-semibold rounded-lg text-sm hover:bg-jd-green-50"
+                  >
+                    Log work for this period
+                  </Link>
+                </div>
               </div>
             )}
           </div>

@@ -81,7 +81,8 @@ export function JobTrackerHistoryPage() {
 }
 
 export function JobTrackerEarningsPage() {
-  const { jobs, settings, dailyReports, onEarningsSuccess, onEdit } = useJobTrackerOutlet();
+  const { jobs, settings, dailyReports, onEarningsSuccess, onEdit, onSaved, onError } =
+    useJobTrackerOutlet();
   if (!settings) {
     return <div className="text-gray-500 text-center py-12">Loading settings...</div>;
   }
@@ -91,6 +92,8 @@ export function JobTrackerEarningsPage() {
       settings={settings}
       dailyReports={dailyReports}
       onSuccess={onEarningsSuccess}
+      onSaved={onSaved}
+      onError={onError}
       onEditJob={onEdit}
     />
   );
