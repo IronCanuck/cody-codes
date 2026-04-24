@@ -38,6 +38,65 @@ type TaskBlock = {
   notes: string;
 };
 
+type DailyFormState = {
+  workDate: string;
+  dayStartTime: string;
+  dayEndTime: string;
+  blocks: TaskBlock[];
+};
+
+const DAILY_FORM_DRAFT_KEY = (workDate: string) => `jobTracker:dailyForm:${workDate}`;
+
+function isTaskBlock(x: unknown): x is TaskBlock {
+  if (!x || typeof x !== 'object') return false;
+  const o = x as Record<string, unknown>;
+  return (
+    typeof o.id === 'string' &&
+    typeof o.startTime === 'string' &&
+    typeof o.endTime === 'string' &&
+    typeof o.site === 'string' &&
+    typeof o.activity === 'string' &&
+    typeof o.notes === 'string'
+  );
+}
+
+function isDailyFormState(x: unknown): x is DailyFormState {
+  if (!x || typeof x !== 'object') return false;
+  const o = x as Record<string, unknown>;
+  if (typeof o.workDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(o.workDate)) return false;
+  if (typeof o.dayStartTime !== 'string' || typeof o.dayEndTime !== 'string') return false;
+  if (!Array.isArray(o.blocks) || o.blocks.length < 1) return false;
+  return o.blocks.every(isTaskBlock);
+}
+
+function loadDailyFormDraft(workDate: string): DailyFormState | null {
+  try {
+    const raw = localStorage.getItem(DAILY_FORM_DRAFT_KEY(workDate));
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!isDailyFormState(parsed) || parsed.workDate !== workDate) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveDailyFormDraft(state: DailyFormState): void {
+  try {
+    localStorage.setItem(DAILY_FORM_DRAFT_KEY(state.workDate), JSON.stringify(state));
+  } catch {
+    /* storage full or disabled */
+  }
+}
+
+function clearDailyFormDraft(workDate: string): void {
+  try {
+    localStorage.removeItem(DAILY_FORM_DRAFT_KEY(workDate));
+  } catch {
+    /* ignore */
+  }
+}
+
 function newTaskBlock(): TaskBlock {
   return {
     id: crypto.randomUUID(),
@@ -61,7 +120,7 @@ function emptySingleJobState() {
   };
 }
 
-function emptyDailyState() {
+function emptyDailyState(): DailyFormState {
   const now = new Date();
   return {
     workDate: toLocalDateInputValue(now),
@@ -320,18 +379,21 @@ function DailyJobTrackerForm({
     initialWorkDate && /^\d{4}-\d{2}-\d{2}$/.test(initialWorkDate) ? initialWorkDate : null;
 
   const [form, setForm] = useState(() => {
-    const base = emptyDailyState();
-    if (validInitial) {
-      return { ...base, workDate: validInitial };
-    }
-    return base;
+    const wd = validInitial ?? toLocalDateInputValue(new Date());
+    const fromDraft = loadDailyFormDraft(wd);
+    if (fromDraft) return fromDraft;
+    return { ...emptyDailyState(), workDate: wd };
   });
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (validInitial) {
-      setForm((f) => ({ ...f, workDate: validInitial }));
-    }
+    if (!validInitial) return;
+    setForm((f) => {
+      if (f.workDate === validInitial) return f;
+      const d = loadDailyFormDraft(validInitial);
+      if (d) return d;
+      return { ...emptyDailyState(), workDate: validInitial };
+    });
   }, [validInitial]);
 
   const setBlocks = (updater: TaskBlock[] | ((prev: TaskBlock[]) => TaskBlock[])) => {
@@ -359,6 +421,11 @@ function DailyJobTrackerForm({
 
   const addBlock = () => {
     setBlocks((blocks) => [...blocks, newTaskBlock()]);
+  };
+
+  const saveTaskDraft = () => {
+    saveDailyFormDraft(form);
+    onSaved('Saved on this device — your tasks for this work day are kept until you submit.');
   };
 
   const resetToNextDay = (fromDate: string) => {
@@ -482,6 +549,7 @@ function DailyJobTrackerForm({
       }
 
       const submittedDate = form.workDate;
+      clearDailyFormDraft(submittedDate);
       resetToNextDay(submittedDate);
     } catch (err) {
       onError(err instanceof Error ? err.message : 'Failed to submit daily report');
@@ -513,7 +581,16 @@ function DailyJobTrackerForm({
           <input
             type="date"
             value={form.workDate}
-            onChange={(e) => setForm({ ...form, workDate: e.target.value })}
+            onChange={(e) => {
+              const newDate = e.target.value;
+              if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return;
+              const saved = loadDailyFormDraft(newDate);
+              if (saved) {
+                setForm(saved);
+              } else {
+                setForm({ ...emptyDailyState(), workDate: newDate });
+              }
+            }}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
             required
           />
@@ -585,6 +662,7 @@ function DailyJobTrackerForm({
                 block={block}
                 workDate={form.workDate}
                 onChange={(p) => updateBlock(block.id, p)}
+                onSaveDraft={saveTaskDraft}
                 onRemove={() => removeBlock(block.id)}
                 canDelete={form.blocks.length > 1}
               />
@@ -624,6 +702,7 @@ function TaskBlockCard({
   block,
   workDate,
   onChange,
+  onSaveDraft,
   onRemove,
   canDelete,
 }: {
@@ -631,6 +710,7 @@ function TaskBlockCard({
   block: TaskBlock;
   workDate: string;
   onChange: (p: Partial<TaskBlock>) => void;
+  onSaveDraft: () => void;
   onRemove: () => void;
   canDelete: boolean;
 }) {
@@ -644,18 +724,29 @@ function TaskBlockCard({
 
   return (
     <div className="border border-gray-200 rounded-xl p-4 space-y-4 bg-gray-50/50 shadow-sm">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <span className="text-sm font-bold text-jd-green-800">Task {index + 1}</span>
-        {canDelete && (
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            onClick={onRemove}
-            className="flex items-center gap-1 text-sm font-semibold text-red-600 hover:text-red-800 px-2 py-1 rounded-md hover:bg-red-50"
+            onClick={onSaveDraft}
+            title="Save all tasks and day times for this work day on this device"
+            className="flex items-center gap-1.5 text-xs font-semibold text-jd-green-800 bg-white border border-jd-green-300 hover:bg-jd-green-50 px-2.5 py-1.5 rounded-lg shadow-sm"
           >
-            <Trash2 size={16} />
-            Delete
+            <Save size={14} aria-hidden />
+            Save task
           </button>
-        )}
+          {canDelete && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="flex items-center gap-1 text-sm font-semibold text-red-600 hover:text-red-800 px-2 py-1 rounded-md hover:bg-red-50"
+            >
+              <Trash2 size={16} />
+              Delete
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
