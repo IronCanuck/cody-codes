@@ -22,6 +22,8 @@ import { dailyWorkReportPngBlob } from '../lib/png';
 
 type Props = {
   editing?: Job | null;
+  /** When logging (not editing), pre-fill the work day from e.g. ?date= on the Log page */
+  initialWorkDate?: string | null;
   onSaved: (msg: string) => void;
   onError: (msg: string) => void;
   onCancelEdit?: () => void;
@@ -69,7 +71,7 @@ function emptyDailyState() {
   };
 }
 
-export function JobForm({ editing, onSaved, onError, onCancelEdit }: Props) {
+export function JobForm({ editing, initialWorkDate, onSaved, onError, onCancelEdit }: Props) {
   if (editing) {
     return (
       <SingleJobForm
@@ -80,7 +82,13 @@ export function JobForm({ editing, onSaved, onError, onCancelEdit }: Props) {
       />
     );
   }
-  return <DailyJobTrackerForm onSaved={onSaved} onError={onError} />;
+  return (
+    <DailyJobTrackerForm
+      initialWorkDate={initialWorkDate}
+      onSaved={onSaved}
+      onError={onError}
+    />
+  );
 }
 
 function SingleJobForm({
@@ -300,14 +308,31 @@ function SingleJobForm({
 }
 
 function DailyJobTrackerForm({
+  initialWorkDate,
   onSaved,
   onError,
 }: {
+  initialWorkDate?: string | null;
   onSaved: (msg: string) => void;
   onError: (msg: string) => void;
 }) {
-  const [form, setForm] = useState(emptyDailyState);
+  const validInitial =
+    initialWorkDate && /^\d{4}-\d{2}-\d{2}$/.test(initialWorkDate) ? initialWorkDate : null;
+
+  const [form, setForm] = useState(() => {
+    const base = emptyDailyState();
+    if (validInitial) {
+      return { ...base, workDate: validInitial };
+    }
+    return base;
+  });
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (validInitial) {
+      setForm((f) => ({ ...f, workDate: validInitial }));
+    }
+  }, [validInitial]);
 
   const setBlocks = (updater: TaskBlock[] | ((prev: TaskBlock[]) => TaskBlock[])) => {
     setForm((f) => ({

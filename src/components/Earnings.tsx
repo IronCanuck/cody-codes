@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   DollarSign,
   ChevronLeft,
@@ -9,36 +10,55 @@ import {
   CalendarDays,
   FileText,
   FileImage,
+  Plus,
+  Pencil,
+  List,
 } from 'lucide-react';
-import { Job, Settings } from '../lib/supabase';
+import { Job, Settings, SavedDailyReport } from '../lib/supabase';
 import {
   computeEarnings,
   formatMoney,
   formatPeriodLabel,
   getPayPeriodForDate,
   shiftPayPeriod,
+  type PayPeriod,
 } from '../lib/earnings';
-import { formatDate } from '../lib/time';
+import { formatDate, formatTime, toLocalDateInputValue } from '../lib/time';
 import { generatePayPeriodPDF } from '../lib/pdf';
 import { generatePayPeriodPNG } from '../lib/png';
 
 type Props = {
   jobs: Job[];
   settings: Settings;
+  dailyReports: SavedDailyReport[];
   onSuccess: (msg: string) => void;
+  onEditJob: (j: Job) => void;
 };
 
-export function Earnings({ jobs, settings, onSuccess }: Props) {
+function isDateInPayPeriod(ymd: string, p: PayPeriod): boolean {
+  const s = toLocalDateInputValue(p.start);
+  const e = toLocalDateInputValue(p.end);
+  return ymd >= s && ymd <= e;
+}
+
+function defaultLogDateForPeriod(p: PayPeriod): string {
+  const today = toLocalDateInputValue(new Date());
+  if (isDateInPayPeriod(today, p)) return today;
+  return toLocalDateInputValue(p.start);
+}
+
+export function Earnings({ jobs, settings, dailyReports, onSuccess, onEditJob }: Props) {
   const [period, setPeriod] = useState(() => getPayPeriodForDate(new Date(), settings));
   const [exporting, setExporting] = useState(false);
 
+  const defaultLogDate = useMemo(() => defaultLogDateForPeriod(period), [period]);
+
   const earnings = useMemo(
-    () => computeEarnings(jobs, period, settings),
-    [jobs, period, settings],
+    () => computeEarnings(jobs, period, settings, dailyReports),
+    [jobs, period, settings, dailyReports],
   );
 
   const currency = settings.currency_symbol;
-  const threshold = Number(settings.overtime_threshold_hours);
   const otRate = Number(settings.hourly_rate) * Number(settings.overtime_multiplier);
 
   const summaryCards = [
@@ -145,6 +165,33 @@ export function Earnings({ jobs, settings, onSuccess }: Props) {
           </button>
         </div>
 
+        <div className="px-6 py-3 bg-white border-b border-gray-200 flex flex-wrap items-center gap-3 justify-between">
+          <p className="text-sm text-gray-600">
+            These totals use hours from logged jobs. Add or change entries below, or on Log Job.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to={`/consaltyapp/log?date=${encodeURIComponent(defaultLogDate)}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-jd-green-600 hover:bg-jd-green-700 text-white text-sm font-semibold rounded-lg shadow-sm"
+            >
+              <Plus size={16} /> Log work
+            </Link>
+            <Link
+              to="/consaltyapp/history"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50"
+            >
+              <List size={16} /> History
+            </Link>
+          </div>
+        </div>
+
+        <p className="px-6 pt-4 text-xs text-gray-500">
+          Regular vs overtime is calculated per calendar day: Mon–Fri first 8 hrs regular, Sat first
+          4 hrs regular, Sun all overtime. Days with a submitted daily report use your{' '}
+          <strong className="text-gray-700">total work day</strong> hours for that split; other days
+          use the sum of logged tasks.
+        </p>
+
         <div className="p-6 grid grid-cols-2 lg:grid-cols-4 gap-3">
           {summaryCards.map((c) => {
             const Icon = c.Icon;
@@ -189,13 +236,11 @@ export function Earnings({ jobs, settings, onSuccess }: Props) {
           <h3 className="font-bold text-gray-900 mb-3">Weekly Breakdown</h3>
           <div className="space-y-3">
             {earnings.weeks.map((w, i) => {
-              const pct = Math.min(100, (w.totalHours / threshold) * 100);
               const isOver = w.overtimeHours > 0;
-              const barColor = isOver
-                ? 'bg-jd-yellow-400'
-                : pct > 80
-                  ? 'bg-jd-green-400'
-                  : 'bg-jd-green-600';
+              const regPct =
+                w.totalHours > 0 ? (w.regularHours / w.totalHours) * 100 : 0;
+              const otPct =
+                w.totalHours > 0 ? (w.overtimeHours / w.totalHours) * 100 : 0;
               return (
                 <div
                   key={i}
@@ -218,23 +263,29 @@ export function Earnings({ jobs, settings, onSuccess }: Props) {
                         day: 'numeric',
                       })}
                     </div>
-                    <div className="text-sm font-bold text-jd-green-700">
-                      {formatMoney(w.regularPay + w.overtimePay, currency)}
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <Link
+                        to={`/consaltyapp/log?date=${encodeURIComponent(toLocalDateInputValue(w.weekStart))}`}
+                        className="text-xs font-semibold text-jd-green-700 hover:underline"
+                      >
+                        Log (week)
+                      </Link>
+                      <div className="text-sm font-bold text-jd-green-700">
+                        {formatMoney(w.regularPay + w.overtimePay, currency)}
+                      </div>
                     </div>
                   </div>
-                  <div className="h-2 bg-white rounded-full overflow-hidden mb-2 relative border border-gray-200">
+                  <div className="h-2 bg-white rounded-full overflow-hidden mb-2 flex border border-gray-200">
                     <div
-                      className={`h-full ${barColor} transition-all`}
-                      style={{ width: `${Math.min(100, pct)}%` }}
+                      className="h-full bg-jd-green-600 transition-all"
+                      style={{ width: `${regPct}%` }}
+                      title="Regular hours"
                     />
-                    {isOver && (
-                      <div
-                        className="absolute top-0 right-0 h-full bg-jd-yellow-500"
-                        style={{
-                          width: `${Math.min(100, (w.overtimeHours / threshold) * 100)}%`,
-                        }}
-                      />
-                    )}
+                    <div
+                      className="h-full bg-jd-yellow-400 transition-all"
+                      style={{ width: `${otPct}%` }}
+                      title="Overtime hours"
+                    />
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
                     <span>
@@ -255,16 +306,87 @@ export function Earnings({ jobs, settings, onSuccess }: Props) {
               );
             })}
             {earnings.weeks.length === 0 && (
-              <div className="text-sm text-gray-500 text-center py-8">
-                No hours logged in this pay period.
+              <div className="text-sm text-gray-500 text-center py-8 space-y-3">
+                <p>No hours logged in this pay period.</p>
+                <Link
+                  to={`/consaltyapp/log?date=${encodeURIComponent(defaultLogDate)}`}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-jd-green-600 hover:bg-jd-green-700 text-white font-semibold rounded-lg text-sm"
+                >
+                  <Plus size={16} /> Log work for this period
+                </Link>
               </div>
             )}
           </div>
         </div>
 
+        {earnings.days.length > 0 && (
+          <div className="px-6 pb-6">
+            <h3 className="font-bold text-gray-900 mb-3">Daily work summary</h3>
+            <p className="text-sm text-gray-500 mb-3">
+              Payroll hours and regular vs overtime from each work day (includes submitted daily
+              report times when available).
+            </p>
+            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+              <table className="w-full text-sm">
+                <thead className="bg-jd-green-600 text-white">
+                  <tr>
+                    <th className="text-left px-4 py-2 font-semibold">Date</th>
+                    <th className="text-left px-4 py-2 font-semibold">Work day</th>
+                    <th className="text-right px-4 py-2 font-semibold">Total</th>
+                    <th className="text-right px-4 py-2 font-semibold">Regular</th>
+                    <th className="text-right px-4 py-2 font-semibold">Overtime</th>
+                    <th className="text-right px-4 py-2 font-semibold">Pay</th>
+                    <th className="text-right px-4 py-2 font-semibold">Log</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {earnings.days.map((d, idx) => {
+                    const dayPay = d.regularPay + d.overtimePay;
+                    const range =
+                      d.dayStartTime && d.dayEndTime
+                        ? `${formatTime(d.dayStartTime)} – ${formatTime(d.dayEndTime)}`
+                        : '—';
+                    return (
+                      <tr
+                        key={d.date}
+                        className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                      >
+                        <td className="px-4 py-2 text-gray-700 whitespace-nowrap">
+                          {formatDate(d.date)}
+                        </td>
+                        <td className="px-4 py-2 text-gray-600 whitespace-nowrap">{range}</td>
+                        <td className="px-4 py-2 text-right font-semibold text-gray-800">
+                          {d.totalHours.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-2 text-right text-gray-700">
+                          {d.regularHours.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-2 text-right text-gray-700">
+                          {d.overtimeHours.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-2 text-right font-semibold text-jd-green-700">
+                          {formatMoney(dayPay, currency)}
+                        </td>
+                        <td className="px-4 py-2 text-right whitespace-nowrap">
+                          <Link
+                            to={`/consaltyapp/log?date=${encodeURIComponent(d.date)}`}
+                            className="text-xs font-semibold text-jd-green-700 hover:underline"
+                          >
+                            Log
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {earnings.weeks.some((w) => w.jobs.length > 0) && (
           <div className="px-6 pb-6">
-            <h3 className="font-bold text-gray-900 mb-3">Daily Log</h3>
+            <h3 className="font-bold text-gray-900 mb-3">Task log</h3>
             <div className="overflow-x-auto border border-gray-200 rounded-lg">
               <table className="w-full text-sm">
                 <thead className="bg-jd-green-600 text-white">
@@ -272,6 +394,7 @@ export function Earnings({ jobs, settings, onSuccess }: Props) {
                     <th className="text-left px-4 py-2 font-semibold">Date</th>
                     <th className="text-right px-4 py-2 font-semibold">Hours</th>
                     <th className="text-left px-4 py-2 font-semibold">Activity</th>
+                    <th className="text-right px-4 py-2 font-semibold">Edit</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -298,6 +421,16 @@ export function Earnings({ jobs, settings, onSuccess }: Props) {
                             <span className="font-medium text-gray-800">{j.site} — </span>
                           ) : null}
                           {j.activity}
+                        </td>
+                        <td className="px-4 py-2 text-right whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => onEditJob(j)}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-jd-green-700 hover:underline"
+                          >
+                            <Pencil size={14} />
+                            Edit
+                          </button>
                         </td>
                       </tr>
                     ))}

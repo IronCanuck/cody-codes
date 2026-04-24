@@ -1,8 +1,9 @@
 import { useOutletContext } from 'react-router-dom';
-import type { Job, Settings as SettingsType } from './supabase';
+import type { Job, Settings as SettingsType, SavedDailyReport } from './supabase';
 
 export type JobTrackerOutletContext = {
   jobs: Job[];
+  dailyReports: SavedDailyReport[];
   settings: SettingsType | null;
   loading: boolean;
   editing: Job | null;

@@ -178,8 +178,6 @@ export async function generatePayPeriodPNG(
   const currency = settings.currency_symbol;
   const rate = Number(settings.hourly_rate);
   const otMultiplier = Number(settings.overtime_multiplier);
-  const threshold = Number(settings.overtime_threshold_hours);
-
   const summaryTable = `
     <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 18px;">
       <thead>
@@ -252,7 +250,7 @@ export async function generatePayPeriodPNG(
 
   const body = `
     <div style="font-size: 10px; color: #5a5a5a; margin-bottom: 14px;">
-      Rate: ${formatMoney(rate, currency)}/hr &nbsp;|&nbsp; OT after ${threshold} hrs/wk @ ${otMultiplier.toFixed(2)}x (${formatMoney(rate * otMultiplier, currency)}/hr)
+      Rate: ${formatMoney(rate, currency)}/hr &nbsp;|&nbsp; OT: Mon–Fri after 8 hrs/day, Sat after 4 hrs/day, Sun all hrs @ ${otMultiplier.toFixed(2)}x (${formatMoney(rate * otMultiplier, currency)}/hr)
     </div>
     ${summaryTable}
     ${weeklyTable}

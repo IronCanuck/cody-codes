@@ -227,12 +227,10 @@ export function generatePayPeriodPDF(
   const currency = settings.currency_symbol;
   const rate = Number(settings.hourly_rate);
   const otMultiplier = Number(settings.overtime_multiplier);
-  const threshold = Number(settings.overtime_threshold_hours);
-
   doc.setFontSize(9);
   doc.setTextColor(90, 90, 90);
   doc.text(
-    `Rate: ${formatMoney(rate, currency)}/hr  |  OT after ${threshold} hrs/wk @ ${otMultiplier.toFixed(2)}x (${formatMoney(rate * otMultiplier, currency)}/hr)`,
+    `Rate: ${formatMoney(rate, currency)}/hr  |  OT: Mon–Fri after 8 hrs/day, Sat after 4 hrs/day, Sun all hrs @ ${otMultiplier.toFixed(2)}x (${formatMoney(rate * otMultiplier, currency)}/hr)`,
     14,
     58,
   );

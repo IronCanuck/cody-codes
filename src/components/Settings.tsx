@@ -83,53 +83,35 @@ export function Settings({ settings, onSave }: Props) {
             <Percent size={18} className="text-jd-green-600" /> Overtime
           </h3>
           <p className="text-sm text-gray-500 mb-4">
-            Weekly hours beyond the threshold are paid at the multiplier below.
+            Earnings use daily rules: Monday–Friday the first 8 hours are regular time; Saturday
+            the first 4 hours are regular; Sunday is overtime for the full day. Hours beyond those
+            limits use the multiplier below.
           </p>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Weekly Threshold (hours)
-              </label>
-              <input
-                type="number"
-                step="0.5"
-                min="0"
-                value={form.overtime_threshold_hours}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    overtime_threshold_hours: parseFloat(e.target.value) || 0,
-                  })
-                }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Overtime Multiplier
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                min="1"
-                value={form.overtime_multiplier}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    overtime_multiplier: parseFloat(e.target.value) || 1,
-                  })
-                }
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Overtime Multiplier
+            </label>
+            <input
+              type="number"
+              step="0.1"
+              min="1"
+              value={form.overtime_multiplier}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  overtime_multiplier: parseFloat(e.target.value) || 1,
+                })
+              }
+              className="w-full max-w-xs px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
+            />
           </div>
           <div className="mt-3 bg-jd-yellow-50 border border-jd-yellow-200 rounded-lg px-4 py-2.5 text-sm text-jd-green-800">
-            Overtime rate will be{' '}
+            Overtime rate:{' '}
             <span className="font-bold">
               {form.currency_symbol}
               {(form.hourly_rate * form.overtime_multiplier).toFixed(2)}/hr
-            </span>{' '}
-            after {form.overtime_threshold_hours} hrs in a week.
+            </span>
+            .
           </div>
         </section>
 

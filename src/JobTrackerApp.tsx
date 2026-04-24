@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { Link, Outlet, useNavigate, useSearchParams } from 'react-router-dom';
 import { Header } from './components/Header';
 import { useAuth } from './contexts/AuthContext';
 import { JobForm } from './components/JobForm';
@@ -16,20 +16,27 @@ import {
   Job,
   Settings as SettingsType,
   DEFAULT_SETTINGS,
+  SavedDailyReport,
 } from './lib/supabase';
 
 export function JobTrackerDashboardPage() {
-  const { jobs, settings } = useJobTrackerOutlet();
-  return <StatsBar jobs={jobs} settings={settings} />;
+  const { jobs, settings, dailyReports } = useJobTrackerOutlet();
+  return <StatsBar jobs={jobs} settings={settings} dailyReports={dailyReports} />;
 }
 
 export function JobTrackerLogPage() {
   const { editing, setEditing, onSaved, onError } = useJobTrackerOutlet();
+  const [searchParams] = useSearchParams();
+  const dateParam = searchParams.get('date');
+  const initialWorkDate =
+    !editing && dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : null;
+
   return (
     <div className="grid gap-6 lg:grid-cols-5">
       <div className="lg:col-span-3">
         <JobForm
           editing={editing}
+          initialWorkDate={initialWorkDate}
           onSaved={onSaved}
           onError={onError}
           onCancelEdit={() => setEditing(null)}
@@ -74,12 +81,18 @@ export function JobTrackerHistoryPage() {
 }
 
 export function JobTrackerEarningsPage() {
-  const { jobs, settings, onEarningsSuccess } = useJobTrackerOutlet();
+  const { jobs, settings, dailyReports, onEarningsSuccess } = useJobTrackerOutlet();
   if (!settings) {
     return <div className="text-gray-500 text-center py-12">Loading settings...</div>;
   }
   return (
-    <Earnings jobs={jobs} settings={settings} onSuccess={onEarningsSuccess} />
+    <Earnings
+      jobs={jobs}
+      settings={settings}
+      dailyReports={dailyReports}
+      onSuccess={onEarningsSuccess}
+      onEditJob={onEdit}
+    />
   );
 }
 
@@ -100,6 +113,7 @@ export function JobTrackerApp() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [dailyReports, setDailyReports] = useState<SavedDailyReport[]>([]);
   const [settings, setSettings] = useState<SettingsType | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Job | null>(null);
@@ -122,6 +136,18 @@ export function JobTrackerApp() {
       setJobs(data || []);
     }
     setLoading(false);
+  };
+
+  const loadDailyReports = async () => {
+    const { data, error } = await supabase
+      .from('saved_daily_reports')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) {
+      setDailyReports([]);
+    } else {
+      setDailyReports((data as SavedDailyReport[]) || []);
+    }
   };
 
   const loadSettings = async () => {
@@ -153,6 +179,7 @@ export function JobTrackerApp() {
   useEffect(() => {
     loadJobs();
     loadSettings();
+    void loadDailyReports();
   }, []);
 
   const handleSaveSettings = async (next: SettingsType) => {
@@ -180,6 +207,7 @@ export function JobTrackerApp() {
     setToast({ message: msg, type: 'success' });
     setEditing(null);
     loadJobs();
+    void loadDailyReports();
   };
 
   const handleError = (msg: string) => {
@@ -205,6 +233,7 @@ export function JobTrackerApp() {
 
   const outletContext: JobTrackerOutletContext = {
     jobs,
+    dailyReports,
     settings,
     loading,
     editing,

@@ -1,5 +1,5 @@
 import { Clock, CalendarDays, CalendarRange, DollarSign } from 'lucide-react';
-import { Job, Settings } from '../lib/supabase';
+import { Job, Settings, SavedDailyReport } from '../lib/supabase';
 import { getMonthBounds, getWeekBounds, toLocalDateInputValue } from '../lib/time';
 import {
   computeEarnings,
@@ -10,9 +10,10 @@ import {
 type Props = {
   jobs: Job[];
   settings: Settings | null;
+  dailyReports?: SavedDailyReport[];
 };
 
-export function StatsBar({ jobs, settings }: Props) {
+export function StatsBar({ jobs, settings, dailyReports = [] }: Props) {
   const now = new Date();
   const today = toLocalDateInputValue(now);
   const week = getWeekBounds(now);
@@ -31,7 +32,7 @@ export function StatsBar({ jobs, settings }: Props) {
   const monthJobs = jobs.filter((j) => inRange(j, month.start, month.end));
 
   const periodEarnings = settings
-    ? computeEarnings(jobs, getPayPeriodForDate(now, settings), settings)
+    ? computeEarnings(jobs, getPayPeriodForDate(now, settings), settings, dailyReports)
     : null;
 
   const cards: {
