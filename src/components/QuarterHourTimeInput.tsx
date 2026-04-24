@@ -114,7 +114,7 @@ export function QuarterHourTimeInput({
         <div
           role="dialog"
           aria-label="Choose time"
-          className="absolute left-0 right-0 z-50 mt-1 rounded-lg border border-gray-200 bg-white py-2 shadow-lg"
+          className="absolute left-0 right-0 z-[100] mt-1 rounded-lg border border-gray-200 bg-white py-2 shadow-lg"
         >
           <div className="flex max-h-52 divide-x divide-gray-100">
             <div className="min-w-0 flex-1 overflow-y-auto overscroll-contain">

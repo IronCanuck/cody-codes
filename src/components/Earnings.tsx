@@ -663,7 +663,7 @@ export function Earnings({
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden has-[[aria-expanded='true']]:overflow-visible">
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between gap-4">
           <button
             onClick={() => setPeriod(shiftPayPeriod(period, settings, -1))}
@@ -1015,7 +1015,13 @@ export function Earnings({
                 summaryBulkMode ? 'overflow-visible' : 'overflow-x-auto'
               }`}
             >
-              <table className="w-full text-sm">
+              <table
+                className={`w-full text-sm ${
+                  summaryBulkMode
+                    ? "border-separate border-spacing-0 [&_tbody>tr:has([aria-expanded='true'])]:relative [&_tbody>tr:has([aria-expanded='true'])]:z-50"
+                    : ''
+                }`}
+              >
                 <thead className="bg-jd-green-600 text-white">
                   <tr>
                     {summaryBulkMode ? (
@@ -1075,7 +1081,7 @@ export function Earnings({
                         <td
                           className={`px-2 sm:px-4 py-2 text-gray-600 align-middle ${
                             summaryBulkMode && d.workDayClockSource
-                              ? 'relative z-20 whitespace-normal min-w-[11rem]'
+                              ? 'whitespace-normal min-w-[11rem]'
                               : 'whitespace-nowrap'
                           }`}
                         >
