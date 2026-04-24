@@ -14,20 +14,24 @@ body {
   color: #1a1a1a;
 }
 
-/* Custom scrollbar */
+/* Transparent scrollbar (WebKit + Firefox) */
+* {
+  scrollbar-color: transparent transparent;
+  scrollbar-width: thin;
+}
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #f5f5f5;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #b8daa8;
+  background: transparent;
   border-radius: 5px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #367C2B;
+  background: transparent;
 }
 
 @keyframes slideIn {
