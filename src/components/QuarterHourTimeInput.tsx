@@ -10,6 +10,10 @@ import {
 
 const HOURS_12 = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
 
+/** Scrollable picker columns: hide scrollbars (global styles paint them) but keep wheel/touch scroll. */
+const PICKER_COL_SCROLL =
+  'min-w-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden';
+
 function defaultPartsFromNow(): TwelveHourParts {
   const t = timeInputToTwelveHour(toLocalTimeInputValue(new Date()));
   return t ?? { hour12: 12, minute: 0, period: 'AM' };
@@ -117,7 +121,7 @@ export function QuarterHourTimeInput({
           className="absolute left-0 right-0 z-[100] mt-1 rounded-lg border border-gray-200 bg-white py-2 shadow-lg"
         >
           <div className="flex max-h-52 divide-x divide-gray-100">
-            <div className="min-w-0 flex-1 overflow-y-auto overscroll-contain">
+            <div className={PICKER_COL_SCROLL}>
               {HOURS_12.map((h) => (
                 <button
                   key={h}
@@ -133,7 +137,7 @@ export function QuarterHourTimeInput({
                 </button>
               ))}
             </div>
-            <div className="min-w-0 flex-1 overflow-y-auto overscroll-contain">
+            <div className={PICKER_COL_SCROLL}>
               {QUARTER_HOUR_MINUTES.map((m) => (
                 <button
                   key={m}
@@ -149,7 +153,7 @@ export function QuarterHourTimeInput({
                 </button>
               ))}
             </div>
-            <div className="min-w-0 flex-1 overflow-y-auto overscroll-contain">
+            <div className={PICKER_COL_SCROLL}>
               {(['AM', 'PM'] as const).map((p) => (
                 <button
                   key={p}
