@@ -59,11 +59,12 @@ export function Header({ active, onChange, onSignOut }: Props) {
               <button
                 type="button"
                 onClick={onSignOut}
-                className="flex items-center gap-1 px-2 sm:px-3 py-2 rounded-lg font-medium text-sm text-white hover:bg-jd-green-700 border border-white/20"
+                className="flex items-center gap-1.5 px-2 sm:px-3 py-2 rounded-lg font-medium text-sm text-white hover:bg-jd-green-700 border border-white/20"
                 title="Sign out"
+                aria-label="Sign out"
               >
-                <LogOut size={16} />
-                <span className="hidden lg:inline">Out</span>
+                <LogOut size={16} aria-hidden />
+                <span className="hidden sm:inline">Sign out</span>
               </button>
             )}
           </div>
