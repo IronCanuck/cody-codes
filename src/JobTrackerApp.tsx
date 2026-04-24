@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Header, Tab } from './components/Header';
+import { useAuth } from './contexts/AuthContext';
 import { JobForm } from './components/JobForm';
 import { JobList } from './components/JobList';
 import { Reports } from './components/Reports';
@@ -16,6 +17,7 @@ import {
 } from './lib/supabase';
 
 export function JobTrackerApp() {
+  const { signOut } = useAuth();
   const [tab, setTab] = useState<Tab>('log');
   const [jobs, setJobs] = useState<Job[]>([]);
   const [settings, setSettings] = useState<SettingsType | null>(null);
@@ -123,7 +125,11 @@ export function JobTrackerApp() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header active={tab} onChange={setTab} />
+      <Header
+        active={tab}
+        onChange={setTab}
+        onSignOut={() => void signOut()}
+      />
       <Toast toast={toast} onClose={() => setToast(null)} />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">

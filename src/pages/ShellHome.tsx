@@ -34,6 +34,12 @@ export function ShellHome() {
               Products
             </a>
             <Link
+              to="/login"
+              className="text-sm font-medium text-slate-600 hover:text-cody-finnish transition-colors"
+            >
+              Sign in
+            </Link>
+            <Link
               to="/consaltyapp"
               className="inline-flex items-center gap-1.5 rounded-lg bg-cody-finnish px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cody-finnish-dark transition-colors ring-1 ring-cody-finnish-dark/20"
             >
