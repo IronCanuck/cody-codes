@@ -11,6 +11,7 @@ import { Settings } from './components/Settings';
 import { Toast, ToastState } from './components/Toast';
 import type { JobTrackerOutletContext } from './lib/job-tracker-outlet';
 import { useJobTrackerOutlet } from './lib/job-tracker-outlet';
+import { getStoredEmployeeFullName, setStoredEmployeeFullName } from './lib/employee-name-storage';
 import {
   supabase,
   Job,
@@ -18,6 +19,15 @@ import {
   DEFAULT_SETTINGS,
   SavedDailyReport,
 } from './lib/supabase';
+
+const SETTINGS_ROW_INSERT = {
+  hourly_rate: DEFAULT_SETTINGS.hourly_rate,
+  overtime_multiplier: DEFAULT_SETTINGS.overtime_multiplier,
+  overtime_threshold_hours: DEFAULT_SETTINGS.overtime_threshold_hours,
+  pay_period_length_days: DEFAULT_SETTINGS.pay_period_length_days,
+  pay_period_anchor_date: DEFAULT_SETTINGS.pay_period_anchor_date,
+  currency_symbol: DEFAULT_SETTINGS.currency_symbol,
+} as const;
 export function JobTrackerDashboardPage() {
   const { jobs, settings, dailyReports } = useJobTrackerOutlet();
   return <StatsBar jobs={jobs} settings={settings} dailyReports={dailyReports} />;
@@ -198,18 +208,25 @@ export function JobTrackerApp() {
       setToast({ message: error.message, type: 'error' });
       return;
     }
+    const mergeLocalName = (row: SettingsType | Record<string, unknown>): SettingsType => {
+      const r = row as SettingsType;
+      const fromDb = typeof r.full_name === 'string' ? r.full_name : '';
+      const fromLocal = getStoredEmployeeFullName();
+      return { ...r, full_name: fromLocal || fromDb };
+    };
+
     if (data) {
-      setSettings(data);
+      setSettings(mergeLocalName(data as SettingsType));
     } else {
       const { data: created, error: createErr } = await supabase
         .from('settings')
-        .insert(DEFAULT_SETTINGS)
+        .insert(SETTINGS_ROW_INSERT)
         .select()
         .maybeSingle();
       if (createErr) {
         setToast({ message: createErr.message, type: 'error' });
       } else if (created) {
-        setSettings(created);
+        setSettings(mergeLocalName(created as SettingsType));
       }
     }
   };
@@ -221,10 +238,10 @@ export function JobTrackerApp() {
   }, []);
 
   const handleSaveSettings = async (next: SettingsType) => {
+    setStoredEmployeeFullName(next.full_name);
     const { error } = await supabase
       .from('settings')
       .update({
-        full_name: next.full_name,
         hourly_rate: next.hourly_rate,
         overtime_multiplier: next.overtime_multiplier,
         overtime_threshold_hours: next.overtime_threshold_hours,
@@ -237,7 +254,7 @@ export function JobTrackerApp() {
     if (error) {
       setToast({ message: error.message, type: 'error' });
     } else {
-      setSettings(next);
+      setSettings({ ...next, full_name: getStoredEmployeeFullName() });
       setToast({ message: 'Settings saved', type: 'success' });
     }
   };
