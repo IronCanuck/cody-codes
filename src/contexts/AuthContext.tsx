@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { clearAuthPersistPreference, supabase } from '../lib/supabase';
 
 type AuthContextValue = {
   session: Session | null;
@@ -47,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    clearAuthPersistPreference();
   }, []);
 
   const value = useMemo(

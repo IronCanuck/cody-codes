@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Leaf, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { resolveAuthEmail } from '../lib/auth-identities';
-import { supabase } from '../lib/supabase';
+import { setAuthPersistSession, supabase } from '../lib/supabase';
 
 function defaultAfterLoginPath(): string {
   return '/dashboard';
@@ -17,6 +17,7 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   const returnTo = searchParams.get('return') || defaultAfterLoginPath();
 
@@ -39,6 +40,7 @@ export function Login() {
       return;
     }
     setSubmitting(true);
+    setAuthPersistSession(rememberMe);
     const { error: signErr } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -125,6 +127,24 @@ export function Login() {
                 disabled={submitting}
                 required
               />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                id="login-remember"
+                name="remember"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={submitting}
+                className="h-4 w-4 rounded border-slate-300 text-cody-finnish focus:ring-cody-finnish"
+              />
+              <label
+                htmlFor="login-remember"
+                className="text-sm text-slate-700 select-none cursor-pointer"
+              >
+                Remember me on this device
+              </label>
             </div>
 
             {error && (
