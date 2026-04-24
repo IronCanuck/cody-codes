@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+  ArrowLeft,
   Leaf,
   LogOut,
   Plus,
@@ -14,6 +15,9 @@ import {
 import { Link, NavLink, useLocation } from 'react-router-dom';
 
 export const CONSALTY_APP_BASE = '/consaltyapp';
+
+/** Member hub (all apps) after sign-in */
+const MEMBER_HUB_PATH = '/dashboard';
 
 type Props = {
   onSignOut?: () => void;
@@ -126,6 +130,14 @@ export function Header({ onSignOut }: Props) {
                   </NavLink>
                 );
               })}
+              <NavLink
+                to={MEMBER_HUB_PATH}
+                onClick={() => setMenuOpen(false)}
+                className={({ isActive }) => drawerLinkClass(isActive)}
+              >
+                <ArrowLeft size={20} className="shrink-0" />
+                Return to Cody Codes
+              </NavLink>
             </nav>
             {onSignOut && (
               <div className="shrink-0 border-t border-jd-green-500 p-3">
