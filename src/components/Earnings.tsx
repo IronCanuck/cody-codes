@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   DollarSign,
@@ -92,8 +92,16 @@ export function Earnings({
   const [quickStart, setQuickStart] = useState('');
   const [quickEnd, setQuickEnd] = useState('');
   const [quickSaving, setQuickSaving] = useState(false);
+  const [summarySelectedDates, setSummarySelectedDates] = useState<string[]>([]);
+  const [summaryBulkBusy, setSummaryBulkBusy] = useState(false);
+  const summarySelectAllRef = useRef<HTMLInputElement>(null);
 
   const defaultLogDate = useMemo(() => defaultLogDateForPeriod(period), [period]);
+
+  const periodKey = `${toLocalDateInputValue(period.start)}-${toLocalDateInputValue(period.end)}`;
+  useEffect(() => {
+    setSummarySelectedDates([]);
+  }, [periodKey]);
 
   const earnings = useMemo(
     () => computeEarnings(jobs, period, settings, dailyReports),
@@ -119,6 +127,89 @@ export function Earnings({
     () => estimateAlbertaEmploymentNet(earnings.totalPay, settings.pay_period_length_days),
     [earnings.totalPay, settings.pay_period_length_days],
   );
+
+  const summaryDayYmds = useMemo(() => earnings.days.map((d) => d.date), [earnings.days]);
+  const allSummaryRowsSelected =
+    summaryDayYmds.length > 0 &&
+    summarySelectedDates.length === summaryDayYmds.length &&
+    summaryDayYmds.every((d) => summarySelectedDates.includes(d));
+
+  useEffect(() => {
+    const el = summarySelectAllRef.current;
+    if (!el) return;
+    el.indeterminate =
+      summarySelectedDates.length > 0 && summarySelectedDates.length < summaryDayYmds.length;
+  }, [summarySelectedDates, summaryDayYmds.length]);
+
+  const toggleSummaryDateSelected = (ymd: string) => {
+    setSummarySelectedDates((prev) =>
+      prev.includes(ymd) ? prev.filter((d) => d !== ymd) : [...prev, ymd].sort(),
+    );
+  };
+
+  const toggleSelectAllSummaryRows = () => {
+    if (allSummaryRowsSelected) setSummarySelectedDates([]);
+    else setSummarySelectedDates([...summaryDayYmds]);
+  };
+
+  const runBulkEditSummary = () => {
+    if (summarySelectedDates.length === 0) return;
+    const sorted = [...summarySelectedDates].sort();
+    const first = sorted[0];
+    navigate(`/consaltyapp/log?date=${encodeURIComponent(first)}`);
+    onSuccess(
+      sorted.length > 1
+        ? `Opened work log for ${formatDate(first)}. Change the work date on that page to edit your other selected days.`
+        : `Opened work log for ${formatDate(first)}.`,
+    );
+    setSummarySelectedDates([]);
+  };
+
+  const runBulkDuplicateSummary = () => {
+    if (summarySelectedDates.length !== 1) {
+      onError('Select one day to duplicate, or use the copy icon on a single row.');
+      return;
+    }
+    const d = summarySelectedDates[0];
+    const day = earnings.days.find((x) => x.date === d);
+    if (!day || day.jobs.length === 0) {
+      onError('No job entries to duplicate for that day.');
+      return;
+    }
+    setDuplicateSource(d);
+    setDuplicateTarget(addOneCalendarDayYmd(d));
+    setSummarySelectedDates([]);
+  };
+
+  const runBulkDeleteSummary = async () => {
+    const sorted = [...summarySelectedDates].sort();
+    const datesWithJobs = sorted.filter(
+      (ymd) => (earnings.days.find((x) => x.date === ymd)?.jobs.length ?? 0) > 0,
+    );
+    if (datesWithJobs.length === 0) {
+      onError('No job entries to delete on the selected days.');
+      return;
+    }
+    if (
+      !window.confirm(
+        `Delete all job entries for ${datesWithJobs.length} day${datesWithJobs.length === 1 ? '' : 's'}? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setSummaryBulkBusy(true);
+    try {
+      for (const ymd of datesWithJobs) {
+        await onDeleteJobsForDate(ymd);
+      }
+      onSaved(`Removed entries for ${datesWithJobs.length} day${datesWithJobs.length === 1 ? '' : 's'}.`);
+      setSummarySelectedDates([]);
+    } catch (e) {
+      onError(e instanceof Error ? e.message : 'Bulk delete failed');
+    } finally {
+      setSummaryBulkBusy(false);
+    }
+  };
 
   const summaryCards = [
     {
@@ -777,10 +868,69 @@ export function Earnings({
               Payroll hours and regular vs overtime from each work day (includes submitted daily
               report times when available).
             </p>
+            {summarySelectedDates.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mb-3 p-3 bg-jd-green-50 border border-jd-green-200 rounded-lg">
+                <span className="text-sm font-semibold text-jd-green-900">
+                  {summarySelectedDates.length} day
+                  {summarySelectedDates.length !== 1 ? 's' : ''} selected
+                </span>
+                <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+                  <button
+                    type="button"
+                    onClick={runBulkEditSummary}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-jd-green-600 text-white hover:bg-jd-green-700"
+                  >
+                    <Pencil size={14} />
+                    Bulk edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={runBulkDuplicateSummary}
+                    disabled={summarySelectedDates.length !== 1}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border border-slate-300 text-slate-800 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none"
+                    title={
+                      summarySelectedDates.length === 1
+                        ? 'Copy this day to another date'
+                        : 'Select one day to duplicate'
+                    }
+                  >
+                    <Copy size={14} />
+                    Duplicate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void runBulkDeleteSummary()}
+                    disabled={summaryBulkBusy}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border border-red-300 text-red-800 bg-white hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <Trash2 size={14} />
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSummarySelectedDates([])}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-jd-green-800 hover:underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="overflow-x-auto border border-gray-200 rounded-lg">
               <table className="w-full text-sm">
                 <thead className="bg-jd-green-600 text-white">
                   <tr>
+                    <th className="w-10 px-2 py-2 text-center font-semibold" scope="col">
+                      <span className="sr-only">Select row</span>
+                      <input
+                        ref={summarySelectAllRef}
+                        type="checkbox"
+                        checked={allSummaryRowsSelected}
+                        onChange={toggleSelectAllSummaryRows}
+                        className="h-4 w-4 rounded border-white/50 text-jd-green-700 focus:ring-jd-green-500"
+                        aria-label="Select all days in this summary"
+                      />
+                    </th>
                     <th className="text-left px-4 py-2 font-semibold">Date</th>
                     <th className="text-left px-4 py-2 font-semibold">Work day</th>
                     <th className="text-right px-4 py-2 font-semibold">Total</th>
@@ -802,11 +952,21 @@ export function Earnings({
                         : '—';
                     const hasJobs = d.jobs.length > 0;
                     const busy = dayActionBusy === d.date;
+                    const rowSelected = summarySelectedDates.includes(d.date);
                     return (
                       <tr
                         key={d.date}
                         className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
                       >
+                        <td className="w-10 px-2 py-2 text-center align-middle">
+                          <input
+                            type="checkbox"
+                            checked={rowSelected}
+                            onChange={() => toggleSummaryDateSelected(d.date)}
+                            className="h-4 w-4 rounded border-gray-400 text-jd-green-700 focus:ring-jd-green-500"
+                            aria-label={`Select ${formatDate(d.date)}`}
+                          />
+                        </td>
                         <td className="px-4 py-2 text-gray-700 whitespace-nowrap">
                           {formatDate(d.date)}
                         </td>
