@@ -1,67 +1,150 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, Timer } from 'lucide-react';
+import { ArrowRight, Sparkles, Timer } from 'lucide-react';
 
 export function ShellHome() {
   useEffect(() => {
-    document.title = 'Cody Codes';
+    document.title = 'Codycodes.ca · Cody Codes';
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-jd-green-50 to-white flex flex-col">
-      <header className="border-b border-jd-green-200/80 bg-white/80 backdrop-blur-sm">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-jd-green-600 rounded-xl p-2.5 shadow-md">
-              <Leaf className="text-jd-yellow-400" size={24} strokeWidth={2.2} />
+    <div className="min-h-screen bg-white text-slate-900 flex flex-col">
+      <header className="border-b border-slate-200/90 bg-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between gap-4">
+          <a href="/" className="flex items-center gap-3 group">
+            <div className="relative">
+              <div className="h-11 w-11 rounded-xl bg-cody-finnish flex items-center justify-center shadow-sm ring-2 ring-cody-gold/40 ring-offset-2 ring-offset-white">
+                <span className="text-white font-extrabold text-lg tracking-tight">C</span>
+              </div>
+              <span
+                className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-cody-gold border-2 border-white"
+                aria-hidden
+              />
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-jd-green-700">
-                Cody Codes
-              </p>
-              <p className="text-sm text-gray-600">Tools &amp; products</p>
+            <div className="text-left">
+              <p className="text-sm font-bold text-cody-finnish tracking-tight">Cody Codes</p>
+              <p className="text-xs text-slate-500">codycodes.ca</p>
             </div>
-          </div>
-          <a
-            href="https://www.codycodes.ca"
-            className="text-sm text-jd-green-700 hover:text-jd-green-800 font-medium hidden sm:inline"
-          >
-            www.codycodes.ca
           </a>
+          <nav className="flex items-center gap-3 sm:gap-4">
+            <a
+              href="#products"
+              className="text-sm font-medium text-cody-finnish hover:text-cody-finnish-dark transition-colors hidden sm:inline"
+            >
+              Products
+            </a>
+            <Link
+              to="/consaltyapp"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-cody-finnish px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cody-finnish-dark transition-colors ring-1 ring-cody-finnish-dark/20"
+            >
+              Open Consalty
+              <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+            </Link>
+          </nav>
         </div>
       </header>
 
-      <main className="flex-1 max-w-3xl mx-auto px-4 sm:px-6 py-12 w-full">
-        <h1 className="text-3xl sm:text-4xl font-bold text-jd-green-900 tracking-tight mb-3">
-          Welcome
-        </h1>
-        <p className="text-gray-600 text-lg mb-10 max-w-xl">
-          This site hosts the SaaS products I build. Pick an app below to get started.
-        </p>
+      <main className="flex-1 w-full">
+        <section className="relative overflow-hidden border-b border-slate-100">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.06]"
+            aria-hidden
+            style={{
+              backgroundImage: `linear-gradient(to right, #003580 1px, transparent 1px),
+                linear-gradient(to bottom, #003580 1px, transparent 1px)`,
+              backgroundSize: '48px 48px',
+            }}
+          />
+          <div className="relative max-w-5xl mx-auto px-4 sm:px-6 pt-14 pb-20 sm:pt-20 sm:pb-24">
+            <p className="inline-flex items-center gap-2 rounded-full border border-cody-gold/50 bg-cody-gold/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cody-finnish mb-6">
+              <Sparkles className="h-3.5 w-3.5 text-cody-gold-dark" strokeWidth={2.5} aria-hidden />
+              Independent software
+            </p>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-cody-finnish tracking-tight leading-[1.08] max-w-3xl">
+              Practical tools for{' '}
+              <span className="relative inline-block">
+                real work
+                <span
+                  className="absolute left-0 -bottom-1 h-1 w-full rounded-full bg-gradient-to-r from-cody-gold via-cody-gold-light to-cody-gold"
+                  aria-hidden
+                />
+              </span>
+              .
+            </h1>
+            <p className="mt-6 text-lg sm:text-xl text-slate-600 max-w-2xl leading-relaxed">
+              Codycodes.ca is home to the apps I build—focused, dependable, and built to save you
+              time on the job.
+            </p>
+            <div className="mt-10 flex flex-wrap items-center gap-4">
+              <Link
+                to="/consaltyapp"
+                className="inline-flex items-center gap-2 rounded-xl bg-cody-gold px-5 py-3 text-base font-semibold text-cody-finnish-dark shadow-sm hover:bg-cody-gold-light transition-colors ring-2 ring-cody-gold-dark/25"
+              >
+                Try Consalty
+                <ArrowRight className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+              </Link>
+              <a
+                href="#products"
+                className="inline-flex items-center text-base font-semibold text-cody-finnish hover:text-cody-finnish-dark underline decoration-2 decoration-cody-gold underline-offset-4"
+              >
+                Browse products
+              </a>
+            </div>
+          </div>
+        </section>
 
-        <ul className="space-y-4">
-          <li>
-            <Link
-              to="/consaltyapp"
-              className="group flex gap-4 rounded-2xl border-2 border-jd-green-600 bg-white p-5 shadow-sm hover:shadow-md hover:border-jd-green-700 transition-shadow"
-            >
-              <div className="shrink-0 bg-jd-yellow-400 rounded-xl p-3 border-2 border-jd-green-600 group-hover:bg-jd-yellow-300 transition-colors">
-                <Timer className="text-jd-green-800" size={28} strokeWidth={2} />
-              </div>
-              <div className="min-w-0 flex-1 text-left">
-                <h2 className="font-bold text-jd-green-900 text-lg">Consalty</h2>
-                <p className="text-gray-600 text-sm mt-1">
-                  Job and hour tracker (Landscape Log) — log shifts, earnings, and reports.
-                </p>
-                <p className="text-jd-green-700 text-sm font-medium mt-2">Open app →</p>
-              </div>
-            </Link>
-          </li>
-        </ul>
+        <section id="products" className="scroll-mt-20 py-16 sm:py-20 bg-white">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+            <h2 className="text-2xl sm:text-3xl font-bold text-cody-finnish tracking-tight">
+              Products
+            </h2>
+            <p className="mt-2 text-slate-600 max-w-2xl">
+              Start with Consalty—job and hour tracking built for crews and solo operators.
+            </p>
+
+            <ul className="mt-10 grid gap-6 sm:grid-cols-1 lg:grid-cols-1 max-w-2xl">
+              <li>
+                <Link
+                  to="/consaltyapp"
+                  className="group flex gap-5 rounded-2xl border-2 border-cody-finnish/20 bg-white p-6 shadow-sm hover:border-cody-finnish/40 hover:shadow-md transition-all"
+                >
+                  <div className="shrink-0 rounded-xl bg-gradient-to-br from-cody-gold/90 to-cody-gold p-3.5 ring-2 ring-cody-finnish/15 group-hover:ring-cody-finnish/30 transition-shadow">
+                    <Timer className="text-cody-finnish" size={28} strokeWidth={2} aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <h3 className="font-bold text-cody-finnish text-xl">Consalty</h3>
+                    <p className="text-slate-600 text-sm mt-2 leading-relaxed">
+                      Job and hour tracker (Landscape Log)—log shifts, earnings, and reports in one
+                      place.
+                    </p>
+                    <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-cody-finnish group-hover:gap-2 transition-all">
+                      Open app
+                      <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            </ul>
+          </div>
+        </section>
       </main>
 
-      <footer className="py-8 text-center text-sm text-gray-500 border-t border-gray-200 bg-white/60">
-        <p>Cody Codes · <a href="https://www.codycodes.ca" className="text-jd-green-600 hover:underline">www.codycodes.ca</a></p>
+      <footer className="border-t border-slate-200 bg-white py-10">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
+          <p>
+            <span className="font-semibold text-cody-finnish">Cody Codes</span>
+            <span className="mx-2 text-cody-gold" aria-hidden>
+              ·
+            </span>
+            <a
+              href="https://www.codycodes.ca"
+              className="text-cody-finnish font-medium hover:text-cody-finnish-dark hover:underline decoration-cody-gold underline-offset-2"
+            >
+              codycodes.ca
+            </a>
+          </p>
+          <p className="text-center sm:text-right">Practical software for everyday work.</p>
+        </div>
       </footer>
     </div>
   );

@@ -4,6 +4,15 @@ export default {
   theme: {
     extend: {
       colors: {
+        cody: {
+          /** Finnish flag field blue (≈ RGB 0, 53, 128) */
+          finnish: '#003580',
+          'finnish-dark': '#00264d',
+          /** Accent gold for highlights and CTAs */
+          gold: '#c9a227',
+          'gold-light': '#e8d078',
+          'gold-dark': '#9a7c1c',
+        },
         jd: {
           green: {
             50: '#f1f8ee',
