@@ -174,6 +174,20 @@ export function JobForm({ editing, initialWorkDate, onSaved, onError, onCancelEd
 
 const PRESET_SITES_LIST_ID = 'jt-preset-sites';
 
+/** Common day-start presets for overall work hours (`HH:MM` for `<input type="time">`). */
+const DAY_START_QUICK_TIMES = ['06:00', '06:30', '07:00', '07:30', '08:00'] as const;
+
+function quickTimeChipLabel(hhmm: string): string {
+  const parts = hhmm.split(':');
+  const h = Number(parts[0]);
+  const m = Number(parts[1]);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return hhmm;
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 function SingleJobForm({
   job,
   onSaved,
@@ -748,6 +762,21 @@ function DailyJobTrackerForm({
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
                 required
               />
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <span className="text-[11px] font-medium text-gray-500 self-center mr-0.5">
+                  Quick set
+                </span>
+                {DAY_START_QUICK_TIMES.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setForm({ ...form, dayStartTime: t })}
+                    className="text-xs font-semibold px-2 py-0.5 rounded-md border border-jd-green-200 bg-white text-jd-green-800 hover:bg-jd-green-50 focus:outline-none focus:ring-2 focus:ring-jd-green-400"
+                  >
+                    {quickTimeChipLabel(t)}
+                  </button>
+                ))}
+              </div>
             </div>
             <div>
               <label className="flex items-center justify-between text-sm font-semibold text-gray-700 mb-1.5">
