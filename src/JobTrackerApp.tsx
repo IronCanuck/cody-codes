@@ -26,7 +26,7 @@ export function JobTrackerApp() {
   const [toast, setToast] = useState<ToastState>(null);
 
   useEffect(() => {
-    document.title = 'Consalty — Job & hour tracker | Cody Codes';
+    document.title = 'Consalty — Job & hour tracker | Cody James Fairburn';
   }, []);
 
   const loadJobs = async () => {

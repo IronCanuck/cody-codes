@@ -13,7 +13,7 @@ export function MemberDashboard() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    document.title = 'Your apps · Cody Codes';
+    document.title = 'Your apps · Cody James Fairburn';
   }, []);
 
   useEffect(() => {
@@ -142,7 +142,7 @@ export function MemberDashboard() {
 
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-10">
         <p className="text-xs font-semibold uppercase tracking-wider text-cody-gold-dark mb-2">
-          Cody Codes
+          Cody James Fairburn
         </p>
         <h2 className="text-2xl sm:text-3xl font-bold text-cody-finnish tracking-tight">
           Welcome back

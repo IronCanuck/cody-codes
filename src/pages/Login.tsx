@@ -21,7 +21,7 @@ export function Login() {
   const returnTo = searchParams.get('return') || defaultAfterLoginPath();
 
   useEffect(() => {
-    document.title = 'Sign in · Cody Codes';
+    document.title = 'Sign in · Cody James Fairburn';
   }, []);
 
   useEffect(() => {
@@ -102,7 +102,7 @@ export function Login() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cody-finnish focus:border-transparent"
-                placeholder="Ironcanuck19 or your email"
+                placeholder="Username or email"
                 disabled={submitting}
                 required
               />

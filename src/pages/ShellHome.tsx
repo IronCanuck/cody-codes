@@ -70,7 +70,7 @@ export function ShellHome() {
   const { session } = useAuth();
 
   useEffect(() => {
-    document.title = 'Codycodes.ca · Cody Codes';
+    document.title = 'Codycodes.ca · Cody James Fairburn';
   }, []);
 
   return (
@@ -261,7 +261,7 @@ export function ShellHome() {
       <footer className="border-t border-slate-200 bg-white py-10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
           <p>
-            <span className="font-semibold text-cody-finnish">Cody Codes</span>
+            <span className="font-semibold text-cody-finnish">Cody James Fairburn</span>
             <span className="mx-2 text-cody-gold" aria-hidden>
               ·
             </span>
