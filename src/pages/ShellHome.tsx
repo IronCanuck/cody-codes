@@ -146,13 +146,23 @@ export function ShellHome() {
               time on the job.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-4">
-              <Link
-                to="/consaltyapp"
-                className="inline-flex items-center gap-2 rounded-xl bg-cody-gold px-5 py-3 text-base font-semibold text-cody-finnish-dark shadow-sm hover:bg-cody-gold-light transition-colors ring-2 ring-cody-gold-dark/25"
-              >
-                Try Consalty
-                <ArrowRight className="h-5 w-5" strokeWidth={2.25} aria-hidden />
-              </Link>
+              {session ? (
+                <Link
+                  to="/dashboard"
+                  className="inline-flex items-center gap-2 rounded-xl bg-cody-gold px-5 py-3 text-base font-semibold text-cody-finnish-dark shadow-sm hover:bg-cody-gold-light transition-colors ring-2 ring-cody-gold-dark/25"
+                >
+                  My apps
+                  <ArrowRight className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+                </Link>
+              ) : (
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-2 rounded-xl bg-cody-gold px-5 py-3 text-base font-semibold text-cody-finnish-dark shadow-sm hover:bg-cody-gold-light transition-colors ring-2 ring-cody-gold-dark/25"
+                >
+                  Sign in
+                  <ArrowRight className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+                </Link>
+              )}
               <a
                 href="#products"
                 className="inline-flex items-center text-base font-semibold text-cody-finnish hover:text-cody-finnish-dark underline decoration-2 decoration-cody-gold underline-offset-4"
