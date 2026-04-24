@@ -89,12 +89,6 @@ export function ShellHome() {
             >
               Products
             </a>
-            <a
-              href="#showcase"
-              className="text-sm font-medium text-cody-finnish hover:text-cody-finnish-dark transition-colors hidden sm:inline"
-            >
-              Showcase
-            </a>
             {session ? (
               <Link
                 to="/dashboard"
