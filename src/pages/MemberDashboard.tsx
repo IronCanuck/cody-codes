@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Menu, X } from 'lucide-react';
+import { ArrowRight, ExternalLink, LayoutGrid, List, Menu, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { PAYWALLED_APPS } from '../lib/member-apps';
+import { SHOWCASE_PROJECTS } from '../lib/showcase-projects';
 
 export function MemberDashboard() {
   const { signOut, session } = useAuth();
@@ -11,6 +12,7 @@ export function MemberDashboard() {
   const menuId = useId();
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showcaseView, setShowcaseView] = useState<'list' | 'card'>('list');
 
   useEffect(() => {
     document.title = 'Your apps · Cody James Fairburn';
@@ -151,31 +153,146 @@ export function MemberDashboard() {
           Open an app from the menu or choose one below. More tools will show up here as they ship.
         </p>
 
-        <ul className="mt-10 grid gap-4">
-          {PAYWALLED_APPS.map((app) => {
-            const Icon = app.icon;
-            return (
-              <li key={app.id}>
-                <Link
-                  to={app.path}
-                  className="group flex gap-4 rounded-2xl border-2 border-cody-finnish/15 bg-white p-5 shadow-sm hover:border-cody-finnish/35 hover:shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-finnish focus-visible:ring-offset-2"
+        <section aria-labelledby="app-library-heading" className="mt-10">
+          <h3 id="app-library-heading" className="text-lg font-bold text-cody-finnish">
+            App library
+          </h3>
+          <ul className="mt-4 grid gap-4">
+            {PAYWALLED_APPS.map((app) => {
+              const Icon = app.icon;
+              return (
+                <li key={app.id}>
+                  <Link
+                    to={app.path}
+                    className="group flex gap-4 rounded-2xl border-2 border-cody-finnish/15 bg-white p-5 shadow-sm hover:border-cody-finnish/35 hover:shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-finnish focus-visible:ring-offset-2"
+                  >
+                    <div className="shrink-0 rounded-xl bg-gradient-to-br from-cody-gold/90 to-cody-gold p-3 ring-2 ring-cody-finnish/10 group-hover:ring-cody-finnish/25 transition-shadow">
+                      <Icon className="text-cody-finnish" size={26} strokeWidth={2} aria-hidden />
+                    </div>
+                    <div className="min-w-0 flex-1 text-left">
+                      <h4 className="font-bold text-cody-finnish text-lg">{app.title}</h4>
+                      <p className="text-slate-600 text-sm mt-1 leading-relaxed">{app.description}</p>
+                      <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-cody-finnish group-hover:gap-2 transition-all">
+                        Open
+                        <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                      </p>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+
+        <section aria-labelledby="showcase-heading" className="mt-12">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+            <div>
+              <h3 id="showcase-heading" className="text-lg font-bold text-cody-finnish">
+                Showcase website suite
+              </h3>
+              <p className="mt-1 text-slate-600 text-sm sm:text-base max-w-xl">
+                Public sites and portfolio work—each link opens in a new tab.
+              </p>
+            </div>
+            <div
+              className="inline-flex shrink-0 self-start rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm"
+              role="group"
+              aria-label="Showcase layout"
+            >
+              <button
+                type="button"
+                onClick={() => setShowcaseView('list')}
+                aria-pressed={showcaseView === 'list'}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-finnish focus-visible:ring-offset-1 ${
+                  showcaseView === 'list'
+                    ? 'bg-cody-finnish text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <List className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                List
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowcaseView('card')}
+                aria-pressed={showcaseView === 'card'}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-finnish focus-visible:ring-offset-1 ${
+                  showcaseView === 'card'
+                    ? 'bg-cody-finnish text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <LayoutGrid className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                Card
+              </button>
+            </div>
+          </div>
+
+          {showcaseView === 'list' ? (
+            <ul className="mt-6 grid gap-4">
+              {SHOWCASE_PROJECTS.map((project) => (
+                <li key={project.href}>
+                  <a
+                    href={project.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex gap-4 rounded-2xl border-2 border-cody-finnish/15 bg-white p-5 shadow-sm hover:border-cody-finnish/35 hover:shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-finnish focus-visible:ring-offset-2"
+                  >
+                    <div className="shrink-0 w-[5.5rem] sm:w-28 h-[4.5rem] sm:h-24 rounded-xl overflow-hidden ring-2 ring-cody-finnish/10 group-hover:ring-cody-finnish/25 transition-shadow bg-slate-100">
+                      <img
+                        src={project.image}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover object-top"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1 text-left">
+                      <h4 className="font-bold text-cody-finnish text-lg">{project.title}</h4>
+                      <p className="text-slate-600 text-sm mt-1 leading-relaxed">{project.description}</p>
+                      <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-cody-finnish group-hover:gap-2 transition-all">
+                        Visit site
+                        <ExternalLink className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                      </p>
+                    </div>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              {SHOWCASE_PROJECTS.map((project) => (
+                <a
+                  key={project.href}
+                  href={project.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex flex-col overflow-hidden rounded-2xl border-2 border-cody-finnish/15 bg-white shadow-sm transition-all hover:border-cody-finnish/35 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-finnish focus-visible:ring-offset-2"
                 >
-                  <div className="shrink-0 rounded-xl bg-gradient-to-br from-cody-gold/90 to-cody-gold p-3 ring-2 ring-cody-finnish/10 group-hover:ring-cody-finnish/25 transition-shadow">
-                    <Icon className="text-cody-finnish" size={26} strokeWidth={2} aria-hidden />
+                  <div className="relative aspect-[5/3] w-full overflow-hidden border-b border-slate-100 bg-slate-200">
+                    <img
+                      src={project.image}
+                      alt={`${project.title} — homepage preview`}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover object-top"
+                    />
                   </div>
-                  <div className="min-w-0 flex-1 text-left">
-                    <h3 className="font-bold text-cody-finnish text-lg">{app.title}</h3>
-                    <p className="text-slate-600 text-sm mt-1 leading-relaxed">{app.description}</p>
-                    <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-cody-finnish group-hover:gap-2 transition-all">
-                      Open
-                      <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                  <div className="flex flex-1 flex-col p-4 sm:p-5">
+                    <h4 className="font-bold text-cody-finnish text-base leading-snug pr-1">{project.title}</h4>
+                    <p className="mt-2 text-slate-600 text-sm leading-relaxed flex-1">
+                      {project.description}
+                    </p>
+                    <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-cody-finnish group-hover:gap-2 transition-all">
+                      Visit site
+                      <ExternalLink className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />
                     </p>
                   </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                </a>
+              ))}
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );
