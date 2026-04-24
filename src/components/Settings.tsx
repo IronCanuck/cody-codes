@@ -1,6 +1,12 @@
 import { useState, FormEvent, useEffect } from 'react';
-import { Save, DollarSign, Clock, Calendar, Percent } from 'lucide-react';
+import { Save, DollarSign, Clock, Calendar, Percent, MapPin, ClipboardList, Plus, Trash2 } from 'lucide-react';
 import { Settings as SettingsType } from '../lib/supabase';
+import {
+  getTaskPresets,
+  setTaskPresets,
+  removeTaskPresetLocation,
+  removeTaskPresetActivity,
+} from '../lib/task-presets';
 
 type Props = {
   settings: SettingsType;
@@ -10,10 +16,27 @@ type Props = {
 export function Settings({ settings, onSave }: Props) {
   const [form, setForm] = useState(settings);
   const [saving, setSaving] = useState(false);
+  const [presetLocations, setPresetLocations] = useState(() => getTaskPresets().locations);
+  const [presetActivities, setPresetActivities] = useState(() => getTaskPresets().activities);
+  const [newLocation, setNewLocation] = useState('');
+  const [newActivity, setNewActivity] = useState('');
 
   useEffect(() => {
     setForm(settings);
   }, [settings]);
+
+  useEffect(() => {
+    const p = getTaskPresets();
+    setPresetLocations(p.locations);
+    setPresetActivities(p.activities);
+    const sync = () => {
+      const next = getTaskPresets();
+      setPresetLocations(next.locations);
+      setPresetActivities(next.activities);
+    };
+    window.addEventListener('jobTracker:taskPresets', sync);
+    return () => window.removeEventListener('jobTracker:taskPresets', sync);
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -23,6 +46,38 @@ export function Settings({ settings, onSave }: Props) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const addLocationPreset = () => {
+    const t = newLocation.trim();
+    if (!t) return;
+    const next = setTaskPresets({
+      locations: [...presetLocations, t],
+      activities: presetActivities,
+    });
+    setPresetLocations(next.locations);
+    setNewLocation('');
+  };
+
+  const addActivityPreset = () => {
+    const t = newActivity.trim();
+    if (!t) return;
+    const next = setTaskPresets({
+      locations: presetLocations,
+      activities: [...presetActivities, t],
+    });
+    setPresetActivities(next.activities);
+    setNewActivity('');
+  };
+
+  const deleteLocation = (value: string) => {
+    const next = removeTaskPresetLocation(value);
+    setPresetLocations(next.locations);
+  };
+
+  const deleteActivity = (value: string) => {
+    const next = removeTaskPresetActivity(value);
+    setPresetActivities(next.activities);
   };
 
   return (

@@ -298,7 +298,7 @@ export function Reports({ jobs, onSuccess }: Props) {
                 <div>
                   <span className="font-semibold text-gray-900">{formatDate(r.report_date)}</span>
                   <span className="text-sm text-gray-500 ml-2">
-                    {r.job_count} task{r.job_count === 1 ? '' : 's'} · {Number(r.day_hours).toFixed(2)} day
+                    {r.job_count} log line{r.job_count === 1 ? '' : 's'} · {Number(r.day_hours).toFixed(2)} day
                     hrs
                   </span>
                 </div>
