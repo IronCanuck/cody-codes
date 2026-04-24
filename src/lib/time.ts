@@ -66,10 +66,22 @@ export function toLocalDateInputValue(d: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+/** Job time pickers use 15-minute steps (`<input type="time" step={...}>`). */
+export const TIME_INPUT_STEP_MINUTES = 15;
+export const TIME_INPUT_STEP_SECONDS = TIME_INPUT_STEP_MINUTES * 60;
+
+/**
+ * `HH:MM` for `<input type="time">`, rounded to {@link TIME_INPUT_STEP_MINUTES}.
+ * Used for "Now" and when loading an existing entry so values match the input step.
+ */
 export function toLocalTimeInputValue(d: Date): string {
-  const hours = String(d.getHours()).padStart(2, '0');
-  const mins = String(d.getMinutes()).padStart(2, '0');
-  return `${hours}:${mins}`;
+  const dayMinutes = d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
+  let r = Math.round(dayMinutes / TIME_INPUT_STEP_MINUTES) * TIME_INPUT_STEP_MINUTES;
+  const maxMins = 24 * 60 - TIME_INPUT_STEP_MINUTES;
+  r = Math.min(r, maxMins);
+  const h = Math.floor(r / 60);
+  const m = r % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 export function combineDateAndTime(date: string, time: string): string {

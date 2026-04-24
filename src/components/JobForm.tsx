@@ -16,6 +16,7 @@ import {
   combineDateAndTime,
   computeHours,
   getWorkDayHoursWithLunch,
+  TIME_INPUT_STEP_SECONDS,
   toLocalDateInputValue,
   toLocalTimeInputValue,
 } from '../lib/time';
@@ -308,6 +309,7 @@ function SingleJobForm({
             </label>
             <input
               type="time"
+              step={TIME_INPUT_STEP_SECONDS}
               value={form.startTime}
               onChange={(e) => setForm({ ...form, startTime: e.target.value })}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
@@ -329,6 +331,7 @@ function SingleJobForm({
             </label>
             <input
               type="time"
+              step={TIME_INPUT_STEP_SECONDS}
               value={form.endTime}
               onChange={(e) => setForm({ ...form, endTime: e.target.value })}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
@@ -757,6 +760,7 @@ function DailyJobTrackerForm({
               </label>
               <input
                 type="time"
+                step={TIME_INPUT_STEP_SECONDS}
                 value={form.dayStartTime}
                 onChange={(e) => setForm({ ...form, dayStartTime: e.target.value })}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
@@ -793,6 +797,7 @@ function DailyJobTrackerForm({
               </label>
               <input
                 type="time"
+                step={TIME_INPUT_STEP_SECONDS}
                 value={form.dayEndTime}
                 onChange={(e) => setForm({ ...form, dayEndTime: e.target.value })}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
@@ -939,6 +944,7 @@ function TaskBlockCard({
           </label>
           <input
             type="time"
+            step={TIME_INPUT_STEP_SECONDS}
             value={block.startTime}
             onChange={(e) => onChange({ startTime: e.target.value })}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none bg-white"
@@ -959,6 +965,7 @@ function TaskBlockCard({
           </label>
           <input
             type="time"
+            step={TIME_INPUT_STEP_SECONDS}
             value={block.endTime}
             onChange={(e) => onChange({ endTime: e.target.value })}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none bg-white"

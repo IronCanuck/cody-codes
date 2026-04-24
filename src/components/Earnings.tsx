@@ -31,6 +31,7 @@ import {
   formatDate,
   formatTime,
   getWorkDayHoursWithLunch,
+  TIME_INPUT_STEP_SECONDS,
   toLocalDateInputValue,
 } from '../lib/time';
 import { generatePayPeriodPDF } from '../lib/pdf';
@@ -230,6 +231,7 @@ export function Earnings({
                   <input
                     id="quick-log-start"
                     type="time"
+                    step={TIME_INPUT_STEP_SECONDS}
                     value={quickStart}
                     onChange={(e) => setQuickStart(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
@@ -246,6 +248,7 @@ export function Earnings({
                   <input
                     id="quick-log-end"
                     type="time"
+                    step={TIME_INPUT_STEP_SECONDS}
                     value={quickEnd}
                     onChange={(e) => setQuickEnd(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
