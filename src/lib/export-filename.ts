@@ -1,6 +1,12 @@
 import { PayPeriod } from './earnings';
 import { Settings } from './supabase';
 
+/** Label shown in report headers and filenames when the user has not set a name. */
+export function reportEmployeeLabel(settings: Settings): string {
+  const t = (settings.full_name ?? '').replace(/\s+/g, ' ').trim();
+  return t || 'Employee';
+}
+
 const INVALID_FILE_CHARS = /[<>:"/\\|?*\u0000-\u001F]/g;
 
 function sanitizeSegment(s: string): string {

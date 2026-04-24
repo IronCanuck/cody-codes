@@ -2,28 +2,48 @@ import html2canvas from 'html2canvas';
 import { Job, Settings } from './supabase';
 import { formatTime, formatDate, getWorkDayHoursWithLunch } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
-import { payPeriodHoursTrackerFilename } from './export-filename';
+import { payPeriodHoursTrackerFilename, reportEmployeeLabel } from './export-filename';
 import { ALBERTA_NET_DISCLAIMER, estimateAlbertaEmploymentNet } from './canada-alberta-estimate';
 
 const JD_GREEN = '#367C2B';
 const JD_YELLOW = '#FFDE00';
 
-function renderShell(title: string, subtitle: string, bodyHTML: string): string {
+type PayPeriodShellHeader = {
+  employeeName: string;
+  payPeriod: string;
+};
+
+function renderShell(
+  title: string,
+  subtitle: string,
+  bodyHTML: string,
+  /** When set, green band shows employee + pay period instead of the default app labels. */
+  payPeriodHeader?: PayPeriodShellHeader,
+): string {
+  const top1 = payPeriodHeader
+    ? escapeHtml(payPeriodHeader.employeeName)
+    : 'CONSALTY';
+  const top2 = payPeriodHeader
+    ? escapeHtml(payPeriodHeader.payPeriod)
+    : 'Job Tracking Report';
+  const footerRight = payPeriodHeader
+    ? ''
+    : `<span style="font-weight: 600; color: ${JD_GREEN};">Consalty</span>`;
   return `
     <div style="font-family: Helvetica, Arial, sans-serif; color: #1a1a1a; background: #fff; padding: 0; width: 800px;">
       <div style="background: ${JD_GREEN}; color: #fff; padding: 18px 24px;">
-        <div style="font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">CONSALTY</div>
-        <div style="font-size: 11px; opacity: 0.9; margin-top: 2px;">Job Tracking Report</div>
+        <div style="font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">${top1}</div>
+        <div style="font-size: 11px; opacity: 0.9; margin-top: 2px;">${top2}</div>
       </div>
       <div style="background: ${JD_YELLOW}; height: 4px;"></div>
       <div style="padding: 24px;">
-        <div style="font-size: 18px; font-weight: 700; color: #1a1a1a;">${title}</div>
-        <div style="font-size: 11px; color: #5a5a5a; margin-top: 4px;">${subtitle}</div>
+        <div style="font-size: 18px; font-weight: 700; color: #1a1a1a;">${escapeHtml(title)}</div>
+        <div style="font-size: 11px; color: #5a5a5a; margin-top: 4px;">${escapeHtml(subtitle)}</div>
         <div style="margin-top: 20px;">${bodyHTML}</div>
       </div>
-      <div style="border-top: 2px solid ${JD_GREEN}; padding: 12px 24px; display: flex; justify-content: space-between; font-size: 10px; color: #5a5a5a;">
+      <div style="border-top: 2px solid ${JD_GREEN}; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #5a5a5a;">
         <span>Generated ${new Date().toLocaleDateString()}</span>
-        <span style="font-weight: 600; color: ${JD_GREEN};">Consalty</span>
+        ${footerRight}
       </div>
     </div>
   `;
@@ -307,7 +327,15 @@ export async function generatePayPeriodPNG(
     ${allJobs.length > 0 ? `<div style="font-size: 13px; font-weight: 700; color: ${JD_GREEN}; margin-bottom: 6px;">Job Log</div>${jobsTable(allJobs)}` : ''}
   `;
 
-  const html = renderShell('Pay Period Report', formatPeriodLabel(period), body);
+  const html = renderShell(
+    'Pay Period Report',
+    'Hours and earnings (this pay period)',
+    body,
+    {
+      employeeName: reportEmployeeLabel(settings),
+      payPeriod: formatPeriodLabel(period),
+    },
+  );
   await renderAndDownload(
     html,
     payPeriodHoursTrackerFilename(settings, period, 'png'),

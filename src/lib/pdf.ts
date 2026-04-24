@@ -3,7 +3,7 @@ import autoTable from 'jspdf-autotable';
 import { Job, Settings } from './supabase';
 import { formatTime, formatDate, getWorkDayHoursWithLunch } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
-import { payPeriodHoursTrackerFilename } from './export-filename';
+import { payPeriodHoursTrackerFilename, reportEmployeeLabel } from './export-filename';
 import { ALBERTA_NET_DISCLAIMER, estimateAlbertaEmploymentNet } from './canada-alberta-estimate';
 
 const JD_GREEN: [number, number, number] = [54, 124, 43];
@@ -37,6 +37,65 @@ function drawHeader(doc: jsPDF, title: string, subtitle: string) {
   doc.setFontSize(10);
   doc.setTextColor(90, 90, 90);
   doc.text(subtitle, 14, 51);
+
+  doc.setTextColor(...TEXT_DARK);
+}
+
+/** Green-band header: employee name + pay period; document title in the white area below. */
+function drawPayPeriodHeader(
+  doc: jsPDF,
+  settings: Settings,
+  period: PayPeriod,
+  title: string,
+  contentSubtitle: string,
+) {
+  const pageW = doc.internal.pageSize.getWidth();
+  const m = 14;
+  const name = reportEmployeeLabel(settings);
+  const periodLabel = formatPeriodLabel(period);
+
+  doc.setFillColor(...JD_GREEN);
+  doc.rect(0, 0, pageW, 28, 'F');
+  doc.setFillColor(...JD_YELLOW);
+  doc.rect(0, 28, pageW, 3, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  const maxW = pageW - 2 * m;
+  let nameSize = 20;
+  doc.setFontSize(nameSize);
+  let nameLines = doc.splitTextToSize(name, maxW);
+  while (nameLines.length > 2 && nameSize > 11) {
+    nameSize -= 0.5;
+    doc.setFontSize(nameSize);
+    nameLines = doc.splitTextToSize(name, maxW);
+  }
+  if (nameLines.length > 2) {
+    nameLines = [nameLines[0]!, `${(nameLines[1] ?? '').replace(/[.…]+$/, '')}…`];
+  } else {
+    nameLines = nameLines.slice(0, 2);
+  }
+  doc.setFontSize(nameSize);
+  if (nameLines.length === 1) {
+    doc.text(nameLines[0]!, m, 14);
+  } else {
+    doc.text(nameLines[0]!, m, 12);
+    doc.text(nameLines[1]!, m, 20);
+  }
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text(periodLabel, m, 26);
+
+  doc.setTextColor(...TEXT_DARK);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text(title, m, 44);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(90, 90, 90);
+  doc.text(contentSubtitle, m, 51);
 
   doc.setTextColor(...TEXT_DARK);
 }
@@ -333,7 +392,13 @@ export function generatePayPeriodPDF(
   settings: Settings,
 ) {
   const doc = new jsPDF();
-  drawHeader(doc, 'Pay Period Report', formatPeriodLabel(period));
+  drawPayPeriodHeader(
+    doc,
+    settings,
+    period,
+    'Pay Period Report',
+    'Hours and earnings (this pay period)',
+  );
 
   const currency = settings.currency_symbol;
   const rate = Number(settings.hourly_rate);
