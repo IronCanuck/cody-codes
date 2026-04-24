@@ -89,7 +89,7 @@ export function ShellHome() {
             </div>
             <div className="text-left">
               <p className="text-sm font-bold text-cody-finnish tracking-tight">Cody James Fairburn</p>
-              <p className="text-xs text-slate-500">codycodes.ca</p>
+              <p className="text-xs text-slate-500">Diamond C Studios</p>
             </div>
           </a>
           <nav className="flex items-center gap-3 sm:gap-4">
