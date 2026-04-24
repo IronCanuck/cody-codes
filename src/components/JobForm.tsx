@@ -178,6 +178,22 @@ const PRESET_SITES_LIST_ID = 'jt-preset-sites';
 /** Common day-start presets for overall work hours (`HH:MM` for `<input type="time">`). */
 const DAY_START_QUICK_TIMES = ['06:00', '06:30', '07:00', '07:30', '08:00'] as const;
 
+function addHoursToHhmm(hhmm: string, hours: number): string {
+  const parts = hhmm.split(':');
+  const h = Number(parts[0]);
+  const m = Number(parts[1]);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return hhmm;
+  const totalMinutes = h * 60 + m + hours * 60;
+  const day = 24 * 60;
+  const wrap = ((totalMinutes % day) + day) % day;
+  const nh = Math.floor(wrap / 60);
+  const nm = wrap % 60;
+  return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
+}
+
+/** Eight hours after each `DAY_START_QUICK_TIMES` value (for matching 8-hr day presets). */
+const DAY_END_QUICK_TIMES = DAY_START_QUICK_TIMES.map((t) => addHoursToHhmm(t, 8));
+
 function quickTimeChipLabel(hhmm: string): string {
   const parts = hhmm.split(':');
   const h = Number(parts[0]);
@@ -803,6 +819,21 @@ function DailyJobTrackerForm({
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
                 required
               />
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <span className="text-[11px] font-medium text-gray-500 self-center mr-0.5">
+                  Quick set
+                </span>
+                {DAY_END_QUICK_TIMES.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setForm({ ...form, dayEndTime: t })}
+                    className="text-xs font-semibold px-2 py-0.5 rounded-md border border-jd-green-200 bg-white text-jd-green-800 hover:bg-jd-green-50 focus:outline-none focus:ring-2 focus:ring-jd-green-400"
+                  >
+                    {quickTimeChipLabel(t)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
