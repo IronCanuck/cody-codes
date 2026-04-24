@@ -20,7 +20,7 @@ function drawHeader(doc: jsPDF, title: string, subtitle: string) {
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(20);
-  doc.text('LANDSCAPE LOG', 14, 14);
+  doc.text('CONSALTY', 14, 14);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);

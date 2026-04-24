@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.landscapelog.jobtracker',
-  appName: 'Landscape Log',
+  appName: 'Consalty',
   webDir: 'dist',
   ios: {
     contentInset: 'automatic',

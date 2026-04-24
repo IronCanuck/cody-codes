@@ -10,7 +10,7 @@ function renderShell(title: string, subtitle: string, bodyHTML: string): string 
   return `
     <div style="font-family: Helvetica, Arial, sans-serif; color: #1a1a1a; background: #fff; padding: 0; width: 800px;">
       <div style="background: ${JD_GREEN}; color: #fff; padding: 18px 24px;">
-        <div style="font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">LANDSCAPE LOG</div>
+        <div style="font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">CONSALTY</div>
         <div style="font-size: 11px; opacity: 0.9; margin-top: 2px;">Job Tracking Report</div>
       </div>
       <div style="background: ${JD_YELLOW}; height: 4px;"></div>
@@ -21,7 +21,7 @@ function renderShell(title: string, subtitle: string, bodyHTML: string): string 
       </div>
       <div style="border-top: 2px solid ${JD_GREEN}; padding: 12px 24px; display: flex; justify-content: space-between; font-size: 10px; color: #5a5a5a;">
         <span>Generated ${new Date().toLocaleDateString()}</span>
-        <span style="font-weight: 600; color: ${JD_GREEN};">Landscape Log</span>
+        <span style="font-weight: 600; color: ${JD_GREEN};">Consalty</span>
       </div>
     </div>
   `;

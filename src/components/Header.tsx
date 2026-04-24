@@ -66,7 +66,7 @@ export function Header({ onSignOut }: Props) {
             </div>
             <div className="min-w-0 text-left">
               <h1 className="text-white font-bold text-lg leading-tight tracking-tight">
-                Landscape Log
+                Consalty
               </h1>
               <p className="text-jd-green-100 text-xs leading-tight">Job Tracker</p>
             </div>

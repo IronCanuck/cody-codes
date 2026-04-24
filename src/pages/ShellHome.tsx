@@ -199,7 +199,7 @@ export function ShellHome() {
                   <div className="min-w-0 flex-1 text-left">
                     <h3 className="font-bold text-cody-finnish text-xl">Consalty</h3>
                     <p className="text-slate-600 text-sm mt-2 leading-relaxed">
-                      Job and hour tracker (Landscape Log)—log shifts, earnings, and reports in one
+                      Job and hour tracker—log shifts, earnings, and reports in one
                       place.
                     </p>
                     <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-cody-finnish group-hover:gap-2 transition-all">
