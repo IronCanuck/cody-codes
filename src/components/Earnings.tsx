@@ -828,7 +828,7 @@ export function Earnings({
                           {formatMoney(dayPay, currency)}
                         </td>
                         <td className="px-4 py-2 text-right whitespace-nowrap">
-                          <div className="inline-flex items-center justify-end gap-0.5 sm:gap-1">
+                          <div className="inline-flex items-center justify-end gap-0.5">
                             <button
                               type="button"
                               onClick={() => {
@@ -843,11 +843,11 @@ export function Earnings({
                                   );
                                 }
                               }}
-                              className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-1 text-xs font-semibold text-jd-green-800 hover:bg-jd-green-50 border border-transparent hover:border-jd-green-200"
+                              className="inline-flex items-center justify-center rounded-md p-1.5 text-jd-green-800 hover:bg-jd-green-50 border border-transparent hover:border-jd-green-200"
                               title={hasJobs ? 'Edit first task for this day' : 'Open log for this day'}
+                              aria-label={hasJobs ? 'Edit first task for this day' : 'Open log for this day'}
                             >
                               <Pencil size={14} className="shrink-0" />
-                              <span className="hidden sm:inline">Edit</span>
                             </button>
                             <button
                               type="button"
@@ -856,15 +856,15 @@ export function Earnings({
                                 setDuplicateSource(d.date);
                                 setDuplicateTarget(addOneCalendarDayYmd(d.date));
                               }}
-                              className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-200 disabled:opacity-40 disabled:pointer-events-none"
+                              className="inline-flex items-center justify-center rounded-md p-1.5 text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-200 disabled:opacity-40 disabled:pointer-events-none"
                               title={
                                 hasJobs
                                   ? 'Copy all job entries — choose the target day in the dialog'
                                   : 'No job entries to duplicate'
                               }
+                              aria-label="Duplicate this day to another date"
                             >
                               <Copy size={14} className="shrink-0" />
-                              <span className="hidden sm:inline">Duplicate</span>
                             </button>
                             <button
                               type="button"
@@ -879,11 +879,11 @@ export function Earnings({
                                   setDayActionBusy(null);
                                 }
                               }}
-                              className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 disabled:opacity-40 disabled:pointer-events-none"
+                              className="inline-flex items-center justify-center rounded-md p-1.5 text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 disabled:opacity-40 disabled:pointer-events-none"
                               title={hasJobs ? 'Delete all job entries for this day' : 'No job entries to delete'}
+                              aria-label="Delete all job entries for this day"
                             >
                               <Trash2 size={14} className="shrink-0" />
-                              <span className="hidden sm:inline">Delete</span>
                             </button>
                           </div>
                         </td>
@@ -914,7 +914,9 @@ export function Earnings({
                     <th className="text-left px-4 py-2 font-semibold">Date</th>
                     <th className="text-right px-4 py-2 font-semibold">Hours</th>
                     <th className="text-left px-4 py-2 font-semibold">Activity</th>
-                    <th className="text-right px-4 py-2 font-semibold">Edit</th>
+                    <th className="text-right px-2 py-2 w-12" scope="col">
+                      <span className="sr-only">Edit</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -942,14 +944,15 @@ export function Earnings({
                           ) : null}
                           {j.activity}
                         </td>
-                        <td className="px-4 py-2 text-right whitespace-nowrap">
+                        <td className="px-2 py-2 text-right whitespace-nowrap w-12">
                           <button
                             type="button"
                             onClick={() => onEditJob(j)}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-jd-green-700 hover:underline"
+                            className="inline-flex items-center justify-center rounded-md p-1.5 text-jd-green-800 hover:bg-jd-green-50 border border-transparent hover:border-jd-green-200"
+                            title="Edit this task"
+                            aria-label="Edit this task"
                           >
                             <Pencil size={14} />
-                            Edit
                           </button>
                         </td>
                       </tr>
