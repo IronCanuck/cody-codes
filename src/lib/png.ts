@@ -134,7 +134,7 @@ export async function dailyWorkReportPngBlob(
   const body = dayWorkSummaryLine(dayStartIso, dayEndIso) + jobsTable(jobs);
   const html = renderShell(
     `Daily Work Report – ${formatDate(date)}`,
-    `${jobs.length} task${jobs.length === 1 ? '' : 's'}`,
+    `${jobs.length} line${jobs.length === 1 ? '' : 's'}`,
     body,
   );
   return htmlToPngBlob(html);

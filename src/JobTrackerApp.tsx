@@ -49,15 +49,16 @@ export function JobTrackerLogPage() {
             <li className="flex gap-2">
               <span className="font-bold">•</span>
               <span>
-                Set <strong>overall work hours</strong> for the day, then add a <strong>task block</strong>{' '}
-                for each job—add, delete, or change blocks anytime before you submit.
+                Set <strong>overall work hours</strong> for pay. <strong>Task blocks</strong> are optional
+                — add them when you want a detailed log; skip them when you only need hours for your
+                paycheque.
               </span>
             </li>
             <li className="flex gap-2">
               <span className="font-bold">•</span>
               <span>
-                <strong>Submit daily report</strong> logs every task, saves PDF/PNG to your report
-                archive, and sets up tomorrow&apos;s work day automatically.
+                <strong>Submit daily report</strong> saves your hours (and any tasks you entered), stores
+                PDF/PNG in your report archive, and sets up tomorrow&apos;s work day automatically.
               </span>
             </li>
             <li className="flex gap-2">

@@ -109,6 +109,19 @@ function newTaskBlock(): TaskBlock {
   };
 }
 
+/** Block has no time or text — skipped on submit; day-level hours are used if all blocks are empty. */
+function isTaskBlockEmpty(b: TaskBlock): boolean {
+  return (
+    !b.startTime &&
+    !b.endTime &&
+    !b.activity.trim() &&
+    !b.site.trim() &&
+    !b.notes.trim()
+  );
+}
+
+const DAY_HOURS_ONLY_ACTIVITY = 'Work day — hours for pay (no task detail)';
+
 function emptySingleJobState() {
   const now = new Date();
   return {
@@ -457,14 +470,28 @@ function DailyJobTrackerForm({
       return;
     }
 
+    const taskRows: {
+      job_date: string;
+      start_time: string;
+      end_time: string;
+      hours_worked: number;
+      activity: string;
+      site: string;
+      notes: string;
+    }[] = [];
     for (let i = 0; i < form.blocks.length; i++) {
       const b = form.blocks[i];
+      if (isTaskBlockEmpty(b)) continue;
       if (!b.startTime || !b.endTime) {
-        onError(`Task ${i + 1}: set start and end time for each task (or remove empty tasks).`);
+        onError(
+          `Task ${i + 1}: set both start and end time, or clear the task to log only overall hours above.`,
+        );
         return;
       }
       if (!b.activity.trim()) {
-        onError(`Task ${i + 1}: describe the work activity.`);
+        onError(
+          `Task ${i + 1}: describe the work activity, or clear the task if you are only logging pay hours for the day.`,
+        );
         return;
       }
       const s = combineDateAndTime(form.workDate, b.startTime);
@@ -473,23 +500,34 @@ function DailyJobTrackerForm({
         onError(`Task ${i + 1}: end time must be after start time.`);
         return;
       }
+      taskRows.push({
+        job_date: form.workDate,
+        start_time: s,
+        end_time: en,
+        hours_worked: computeHours(s, en),
+        activity: b.activity.trim(),
+        site: b.site.trim(),
+        notes: b.notes.trim(),
+      });
     }
+
+    const rows =
+      taskRows.length > 0
+        ? taskRows
+        : [
+            {
+              job_date: form.workDate,
+              start_time: dayStartIso,
+              end_time: dayEndIso,
+              hours_worked: dayHours,
+              activity: DAY_HOURS_ONLY_ACTIVITY,
+              site: '',
+              notes: '',
+            },
+          ];
 
     setSubmitting(true);
     try {
-      const rows = form.blocks.map((b) => {
-        const start = combineDateAndTime(form.workDate, b.startTime);
-        const end = combineDateAndTime(form.workDate, b.endTime);
-        return {
-          job_date: form.workDate,
-          start_time: start,
-          end_time: end,
-          hours_worked: computeHours(start, end),
-          activity: b.activity.trim(),
-          site: b.site.trim(),
-          notes: b.notes.trim(),
-        };
-      });
 
       const { data: inserted, error: insertError } = await supabase
         .from('jobs')
@@ -535,21 +573,29 @@ function DailyJobTrackerForm({
           pdf_storage_path: pdfPath,
           png_storage_path: pngPath,
         });
+        const fromTasks = taskRows.length > 0;
         if (repErr) {
           onSaved(
-            `Saved ${inserted.length} task(s) and report files, but the report index failed: ${repErr.message}`,
+            fromTasks
+              ? `Saved ${inserted.length} task(s) and report files, but the report index failed: ${repErr.message}`
+              : `Saved your work hours and report files, but the report index failed: ${repErr.message}`,
           );
         } else {
           onSaved(
-            `Daily report saved: ${inserted.length} task(s) logged, PDF and PNG stored for ${form.workDate}. Starting fresh for the next day.`,
+            fromTasks
+              ? `Daily report saved: ${inserted.length} task(s) logged, PDF and PNG stored for ${form.workDate}. Starting fresh for the next day.`
+              : `Daily report saved: work hours for ${form.workDate} (no task log), PDF and PNG stored. Starting fresh for the next day.`,
           );
         }
       } else {
         const parts: string[] = [];
         if (upPdf) parts.push(`PDF: ${upPdf.message}`);
         if (upPng) parts.push(`PNG: ${upPng.message}`);
+        const fromTasks = taskRows.length > 0;
         onSaved(
-          `Tasks saved on disk (${inserted.length} rows). Report files could not be uploaded (${parts.join(' ')}) — check the job-reports bucket in Supabase.`,
+          fromTasks
+            ? `Tasks saved on disk (${inserted.length} rows). Report files could not be uploaded (${parts.join(' ')}) — check the job-reports bucket in Supabase.`
+            : `Work hours saved on disk. Report files could not be uploaded (${parts.join(' ')}) — check the job-reports bucket in Supabase.`,
         );
       }
 
@@ -575,7 +621,8 @@ function DailyJobTrackerForm({
           Daily job tracker
         </h2>
         <p className="text-jd-green-100 text-sm mt-1">
-          Set your overall work hours, then add a block for each task. Submit when your day is done.
+          Set your work hours for pay; add task blocks when you need a detailed log. Either way, submit
+          when your day is done.
         </p>
       </div>
 
@@ -666,7 +713,10 @@ function DailyJobTrackerForm({
         </div>
 
         <div className="pt-1 border-t border-gray-100">
-          <h3 className="text-sm font-bold text-jd-green-800 mb-3">Tasks for this day</h3>
+          <h3 className="text-sm font-bold text-jd-green-800 mb-1">Tasks for this day</h3>
+          <p className="text-xs text-gray-600 mb-3">
+            Optional. Leave blank to record only the overall hours above for your paycheque.
+          </p>
           <div className="space-y-4">
             {form.blocks.map((block, index) => (
               <TaskBlockCard
@@ -701,8 +751,8 @@ function DailyJobTrackerForm({
             {submitting ? 'Submitting...' : 'Submit daily report'}
           </button>
           <p className="text-xs text-gray-500 text-center mt-2">
-            Saves all tasks, uploads PDF and PNG to your report archive, then clears the form and sets
-            the work day to tomorrow.
+            Saves your hours (and any task lines you filled in), uploads PDF and PNG to your report
+            archive, then clears the form and sets the work day to tomorrow.
           </p>
         </div>
       </div>
@@ -781,7 +831,6 @@ function TaskBlockCard({
             value={block.startTime}
             onChange={(e) => onChange({ startTime: e.target.value })}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none bg-white"
-            required
           />
         </div>
         <div>
@@ -802,7 +851,6 @@ function TaskBlockCard({
             value={block.endTime}
             onChange={(e) => onChange({ endTime: e.target.value })}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none bg-white"
-            required
           />
         </div>
       </div>
@@ -832,6 +880,7 @@ function TaskBlockCard({
       <div>
         <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-1.5">
           <ClipboardList size={14} /> Work activity completed
+          <span className="text-gray-400 font-normal">(if you add a task)</span>
         </label>
         <textarea
           value={block.activity}
@@ -839,7 +888,6 @@ function TaskBlockCard({
           placeholder="e.g., Mowed front and back lawn, trimmed hedges along the driveway, blew clippings from walkway"
           rows={3}
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none resize-none bg-white"
-          required
         />
       </div>
 
