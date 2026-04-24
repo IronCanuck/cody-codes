@@ -78,13 +78,14 @@ export function ShellHome() {
       <header className="border-b border-slate-200/90 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between gap-4">
           <a href="/" className="flex items-center gap-3 group">
-            <div className="relative">
-              <div className="h-11 w-11 rounded-xl bg-cody-finnish flex items-center justify-center shadow-sm ring-2 ring-cody-gold/40 ring-offset-2 ring-offset-white">
-                <span className="text-white font-extrabold text-lg tracking-tight">C</span>
-              </div>
-              <span
-                className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-cody-gold border-2 border-white"
-                aria-hidden
+            <div className="h-11 w-11 rounded-xl overflow-hidden bg-black shadow-sm ring-2 ring-cody-gold/40 ring-offset-2 ring-offset-white shrink-0">
+              <img
+                src="/cody-logo.png"
+                alt=""
+                width={44}
+                height={44}
+                className="h-full w-full object-contain"
+                decoding="async"
               />
             </div>
             <div className="text-left">
