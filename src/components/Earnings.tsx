@@ -93,6 +93,7 @@ export function Earnings({
   const [quickEnd, setQuickEnd] = useState('');
   const [quickSaving, setQuickSaving] = useState(false);
   const [summarySelectedDates, setSummarySelectedDates] = useState<string[]>([]);
+  const [summaryBulkMode, setSummaryBulkMode] = useState(false);
   const [summaryBulkBusy, setSummaryBulkBusy] = useState(false);
   const summarySelectAllRef = useRef<HTMLInputElement>(null);
 
@@ -101,6 +102,7 @@ export function Earnings({
   const periodKey = `${toLocalDateInputValue(period.start)}-${toLocalDateInputValue(period.end)}`;
   useEffect(() => {
     setSummarySelectedDates([]);
+    setSummaryBulkMode(false);
   }, [periodKey]);
 
   const earnings = useMemo(
@@ -136,10 +138,10 @@ export function Earnings({
 
   useEffect(() => {
     const el = summarySelectAllRef.current;
-    if (!el) return;
+    if (!el || !summaryBulkMode) return;
     el.indeterminate =
       summarySelectedDates.length > 0 && summarySelectedDates.length < summaryDayYmds.length;
-  }, [summarySelectedDates, summaryDayYmds.length]);
+  }, [summaryBulkMode, summarySelectedDates, summaryDayYmds.length]);
 
   const toggleSummaryDateSelected = (ymd: string) => {
     setSummarySelectedDates((prev) =>
@@ -163,6 +165,7 @@ export function Earnings({
         : `Opened work log for ${formatDate(first)}.`,
     );
     setSummarySelectedDates([]);
+    setSummaryBulkMode(false);
   };
 
   const runBulkDuplicateSummary = () => {
@@ -204,6 +207,7 @@ export function Earnings({
       }
       onSaved(`Removed entries for ${datesWithJobs.length} day${datesWithJobs.length === 1 ? '' : 's'}.`);
       setSummarySelectedDates([]);
+      setSummaryBulkMode(false);
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Bulk delete failed');
     } finally {
@@ -863,12 +867,35 @@ export function Earnings({
 
         {earnings.days.length > 0 && (
           <div className="px-6 pb-6">
-            <h3 className="font-bold text-gray-900 mb-3">Daily work summary</h3>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <h3 className="font-bold text-gray-900">Daily work summary</h3>
+              {summaryBulkMode ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSummaryBulkMode(false);
+                    setSummarySelectedDates([]);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border border-jd-green-600 text-jd-green-800 bg-white hover:bg-jd-green-50"
+                >
+                  Done
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setSummaryBulkMode(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-jd-green-600 text-white hover:bg-jd-green-700"
+                >
+                  <Pencil size={14} />
+                  Bulk edit
+                </button>
+              )}
+            </div>
             <p className="text-sm text-gray-500 mb-3">
               Payroll hours and regular vs overtime from each work day (includes submitted daily
               report times when available).
             </p>
-            {summarySelectedDates.length > 0 && (
+            {summaryBulkMode && summarySelectedDates.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 mb-3 p-3 bg-jd-green-50 border border-jd-green-200 rounded-lg">
                 <span className="text-sm font-semibold text-jd-green-900">
                   {summarySelectedDates.length} day
@@ -881,7 +908,7 @@ export function Earnings({
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-jd-green-600 text-white hover:bg-jd-green-700"
                   >
                     <Pencil size={14} />
-                    Bulk edit
+                    Edit selected
                   </button>
                   <button
                     type="button"
@@ -920,17 +947,19 @@ export function Earnings({
               <table className="w-full text-sm">
                 <thead className="bg-jd-green-600 text-white">
                   <tr>
-                    <th className="w-10 px-2 py-2 text-center font-semibold" scope="col">
-                      <span className="sr-only">Select row</span>
-                      <input
-                        ref={summarySelectAllRef}
-                        type="checkbox"
-                        checked={allSummaryRowsSelected}
-                        onChange={toggleSelectAllSummaryRows}
-                        className="h-4 w-4 rounded border-white/50 text-jd-green-700 focus:ring-jd-green-500"
-                        aria-label="Select all days in this summary"
-                      />
-                    </th>
+                    {summaryBulkMode ? (
+                      <th className="w-10 px-2 py-2 text-center font-semibold" scope="col">
+                        <span className="sr-only">Select row</span>
+                        <input
+                          ref={summarySelectAllRef}
+                          type="checkbox"
+                          checked={allSummaryRowsSelected}
+                          onChange={toggleSelectAllSummaryRows}
+                          className="h-4 w-4 rounded border-white/50 text-jd-green-700 focus:ring-jd-green-500"
+                          aria-label="Select all days in this summary"
+                        />
+                      </th>
+                    ) : null}
                     <th className="text-left px-4 py-2 font-semibold">Date</th>
                     <th className="text-left px-4 py-2 font-semibold">Work day</th>
                     <th className="text-right px-4 py-2 font-semibold">Total</th>
@@ -958,15 +987,17 @@ export function Earnings({
                         key={d.date}
                         className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
                       >
-                        <td className="w-10 px-2 py-2 text-center align-middle">
-                          <input
-                            type="checkbox"
-                            checked={rowSelected}
-                            onChange={() => toggleSummaryDateSelected(d.date)}
-                            className="h-4 w-4 rounded border-gray-400 text-jd-green-700 focus:ring-jd-green-500"
-                            aria-label={`Select ${formatDate(d.date)}`}
-                          />
-                        </td>
+                        {summaryBulkMode ? (
+                          <td className="w-10 px-2 py-2 text-center align-middle">
+                            <input
+                              type="checkbox"
+                              checked={rowSelected}
+                              onChange={() => toggleSummaryDateSelected(d.date)}
+                              className="h-4 w-4 rounded border-gray-400 text-jd-green-700 focus:ring-jd-green-500"
+                              aria-label={`Select ${formatDate(d.date)}`}
+                            />
+                          </td>
+                        ) : null}
                         <td className="px-4 py-2 text-gray-700 whitespace-nowrap">
                           {formatDate(d.date)}
                         </td>
