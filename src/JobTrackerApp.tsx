@@ -37,25 +37,29 @@ export function JobTrackerLogPage() {
       </div>
       <div className="lg:col-span-2">
         <div className="bg-gradient-to-br from-jd-yellow-400 to-jd-yellow-500 rounded-xl shadow-lg border-2 border-jd-green-600 p-5">
-          <h3 className="font-bold text-jd-green-800 text-lg mb-2">Quick Tips</h3>
+          <h3 className="font-bold text-jd-green-800 text-lg mb-2">Quick tips</h3>
           <ul className="text-jd-green-800 text-sm space-y-2">
             <li className="flex gap-2">
               <span className="font-bold">•</span>
-              <span>Use the "Now" buttons to instantly stamp the current time.</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="font-bold">•</span>
-              <span>Hours are auto-calculated as you set start and end times.</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="font-bold">•</span>
               <span>
-                Open the Earnings page to see estimated wages for each pay period.
+                Set <strong>overall work hours</strong> for the day, then add a <strong>task block</strong>{' '}
+                for each job—add, delete, or change blocks anytime before you submit.
               </span>
             </li>
             <li className="flex gap-2">
               <span className="font-bold">•</span>
-              <span>Set your hourly rate and overtime rules in Settings.</span>
+              <span>
+                <strong>Submit daily report</strong> logs every task, saves PDF/PNG to your report
+                archive, and sets up tomorrow&apos;s work day automatically.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="font-bold">•</span>
+              <span>Use the "Now" buttons to stamp the current time on any clock field.</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="font-bold">•</span>
+              <span>Editing a row from History still uses a single job form, just for that entry.</span>
             </li>
           </ul>
         </div>

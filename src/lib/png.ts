@@ -1,6 +1,6 @@
 import html2canvas from 'html2canvas';
 import { Job, Settings } from './supabase';
-import { formatTime, formatDate } from './time';
+import { formatTime, formatDate, computeHours } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
 
 const JD_GREEN = '#367C2B';
@@ -78,7 +78,7 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 
-async function renderAndDownload(html: string, filename: string) {
+async function htmlToPngBlob(html: string): Promise<Blob> {
   const container = document.createElement('div');
   container.style.position = 'fixed';
   container.style.left = '-10000px';
@@ -91,14 +91,49 @@ async function renderAndDownload(html: string, filename: string) {
       backgroundColor: '#ffffff',
       useCORS: true,
     });
-    const url = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('Could not create PNG'))),
+        'image/png',
+      );
+    });
   } finally {
     document.body.removeChild(container);
   }
+}
+
+async function renderAndDownload(html: string, filename: string) {
+  const blob = await htmlToPngBlob(html);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function dayWorkSummaryLine(dayStartIso: string, dayEndIso: string): string {
+  const h = computeHours(dayStartIso, dayEndIso);
+  return `<div style="background: #f1f8ee; border: 1px solid #367C2B; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #1a1a1a;">
+    <strong style="color: #367C2B;">Work day</strong>
+    &nbsp; ${formatTime(dayStartIso)} – ${formatTime(dayEndIso)}
+    &nbsp; <span style="font-weight: 700; color: #367C2B;">${h.toFixed(2)} hrs</span>
+  </div>`;
+}
+
+export async function dailyWorkReportPngBlob(
+  date: string,
+  dayStartIso: string,
+  dayEndIso: string,
+  jobs: Job[],
+): Promise<Blob> {
+  const body = dayWorkSummaryLine(dayStartIso, dayEndIso) + jobsTable(jobs);
+  const html = renderShell(
+    `Daily Work Report – ${formatDate(date)}`,
+    `${jobs.length} task${jobs.length === 1 ? '' : 's'}`,
+    body,
+  );
+  return htmlToPngBlob(html);
 }
 
 export async function generateDailyPNG(date: string, jobs: Job[]) {

@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Job, Settings } from './supabase';
-import { formatTime, formatDate } from './time';
+import { formatTime, formatDate, computeHours } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
 
 const JD_GREEN: [number, number, number] = [54, 124, 43];
@@ -125,6 +125,58 @@ export function generateDailyPDF(date: string, jobs: Job[]) {
   }
 
   drawFooter(doc, sumHours(jobs));
+  doc.save(`landscape-log-daily-${date}.pdf`);
+}
+
+/** PDF for a single work day with overall times plus per-task rows (used for submit + storage). */
+export function buildDailyWorkReportPdf(
+  date: string,
+  dayStartIso: string,
+  dayEndIso: string,
+  jobs: Job[],
+): jsPDF {
+  const doc = new jsPDF();
+  drawHeader(doc, 'Daily Work Report', formatDate(date));
+
+  const dayHrs = computeHours(dayStartIso, dayEndIso);
+  doc.setFontSize(10);
+  doc.setTextColor(60, 60, 60);
+  doc.setFont('helvetica', 'normal');
+  doc.text(
+    `Work day: ${formatTime(dayStartIso)} – ${formatTime(dayEndIso)} (${dayHrs.toFixed(2)} hrs)`,
+    14,
+    58,
+  );
+
+  if (jobs.length === 0) {
+    doc.setFontSize(11);
+    doc.setTextColor(120, 120, 120);
+    doc.text('No tasks recorded.', 14, 72);
+  } else {
+    buildTable(doc, jobs, 66);
+  }
+
+  drawFooter(doc, sumHours(jobs));
+  return doc;
+}
+
+export function dailyWorkReportPdfBlob(
+  date: string,
+  dayStartIso: string,
+  dayEndIso: string,
+  jobs: Job[],
+): Blob {
+  const doc = buildDailyWorkReportPdf(date, dayStartIso, dayEndIso, jobs);
+  return doc.output('blob');
+}
+
+export function downloadDailyWorkReportPdf(
+  date: string,
+  dayStartIso: string,
+  dayEndIso: string,
+  jobs: Job[],
+) {
+  const doc = buildDailyWorkReportPdf(date, dayStartIso, dayEndIso, jobs);
   doc.save(`landscape-log-daily-${date}.pdf`);
 }
 

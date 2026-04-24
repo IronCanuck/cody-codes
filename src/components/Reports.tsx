@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Download,
   FileText,
@@ -6,8 +6,9 @@ import {
   CalendarDays,
   CalendarRange,
   FileImage,
+  Archive,
 } from 'lucide-react';
-import { Job } from '../lib/supabase';
+import { Job, supabase, SavedDailyReport } from '../lib/supabase';
 import {
   getMonthBounds,
   getWeekBounds,
@@ -33,6 +34,31 @@ export function Reports({ jobs, onSuccess }: Props) {
     `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`,
   );
   const [busy, setBusy] = useState<string | null>(null);
+  const [archived, setArchived] = useState<SavedDailyReport[]>([]);
+  const [archivedLoading, setArchivedLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setArchivedLoading(true);
+      const { data, error } = await supabase
+        .from('saved_daily_reports')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(30);
+      if (!cancelled) {
+        if (error) {
+          setArchived([]);
+        } else {
+          setArchived((data as SavedDailyReport[]) || []);
+        }
+        setArchivedLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [jobs.length]);
 
   const getDailyJobs = () => jobs.filter((j) => j.job_date === dailyDate);
 
@@ -186,6 +212,16 @@ export function Reports({ jobs, onSuccess }: Props) {
     },
   ];
 
+  const openSignedUrl = async (path: string | null) => {
+    if (!path) return;
+    const { data, error } = await supabase.storage.from('job-reports').createSignedUrl(path, 3600);
+    if (error) {
+      window.alert(`Could not open file: ${error.message}`);
+      return;
+    }
+    if (data?.signedUrl) window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-br from-jd-green-600 to-jd-green-700 rounded-xl shadow-lg overflow-hidden">
@@ -231,6 +267,63 @@ export function Reports({ jobs, onSuccess }: Props) {
             ? 'Multi-page document, great for printing.'
             : 'Single image, great for sharing or screenshots.'}
         </span>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="bg-jd-green-50 rounded-lg p-2">
+            <Archive size={18} className="text-jd-green-600" />
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-900">Submitted daily reports (database + storage)</h3>
+            <p className="text-sm text-gray-500">
+              PDF and PNG created when you use Submit daily report on the Log page. Links expire
+              after one hour.
+            </p>
+          </div>
+        </div>
+        {archivedLoading ? (
+          <p className="text-sm text-gray-500 py-2">Loading archive…</p>
+        ) : archived.length === 0 ? (
+          <p className="text-sm text-gray-500 py-2">
+            No submitted reports yet. After you submit a day, the files appear here.
+          </p>
+        ) : (
+          <ul className="divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden">
+            {archived.map((r) => (
+              <li
+                key={r.id}
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3 bg-gray-50/50"
+              >
+                <div>
+                  <span className="font-semibold text-gray-900">{formatDate(r.report_date)}</span>
+                  <span className="text-sm text-gray-500 ml-2">
+                    {r.job_count} task{r.job_count === 1 ? '' : 's'} · {Number(r.day_hours).toFixed(2)} day
+                    hrs
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void openSignedUrl(r.pdf_storage_path)}
+                    disabled={!r.pdf_storage_path}
+                    className="text-sm font-semibold text-jd-green-700 bg-jd-green-50 border border-jd-green-200 px-3 py-1.5 rounded-lg hover:bg-jd-green-100 disabled:opacity-50"
+                  >
+                    Open PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void openSignedUrl(r.png_storage_path)}
+                    disabled={!r.png_storage_path}
+                    className="text-sm font-semibold text-jd-green-700 bg-jd-green-50 border border-jd-green-200 px-3 py-1.5 rounded-lg hover:bg-jd-green-100 disabled:opacity-50"
+                  >
+                    Open PNG
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

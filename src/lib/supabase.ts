@@ -49,3 +49,15 @@ export const DEFAULT_SETTINGS: Omit<Settings, 'id' | 'updated_at'> = {
   pay_period_anchor_date: '2026-04-26',
   currency_symbol: '$',
 };
+
+export type SavedDailyReport = {
+  id: string;
+  report_date: string;
+  day_start_time: string;
+  day_end_time: string;
+  day_hours: number;
+  job_count: number;
+  pdf_storage_path: string | null;
+  png_storage_path: string | null;
+  created_at: string;
+};
