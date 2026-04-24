@@ -78,7 +78,7 @@ export function ShellHome() {
       <header className="border-b border-slate-200/90 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between gap-4">
           <a href="/" className="flex items-center gap-3 group">
-            <div className="h-11 w-11 rounded-xl overflow-hidden bg-black shadow-sm ring-2 ring-cody-gold/40 ring-offset-2 ring-offset-white shrink-0">
+            <div className="h-11 w-11 rounded-xl overflow-hidden bg-white shadow-sm ring-2 ring-cody-gold/40 ring-offset-2 ring-offset-white shrink-0">
               <img
                 src="/cody-logo.png"
                 alt=""
