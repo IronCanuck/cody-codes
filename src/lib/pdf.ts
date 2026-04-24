@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 import { Job, Settings } from './supabase';
 import { formatTime, formatDate, getWorkDayHoursWithLunch } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
+import { payPeriodHoursTrackerFilename } from './export-filename';
 import { ALBERTA_NET_DISCLAIMER, estimateAlbertaEmploymentNet } from './canada-alberta-estimate';
 
 const JD_GREEN: [number, number, number] = [54, 124, 43];
@@ -437,6 +438,5 @@ export function generatePayPeriodPDF(
   }
 
   drawFooter(doc, earnings.totalHours);
-  const startStr = period.start.toISOString().slice(0, 10);
-  doc.save(`landscape-log-payperiod-${startStr}.pdf`);
+  doc.save(payPeriodHoursTrackerFilename(settings, period, 'pdf'));
 }

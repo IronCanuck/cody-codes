@@ -2,6 +2,7 @@ import html2canvas from 'html2canvas';
 import { Job, Settings } from './supabase';
 import { formatTime, formatDate, getWorkDayHoursWithLunch } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
+import { payPeriodHoursTrackerFilename } from './export-filename';
 import { ALBERTA_NET_DISCLAIMER, estimateAlbertaEmploymentNet } from './canada-alberta-estimate';
 
 const JD_GREEN = '#367C2B';
@@ -307,6 +308,8 @@ export async function generatePayPeriodPNG(
   `;
 
   const html = renderShell('Pay Period Report', formatPeriodLabel(period), body);
-  const startStr = period.start.toISOString().slice(0, 10);
-  await renderAndDownload(html, `landscape-log-payperiod-${startStr}.png`);
+  await renderAndDownload(
+    html,
+    payPeriodHoursTrackerFilename(settings, period, 'png'),
+  );
 }

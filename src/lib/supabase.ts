@@ -81,6 +81,7 @@ export type JobInput = Omit<Job, 'id' | 'created_at'>;
 
 export type Settings = {
   id: string;
+  full_name: string;
   hourly_rate: number;
   overtime_multiplier: number;
   overtime_threshold_hours: number;
@@ -91,6 +92,7 @@ export type Settings = {
 };
 
 export const DEFAULT_SETTINGS: Omit<Settings, 'id' | 'updated_at'> = {
+  full_name: '',
   hourly_rate: 25,
   overtime_multiplier: 1.5,
   overtime_threshold_hours: 40,

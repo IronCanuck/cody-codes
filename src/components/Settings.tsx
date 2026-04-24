@@ -23,7 +23,7 @@ export function Settings({ settings, onSave }: Props) {
   const [newActivity, setNewActivity] = useState('');
 
   useEffect(() => {
-    setForm(settings);
+    setForm({ ...settings, full_name: settings.full_name ?? '' });
   }, [settings]);
 
   useEffect(() => {
@@ -95,6 +95,27 @@ export function Settings({ settings, onSave }: Props) {
         className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 space-y-6"
       >
         <section>
+          <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+            <ClipboardList size={18} className="text-jd-green-600" /> Your name
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Used as the default filename when you export pay-period PDFs or PNGs (e.g. to send to a
+            supervisor). Suggested: your full name as it should appear on the document.
+          </p>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full name</label>
+            <input
+              type="text"
+              autoComplete="name"
+              value={form.full_name ?? ''}
+              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+              placeholder="e.g., Jordan Smith"
+              className="w-full max-w-md px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
+            />
+          </div>
+        </section>
+
+        <section className="pt-6 border-t border-gray-100">
           <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
             <DollarSign size={18} className="text-jd-green-600" /> Wage
           </h3>

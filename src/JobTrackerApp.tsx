@@ -224,6 +224,7 @@ export function JobTrackerApp() {
     const { error } = await supabase
       .from('settings')
       .update({
+        full_name: next.full_name,
         hourly_rate: next.hourly_rate,
         overtime_multiplier: next.overtime_multiplier,
         overtime_threshold_hours: next.overtime_threshold_hours,
