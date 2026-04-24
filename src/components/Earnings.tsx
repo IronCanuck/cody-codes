@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   DollarSign,
   ChevronLeft,
@@ -15,6 +15,8 @@ import {
   List,
   Landmark,
   X,
+  Copy,
+  Trash2,
 } from 'lucide-react';
 import { supabase, Job, Settings, SavedDailyReport } from '../lib/supabase';
 import { estimateAlbertaEmploymentNet, ALBERTA_NET_DISCLAIMER } from '../lib/canada-alberta-estimate';
@@ -45,6 +47,8 @@ type Props = {
   onSaved: (msg: string) => void;
   onError: (msg: string) => void;
   onEditJob: (j: Job) => void;
+  onDeleteJobsForDate: (date: string) => Promise<void>;
+  onDuplicateDay: (date: string) => Promise<void>;
 };
 
 function isDateInPayPeriod(ymd: string, p: PayPeriod): boolean {
@@ -67,8 +71,12 @@ export function Earnings({
   onSaved,
   onError,
   onEditJob,
+  onDeleteJobsForDate,
+  onDuplicateDay,
 }: Props) {
+  const navigate = useNavigate();
   const [period, setPeriod] = useState(() => getPayPeriodForDate(new Date(), settings));
+  const [dayActionBusy, setDayActionBusy] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [quickDate, setQuickDate] = useState(() => toLocalDateInputValue(new Date()));
@@ -373,47 +381,7 @@ export function Earnings({
           use the sum of logged tasks.
         </p>
 
-        <div className="p-6 grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {summaryCards.map((c) => {
-            const Icon = c.Icon;
-            return (
-              <div
-                key={c.label}
-                className={`rounded-xl border p-4 ${
-                  c.highlight
-                    ? 'bg-jd-green-50 border-jd-green-300'
-                    : 'bg-white border-gray-200'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    {c.label}
-                  </span>
-                  <div
-                    className={`rounded-lg p-1.5 ${
-                      c.highlight ? 'bg-jd-yellow-400' : 'bg-gray-100'
-                    }`}
-                  >
-                    <Icon
-                      size={14}
-                      className={c.highlight ? 'text-jd-green-800' : 'text-gray-600'}
-                    />
-                  </div>
-                </div>
-                <div
-                  className={`text-xl font-bold ${
-                    c.highlight ? 'text-jd-green-700' : 'text-gray-900'
-                  }`}
-                >
-                  {c.value}
-                </div>
-                <div className="text-xs text-gray-500 mt-0.5">{c.sub}</div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="px-6 pb-6">
+        <div className="px-6 pt-2 pb-4">
           <div className="rounded-xl border-2 border-slate-200 bg-gradient-to-b from-slate-50 to-white overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-200 bg-slate-100/80 flex items-start gap-3">
               <div className="rounded-lg p-2 bg-slate-200/80 text-slate-800 shrink-0">
@@ -485,6 +453,46 @@ export function Earnings({
               <p className="p-4 text-sm text-slate-500">Log pay in this period to see a net estimate.</p>
             )}
           </div>
+        </div>
+
+        <div className="p-6 grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {summaryCards.map((c) => {
+            const Icon = c.Icon;
+            return (
+              <div
+                key={c.label}
+                className={`rounded-xl border p-4 ${
+                  c.highlight
+                    ? 'bg-jd-green-50 border-jd-green-300'
+                    : 'bg-white border-gray-200'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    {c.label}
+                  </span>
+                  <div
+                    className={`rounded-lg p-1.5 ${
+                      c.highlight ? 'bg-jd-yellow-400' : 'bg-gray-100'
+                    }`}
+                  >
+                    <Icon
+                      size={14}
+                      className={c.highlight ? 'text-jd-green-800' : 'text-gray-600'}
+                    />
+                  </div>
+                </div>
+                <div
+                  className={`text-xl font-bold ${
+                    c.highlight ? 'text-jd-green-700' : 'text-gray-900'
+                  }`}
+                >
+                  {c.value}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">{c.sub}</div>
+              </div>
+            );
+          })}
         </div>
 
         <div className="px-6 pb-6">
@@ -600,6 +608,9 @@ export function Earnings({
                     <th className="text-right px-4 py-2 font-semibold">Regular</th>
                     <th className="text-right px-4 py-2 font-semibold">Overtime</th>
                     <th className="text-right px-4 py-2 font-semibold">Pay</th>
+                    <th className="text-right px-4 py-2 font-semibold whitespace-nowrap">
+                      Actions
+                    </th>
                     <th className="text-right px-4 py-2 font-semibold">Log</th>
                   </tr>
                 </thead>
@@ -610,6 +621,8 @@ export function Earnings({
                       d.dayStartTime && d.dayEndTime
                         ? `${formatTime(d.dayStartTime)} – ${formatTime(d.dayEndTime)}`
                         : '—';
+                    const hasJobs = d.jobs.length > 0;
+                    const busy = dayActionBusy === d.date;
                     return (
                       <tr
                         key={d.date}
@@ -630,6 +643,72 @@ export function Earnings({
                         </td>
                         <td className="px-4 py-2 text-right font-semibold text-jd-green-700">
                           {formatMoney(dayPay, currency)}
+                        </td>
+                        <td className="px-4 py-2 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center justify-end gap-0.5 sm:gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (hasJobs) {
+                                  const first = [...d.jobs].sort((a, b) =>
+                                    a.start_time.localeCompare(b.start_time),
+                                  )[0];
+                                  onEditJob(first);
+                                } else {
+                                  navigate(
+                                    `/consaltyapp/log?date=${encodeURIComponent(d.date)}`,
+                                  );
+                                }
+                              }}
+                              className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-1 text-xs font-semibold text-jd-green-800 hover:bg-jd-green-50 border border-transparent hover:border-jd-green-200"
+                              title={hasJobs ? 'Edit first task for this day' : 'Open log for this day'}
+                            >
+                              <Pencil size={14} className="shrink-0" />
+                              <span className="hidden sm:inline">Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!hasJobs || busy}
+                              onClick={async () => {
+                                setDayActionBusy(d.date);
+                                try {
+                                  await onDuplicateDay(d.date);
+                                } catch (e) {
+                                  onError(e instanceof Error ? e.message : 'Duplicate failed');
+                                } finally {
+                                  setDayActionBusy(null);
+                                }
+                              }}
+                              className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-200 disabled:opacity-40 disabled:pointer-events-none"
+                              title={
+                                hasJobs
+                                  ? 'Copy all job entries to the next calendar day'
+                                  : 'No job entries to duplicate'
+                              }
+                            >
+                              <Copy size={14} className="shrink-0" />
+                              <span className="hidden sm:inline">Duplicate</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!hasJobs || busy}
+                              onClick={async () => {
+                                setDayActionBusy(d.date);
+                                try {
+                                  await onDeleteJobsForDate(d.date);
+                                } catch (e) {
+                                  onError(e instanceof Error ? e.message : 'Delete failed');
+                                } finally {
+                                  setDayActionBusy(null);
+                                }
+                              }}
+                              className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 disabled:opacity-40 disabled:pointer-events-none"
+                              title={hasJobs ? 'Delete all job entries for this day' : 'No job entries to delete'}
+                            >
+                              <Trash2 size={14} className="shrink-0" />
+                              <span className="hidden sm:inline">Delete</span>
+                            </button>
+                          </div>
                         </td>
                         <td className="px-4 py-2 text-right whitespace-nowrap">
                           <Link

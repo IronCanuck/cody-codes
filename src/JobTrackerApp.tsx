@@ -18,6 +18,7 @@ import {
   DEFAULT_SETTINGS,
   SavedDailyReport,
 } from './lib/supabase';
+import { toLocalDateInputValue } from './lib/time';
 
 export function JobTrackerDashboardPage() {
   const { jobs, settings, dailyReports } = useJobTrackerOutlet();
@@ -82,8 +83,17 @@ export function JobTrackerHistoryPage() {
 }
 
 export function JobTrackerEarningsPage() {
-  const { jobs, settings, dailyReports, onEarningsSuccess, onEdit, onSaved, onError } =
-    useJobTrackerOutlet();
+  const {
+    jobs,
+    settings,
+    dailyReports,
+    onEarningsSuccess,
+    onEdit,
+    onSaved,
+    onError,
+    onDeleteJobsForDate,
+    onDuplicateDay,
+  } = useJobTrackerOutlet();
   if (!settings) {
     return <div className="text-gray-500 text-center py-12">Loading settings...</div>;
   }
@@ -96,6 +106,8 @@ export function JobTrackerEarningsPage() {
       onSaved={onSaved}
       onError={onError}
       onEditJob={onEdit}
+      onDeleteJobsForDate={onDeleteJobsForDate}
+      onDuplicateDay={onDuplicateDay}
     />
   );
 }
@@ -259,6 +271,80 @@ export function JobTrackerApp() {
     }
   };
 
+  const handleDeleteJobsForDate = async (date: string) => {
+    const dayJobs = jobs.filter((j) => j.job_date === date);
+    if (dayJobs.length === 0) {
+      setToast({
+        message: 'No job entries to delete for that day. Hours may come only from a daily report.',
+        type: 'error',
+      });
+      return;
+    }
+    if (
+      !confirm(
+        `Delete all ${dayJobs.length} job ${dayJobs.length === 1 ? 'entry' : 'entries'} for ${date}? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    const ids = dayJobs.map((j) => j.id);
+    const { error } = await supabase.from('jobs').delete().in('id', ids);
+    if (error) {
+      setToast({ message: error.message, type: 'error' });
+    } else {
+      setToast({
+        message:
+          dayJobs.length === 1 ? 'Job entry deleted' : `${dayJobs.length} job entries deleted`,
+        type: 'success',
+      });
+      loadJobs();
+      void loadDailyReports();
+    }
+  };
+
+  const addOneCalendarDayYmd = (ymd: string) => {
+    const d = new Date(ymd + 'T12:00:00');
+    d.setDate(d.getDate() + 1);
+    return toLocalDateInputValue(d);
+  };
+
+  const handleDuplicateDay = async (date: string) => {
+    const dayJobs = jobs
+      .filter((j) => j.job_date === date)
+      .sort((a, b) => a.start_time.localeCompare(b.start_time));
+    if (dayJobs.length === 0) {
+      setToast({
+        message: 'No job entries to duplicate. Add tasks on the log page for that day first.',
+        type: 'error',
+      });
+      return;
+    }
+    const nextDate = addOneCalendarDayYmd(date);
+    if (
+      !confirm(
+        `Add ${dayJobs.length} copied ${dayJobs.length === 1 ? 'entry' : 'entries'} to ${nextDate} (the day after ${date})?`,
+      )
+    ) {
+      return;
+    }
+    const rows = dayJobs.map((j) => ({
+      job_date: nextDate,
+      start_time: j.start_time,
+      end_time: j.end_time,
+      hours_worked: j.hours_worked,
+      activity: j.activity,
+      site: j.site,
+      notes: j.notes,
+    }));
+    const { error } = await supabase.from('jobs').insert(rows);
+    if (error) {
+      setToast({ message: error.message, type: 'error' });
+    } else {
+      setToast({ message: `Duplicated to ${nextDate}`, type: 'success' });
+      loadJobs();
+    }
+  };
+
   const outletContext: JobTrackerOutletContext = {
     jobs,
     dailyReports,
@@ -272,6 +358,8 @@ export function JobTrackerApp() {
     onError: handleError,
     onEdit: handleEdit,
     onDelete: handleDelete,
+    onDeleteJobsForDate: handleDeleteJobsForDate,
+    onDuplicateDay: handleDuplicateDay,
     onSettingsSave: handleSaveSettings,
     onReportSuccess: (m) => setToast({ message: m, type: 'success' }),
     onEarningsSuccess: (m) => setToast({ message: m, type: 'success' }),

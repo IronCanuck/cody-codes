@@ -16,6 +16,10 @@ export type JobTrackerOutletContext = {
   onError: (msg: string) => void;
   onEdit: (j: Job) => void;
   onDelete: (id: string) => void;
+  /** Remove every job entry for a calendar work day (earnings / daily summary). */
+  onDeleteJobsForDate: (date: string) => Promise<void>;
+  /** Copy all job entries for a day onto the next calendar day. */
+  onDuplicateDay: (date: string) => Promise<void>;
   onSettingsSave: (next: SettingsType) => Promise<void>;
   onReportSuccess: (m: string) => void;
   onEarningsSuccess: (m: string) => void;
