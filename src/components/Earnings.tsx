@@ -28,9 +28,9 @@ import {
 } from '../lib/earnings';
 import {
   combineDateAndTime,
-  computeHours,
   formatDate,
   formatTime,
+  getWorkDayHoursWithLunch,
   toLocalDateInputValue,
 } from '../lib/time';
 import { generatePayPeriodPDF } from '../lib/pdf';
@@ -150,8 +150,8 @@ export function Earnings({
     }
     const startIso = combineDateAndTime(quickDate, quickStart);
     const endIso = combineDateAndTime(quickDate, quickEnd);
-    const hours = computeHours(startIso, endIso);
-    if (hours <= 0) {
+    const { hours: payHours } = getWorkDayHoursWithLunch(startIso, endIso);
+    if (payHours <= 0) {
       onError('End time must be after start time on that day.');
       return;
     }
@@ -161,13 +161,13 @@ export function Earnings({
         job_date: quickDate,
         start_time: startIso,
         end_time: endIso,
-        hours_worked: hours,
+        hours_worked: payHours,
         activity: 'Hours',
         site: '',
         notes: '',
       });
       if (error) throw error;
-      onSaved(`Logged ${hours.toFixed(2)} hours for ${formatDate(quickDate)}`);
+      onSaved(`Logged ${payHours.toFixed(2)} hours for ${formatDate(quickDate)}`);
       setQuickLogOpen(false);
     } catch (err) {
       onError(err instanceof Error ? err.message : 'Could not save hours');
@@ -675,7 +675,7 @@ export function Earnings({
                           {formatDate(j.job_date)}
                         </td>
                         <td className="px-4 py-2 text-right font-semibold text-gray-800">
-                          {Number(j.hours_worked).toFixed(2)}
+                          {getWorkDayHoursWithLunch(j.start_time, j.end_time).hours.toFixed(2)}
                         </td>
                         <td className="px-4 py-2 text-gray-600">
                           {j.site ? (

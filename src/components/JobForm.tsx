@@ -222,7 +222,7 @@ function SingleJobForm({
 
   const startIso = combineDateAndTime(form.date, form.startTime);
   const endIso = combineDateAndTime(form.date, form.endTime);
-  const hours = computeHours(startIso, endIso);
+  const { hours: payHours } = getWorkDayHoursWithLunch(startIso, endIso);
 
   const stampNow = (field: 'startTime' | 'endTime') => {
     setForm((f) => ({ ...f, [field]: toLocalTimeInputValue(new Date()) }));
@@ -238,7 +238,7 @@ function SingleJobForm({
       onError('Please describe the work activity');
       return;
     }
-    if (hours <= 0) {
+    if (payHours <= 0) {
       onError('End time must be after start time');
       return;
     }
@@ -249,7 +249,7 @@ function SingleJobForm({
         job_date: form.date,
         start_time: startIso,
         end_time: endIso,
-        hours_worked: hours,
+        hours_worked: payHours,
         activity: form.activity.trim(),
         site: form.site.trim(),
         notes: form.notes.trim(),
@@ -340,7 +340,7 @@ function SingleJobForm({
         <div className="bg-jd-green-50 border border-jd-green-200 rounded-lg px-4 py-3 flex items-center justify-between">
           <span className="text-sm font-medium text-jd-green-800">Hours on activity</span>
           <span className="text-2xl font-bold text-jd-green-700">
-            {hours.toFixed(2)}
+            {payHours.toFixed(2)}
             <span className="text-sm font-medium ml-1 text-jd-green-600">hrs</span>
           </span>
         </div>

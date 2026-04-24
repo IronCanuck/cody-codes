@@ -1,5 +1,5 @@
 import { Job, Settings, SavedDailyReport } from './supabase';
-import { toLocalDateInputValue } from './time';
+import { getWorkDayHoursWithLunch, toLocalDateInputValue } from './time';
 
 export type PayPeriod = {
   start: Date;
@@ -137,7 +137,30 @@ function buildDayBreakdowns(
     const dayJobs = byDateJobs.get(date) ?? [];
     const report = repMap.get(date);
     const fromTasks = dayJobs.reduce((s, j) => s + Number(j.hours_worked || 0), 0);
-    const totalHours = report != null ? Number(report.day_hours) : fromTasks;
+    const repStart = report?.day_start_time?.trim();
+    const repEnd = report?.day_end_time?.trim();
+    const hasReportClock = Boolean(repStart && repEnd);
+    const single = dayJobs.length === 1 ? dayJobs[0] : null;
+    const hasSingleJobClock = Boolean(
+      single?.start_time && single?.end_time,
+    );
+
+    let totalHours: number;
+    let dayStartTime: string | null = null;
+    let dayEndTime: string | null = null;
+
+    if (hasReportClock) {
+      totalHours = getWorkDayHoursWithLunch(repStart!, repEnd!).hours;
+      dayStartTime = repStart!;
+      dayEndTime = repEnd!;
+    } else if (dayJobs.length === 1 && hasSingleJobClock) {
+      const j = dayJobs[0];
+      totalHours = getWorkDayHoursWithLunch(j.start_time, j.end_time).hours;
+      dayStartTime = j.start_time;
+      dayEndTime = j.end_time;
+    } else {
+      totalHours = report != null ? Number(report.day_hours) : fromTasks;
+    }
 
     if (totalHours <= 0 && dayJobs.length === 0) continue;
 
@@ -152,8 +175,8 @@ function buildDayBreakdowns(
       regularPay: regH * rate,
       overtimePay: otH * rate * mult,
       jobs: dayJobs,
-      dayStartTime: report?.day_start_time ?? null,
-      dayEndTime: report?.day_end_time ?? null,
+      dayStartTime,
+      dayEndTime,
     });
   }
 
