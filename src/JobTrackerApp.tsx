@@ -101,8 +101,17 @@ export function JobTrackerEarningsPage() {
 }
 
 export function JobTrackerReportsPage() {
-  const { jobs, onReportSuccess } = useJobTrackerOutlet();
-  return <Reports jobs={jobs} onSuccess={onReportSuccess} />;
+  const { jobs, dailyReports, dailyReportsLoading, dailyReportsError, onReportSuccess } =
+    useJobTrackerOutlet();
+  return (
+    <Reports
+      jobs={jobs}
+      dailyReports={dailyReports}
+      dailyReportsLoading={dailyReportsLoading}
+      dailyReportsError={dailyReportsError}
+      onSuccess={onReportSuccess}
+    />
+  );
 }
 
 export function JobTrackerSettingsPage() {
@@ -118,6 +127,9 @@ export function JobTrackerApp() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [dailyReports, setDailyReports] = useState<SavedDailyReport[]>([]);
+  const [dailyReportsLoading, setDailyReportsLoading] = useState(true);
+  const [dailyReportsError, setDailyReportsError] = useState<string | null>(null);
+  const [dismissArchiveBanner, setDismissArchiveBanner] = useState(false);
   const [settings, setSettings] = useState<SettingsType | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Job | null>(null);
@@ -143,15 +155,27 @@ export function JobTrackerApp() {
   };
 
   const loadDailyReports = async () => {
+    setDailyReportsLoading(true);
+    setDailyReportsError(null);
     const { data, error } = await supabase
       .from('saved_daily_reports')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(50);
     if (error) {
       setDailyReports([]);
+      setDismissArchiveBanner(false);
+      const msg = error.message || 'Unknown error';
+      setDailyReportsError(
+        /42P01|relation|does not exist|schema cache|PGRST205/i.test(msg)
+          ? 'Report archive unavailable: the saved_daily_reports table or policy is missing. Apply Supabase migrations from the project (supabase/migrations), or run the SQL for saved_daily_reports in the Supabase SQL editor.'
+          : msg,
+      );
     } else {
       setDailyReports((data as SavedDailyReport[]) || []);
+      setDailyReportsError(null);
     }
+    setDailyReportsLoading(false);
   };
 
   const loadSettings = async () => {
@@ -238,6 +262,8 @@ export function JobTrackerApp() {
   const outletContext: JobTrackerOutletContext = {
     jobs,
     dailyReports,
+    dailyReportsLoading,
+    dailyReportsError,
     settings,
     loading,
     editing,
@@ -257,11 +283,26 @@ export function JobTrackerApp() {
       <Toast toast={toast} onClose={() => setToast(null)} />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {dailyReportsError && !dismissArchiveBanner ? (
+          <div
+            role="alert"
+            className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 flex gap-3 justify-between items-start"
+          >
+            <p className="leading-snug">{dailyReportsError}</p>
+            <button
+              type="button"
+              onClick={() => setDismissArchiveBanner(true)}
+              className="shrink-0 font-semibold text-amber-900 hover:text-amber-950 underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        ) : null}
         <Outlet context={outletContext} />
       </main>
 
       <footer className="mt-12 py-6 border-t border-gray-200 text-center text-sm text-gray-500 space-y-2">
-        <p>Landscape Log — track your work, one job at a time</p>
+        <p>Consalty — track your work, one job at a time</p>
         <p>
           <Link to="/dashboard" className="text-jd-green-600 hover:text-jd-green-700 font-medium">
             ← Your apps

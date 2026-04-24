@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Download,
   FileText,
@@ -22,10 +22,13 @@ type Format = 'pdf' | 'png';
 
 type Props = {
   jobs: Job[];
+  dailyReports: SavedDailyReport[];
+  dailyReportsLoading: boolean;
+  dailyReportsError: string | null;
   onSuccess: (msg: string) => void;
 };
 
-export function Reports({ jobs, onSuccess }: Props) {
+export function Reports({ jobs, dailyReports, dailyReportsLoading, dailyReportsError, onSuccess }: Props) {
   const today = new Date();
   const [format, setFormat] = useState<Format>('pdf');
   const [dailyDate, setDailyDate] = useState(toLocalDateInputValue(today));
@@ -34,31 +37,9 @@ export function Reports({ jobs, onSuccess }: Props) {
     `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`,
   );
   const [busy, setBusy] = useState<string | null>(null);
-  const [archived, setArchived] = useState<SavedDailyReport[]>([]);
-  const [archivedLoading, setArchivedLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setArchivedLoading(true);
-      const { data, error } = await supabase
-        .from('saved_daily_reports')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(30);
-      if (!cancelled) {
-        if (error) {
-          setArchived([]);
-        } else {
-          setArchived((data as SavedDailyReport[]) || []);
-        }
-        setArchivedLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [jobs.length]);
+  const archived = dailyReports;
+  const archivedLoading = dailyReportsLoading;
 
   const getDailyJobs = () => jobs.filter((j) => j.job_date === dailyDate);
 
@@ -284,6 +265,12 @@ export function Reports({ jobs, onSuccess }: Props) {
         </div>
         {archivedLoading ? (
           <p className="text-sm text-gray-500 py-2">Loading archive…</p>
+        ) : dailyReportsError ? (
+          <p className="text-sm text-amber-900 py-2 leading-snug">
+            Archive list was not loaded. If you see a notice at the top of the page, follow those steps; the
+            browser network tab will show 404/400 until the table and job-reports bucket exist on your
+            Supabase project.
+          </p>
         ) : archived.length === 0 ? (
           <p className="text-sm text-gray-500 py-2">
             No submitted reports yet. After you submit a day, the files appear here.
