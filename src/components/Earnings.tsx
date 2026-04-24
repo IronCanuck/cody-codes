@@ -33,9 +33,9 @@ import {
   formatDate,
   formatTime,
   getWorkDayHoursWithLunch,
-  TIME_INPUT_STEP_SECONDS,
   toLocalDateInputValue,
 } from '../lib/time';
+import { QuarterHourTimeInput } from './QuarterHourTimeInput';
 import { generatePayPeriodPDF } from '../lib/pdf';
 import { generatePayPeriodPNG } from '../lib/png';
 
@@ -278,12 +278,10 @@ export function Earnings({
                   >
                     Start
                   </label>
-                  <input
+                  <QuarterHourTimeInput
                     id="quick-log-start"
-                    type="time"
-                    step={TIME_INPUT_STEP_SECONDS}
                     value={quickStart}
-                    onChange={(e) => setQuickStart(e.target.value)}
+                    onChange={setQuickStart}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                     required
                   />
@@ -295,12 +293,10 @@ export function Earnings({
                   >
                     End
                   </label>
-                  <input
+                  <QuarterHourTimeInput
                     id="quick-log-end"
-                    type="time"
-                    step={TIME_INPUT_STEP_SECONDS}
                     value={quickEnd}
-                    onChange={(e) => setQuickEnd(e.target.value)}
+                    onChange={setQuickEnd}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                     required
                   />

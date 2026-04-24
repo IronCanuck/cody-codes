@@ -16,10 +16,10 @@ import {
   combineDateAndTime,
   computeHours,
   getWorkDayHoursWithLunch,
-  TIME_INPUT_STEP_SECONDS,
   toLocalDateInputValue,
   toLocalTimeInputValue,
 } from '../lib/time';
+import { QuarterHourTimeInput } from './QuarterHourTimeInput';
 import { dailyWorkReportPdfBlob } from '../lib/pdf';
 import { dailyWorkReportPngBlob } from '../lib/png';
 import {
@@ -323,11 +323,9 @@ function SingleJobForm({
                 <Zap size={10} /> Now
               </button>
             </label>
-            <input
-              type="time"
-              step={TIME_INPUT_STEP_SECONDS}
+            <QuarterHourTimeInput
               value={form.startTime}
-              onChange={(e) => setForm({ ...form, startTime: e.target.value })}
+              onChange={(startTime) => setForm({ ...form, startTime })}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
               required
             />
@@ -345,11 +343,9 @@ function SingleJobForm({
                 <Zap size={10} /> Now
               </button>
             </label>
-            <input
-              type="time"
-              step={TIME_INPUT_STEP_SECONDS}
+            <QuarterHourTimeInput
               value={form.endTime}
-              onChange={(e) => setForm({ ...form, endTime: e.target.value })}
+              onChange={(endTime) => setForm({ ...form, endTime })}
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
               required
             />
@@ -774,11 +770,9 @@ function DailyJobTrackerForm({
                   <Zap size={10} /> Now
                 </button>
               </label>
-              <input
-                type="time"
-                step={TIME_INPUT_STEP_SECONDS}
+              <QuarterHourTimeInput
                 value={form.dayStartTime}
-                onChange={(e) => setForm({ ...form, dayStartTime: e.target.value })}
+                onChange={(dayStartTime) => setForm({ ...form, dayStartTime })}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
                 required
               />
@@ -811,11 +805,9 @@ function DailyJobTrackerForm({
                   <Zap size={10} /> Now
                 </button>
               </label>
-              <input
-                type="time"
-                step={TIME_INPUT_STEP_SECONDS}
+              <QuarterHourTimeInput
                 value={form.dayEndTime}
-                onChange={(e) => setForm({ ...form, dayEndTime: e.target.value })}
+                onChange={(dayEndTime) => setForm({ ...form, dayEndTime })}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
                 required
               />
@@ -973,11 +965,9 @@ function TaskBlockCard({
               <Zap size={10} /> Now
             </button>
           </label>
-          <input
-            type="time"
-            step={TIME_INPUT_STEP_SECONDS}
+          <QuarterHourTimeInput
             value={block.startTime}
-            onChange={(e) => onChange({ startTime: e.target.value })}
+            onChange={(startTime) => onChange({ startTime })}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none bg-white"
           />
         </div>
@@ -994,11 +984,9 @@ function TaskBlockCard({
               <Zap size={10} /> Now
             </button>
           </label>
-          <input
-            type="time"
-            step={TIME_INPUT_STEP_SECONDS}
+          <QuarterHourTimeInput
             value={block.endTime}
-            onChange={(e) => onChange({ endTime: e.target.value })}
+            onChange={(endTime) => onChange({ endTime })}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none bg-white"
           />
         </div>

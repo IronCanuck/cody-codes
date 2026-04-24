@@ -70,6 +70,58 @@ export function toLocalDateInputValue(d: Date): string {
 export const TIME_INPUT_STEP_MINUTES = 15;
 export const TIME_INPUT_STEP_SECONDS = TIME_INPUT_STEP_MINUTES * 60;
 
+/** Minute values shown in custom quarter-hour time popovers (native wheels often ignore `step`). */
+export const QUARTER_HOUR_MINUTES = [0, 15, 30, 45] as const;
+
+export type TwelveHourParts = {
+  hour12: number;
+  minute: number;
+  period: 'AM' | 'PM';
+};
+
+/**
+ * Parse `HH:MM` (24h) to 12h parts; minutes aligned to {@link QUARTER_HOUR_MINUTES}
+ * via {@link toLocalTimeInputValue}.
+ */
+export function timeInputToTwelveHour(hhmm: string): TwelveHourParts | null {
+  if (!hhmm?.trim()) return null;
+  const [hs, ms] = hhmm.trim().split(':');
+  const h24 = parseInt(hs, 10);
+  const mn = parseInt(ms, 10);
+  if (!Number.isFinite(h24) || !Number.isFinite(mn)) return null;
+  const norm = toLocalTimeInputValue(new Date(2000, 0, 1, h24, mn, 0, 0));
+  const [h2s, m2s] = norm.split(':');
+  const h2 = parseInt(h2s, 10);
+  const m2 = parseInt(m2s, 10);
+  const period = h2 >= 12 ? 'PM' : 'AM';
+  let hour12 = h2 % 12;
+  if (hour12 === 0) hour12 = 12;
+  return { hour12, minute: m2, period };
+}
+
+/** Build `HH:MM` (24h) from 12h clock parts (minutes should be a quarter-hour). */
+export function twelveHourToTimeInput(parts: TwelveHourParts): string {
+  const { hour12, minute, period } = parts;
+  let h24: number;
+  if (period === 'AM') {
+    h24 = hour12 === 12 ? 0 : hour12;
+  } else {
+    h24 = hour12 === 12 ? 12 : hour12 + 12;
+  }
+  return `${String(h24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+
+/** Locale display string for a `HH:MM` value (e.g. "7:00 PM"). */
+export function formatTimeInputDisplay(hhmm: string): string {
+  if (!hhmm) return '';
+  const [h, m] = hhmm.split(':').map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return hhmm;
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString([], {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 /**
  * `HH:MM` for `<input type="time">`, rounded to {@link TIME_INPUT_STEP_MINUTES}.
  * Used for "Now" and when loading an existing entry so values match the input step.
