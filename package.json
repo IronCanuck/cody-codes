@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "showcase:screens": "node scripts/fetch-showcase-screens.mjs",
     "cap:sync": "vite build && npx cap sync",
     "ios:open": "npx cap open ios"
   },
