@@ -223,6 +223,7 @@ function SingleJobForm({
 
   return (
     <form
+      noValidate
       onSubmit={handleSubmit}
       className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
     >
@@ -560,6 +561,7 @@ function DailyJobTrackerForm({
 
   return (
     <form
+      noValidate
       onSubmit={handleSubmitReport}
       className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
     >
