@@ -18,6 +18,8 @@ const PROJECTS = [
   { key: 'wrestlingstudiopro', url: 'https://www.wrestlingstudiopro.com' },
   { key: 'wrestlingdualscoreboard', url: 'https://www.podiumwrestlinghq.com/' },
   { key: 'quadmeet', url: 'https://www.quadmeet.ca' },
+  { key: 'calgaryopen', url: 'https://www.thecalgaryopen.com' },
+  { key: 'spartaninvitational', url: 'https://www.spartaninvite.ca' },
   { key: 'spartanwrestling', url: 'https://www.spartanwrestling.ca' },
   { key: 'canadawrestlinghq', url: 'https://www.wrestlingtournaments.ca' },
   { key: 'firereportpro', url: 'https://www.firereportpro.com' },

@@ -50,6 +50,18 @@ export const SHOWCASE_PROJECTS: readonly ShowcaseProject[] = [
     image: '/showcase/quadmeet.png',
   },
   {
+    title: 'The Calgary Open',
+    description: 'Open wrestling tournament hub.',
+    href: 'https://www.thecalgaryopen.com',
+    image: '/showcase/calgaryopen.png',
+  },
+  {
+    title: 'Spartan Invitational',
+    description: 'Invitational meet and tournament information.',
+    href: 'https://www.spartaninvite.ca',
+    image: '/showcase/spartaninvitational.png',
+  },
+  {
     title: 'Calgary Spartan Wrestling Club',
     description: 'Club information and resources.',
     href: 'https://www.spartanwrestling.ca',
