@@ -358,11 +358,11 @@ export function TaskMasterApp() {
           </div>
           <Link
             to="/dashboard"
-            aria-label="Back to hub"
+            aria-label="Back to Cody Codes"
             className="inline-flex items-center justify-center sm:justify-start gap-1.5 text-xs sm:text-sm font-medium text-white/95 hover:text-white border border-white/40 rounded-lg px-2 sm:px-3 py-1.5 hover:bg-white/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-tiffany-light shrink-0"
           >
             <ArrowLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-            <span className="hidden sm:inline">Back to hub</span>
+            <span className="hidden sm:inline">Back to Cody Codes</span>
           </Link>
         </div>
       </header>
