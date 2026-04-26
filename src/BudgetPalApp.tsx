@@ -56,6 +56,13 @@ type BudgetCategory = {
   sortOrder: number;
 };
 
+type IncomeStream = {
+  id: string;
+  profileId: string;
+  name: string;
+  sortOrder: number;
+};
+
 type TransactionKind = 'income' | 'expense';
 
 type Transaction = {
@@ -63,6 +70,8 @@ type Transaction = {
   profileId: string;
   accountId: string | null;
   categoryId: string | null;
+  /** For income; null = uncategorized. Ignored for expenses. */
+  incomeStreamId: string | null;
   amount: number;
   /** ISO date yyyy-mm-dd */
   date: string;
@@ -85,6 +94,7 @@ type BudgetPalSnapshot = {
   profiles: Profile[];
   bankAccounts: BankAccount[];
   budgetCategories: BudgetCategory[];
+  incomeStreams: IncomeStream[];
   transactions: Transaction[];
   savingsGoals: SavingsGoal[];
 };
@@ -107,8 +117,20 @@ function defaultSnapshot(): BudgetPalSnapshot {
     profiles: [{ id: pId, name: 'Personal', sortOrder: 0 }],
     bankAccounts: [],
     budgetCategories: [],
+    incomeStreams: [],
     transactions: [],
     savingsGoals: [],
+  };
+}
+
+function normalizeSnapshotData(s: BudgetPalSnapshot): BudgetPalSnapshot {
+  return {
+    ...s,
+    incomeStreams: s.incomeStreams ?? [],
+    transactions: s.transactions.map((t) => ({
+      ...t,
+      incomeStreamId: t.incomeStreamId ?? null,
+    })),
   };
 }
 
@@ -120,10 +142,10 @@ function loadSnapshot(userId: string | undefined): BudgetPalSnapshot | null {
     const parsed = JSON.parse(raw) as BudgetPalSnapshot;
     if (parsed?.version !== STORAGE_VERSION || !Array.isArray(parsed.profiles)) return null;
     if (parsed.profiles.length === 0) return null;
-    return {
+    return normalizeSnapshotData({
       ...defaultSnapshot(),
       ...parsed,
-    };
+    });
   } catch {
     return null;
   }
@@ -354,7 +376,12 @@ function BudgetPalSettingsRoute(props: {
         if (!parsed.profiles.some((p) => p.id === parsed.activeProfileId)) {
           parsed.activeProfileId = parsed.profiles[0]!.id;
         }
-        props.persist(parsed);
+        props.persist(
+          normalizeSnapshotData({
+            ...defaultSnapshot(),
+            ...parsed,
+          } as BudgetPalSnapshot),
+        );
         setImportOk('Backup imported. Your data is saved in this browser.');
       } catch {
         setImportError('Could not read that file.');
@@ -463,6 +490,7 @@ export function BudgetPalApp() {
     | { type: 'profile' }
     | { type: 'account' }
     | { type: 'category' }
+    | { type: 'incomeStream' }
     | { type: 'goal' }
     | { type: 'transaction' }
   >(null);
@@ -470,8 +498,10 @@ export function BudgetPalApp() {
   const [editProfile, setEditProfile] = useState<Profile | null>(null);
   const [editAccount, setEditAccount] = useState<BankAccount | null>(null);
   const [editCategory, setEditCategory] = useState<BudgetCategory | null>(null);
+  const [editIncomeStream, setEditIncomeStream] = useState<IncomeStream | null>(null);
   const [editGoal, setEditGoal] = useState<SavingsGoal | null>(null);
   const [deleteProfileId, setDeleteProfileId] = useState<string | null>(null);
+  const [deleteIncomeStreamId, setDeleteIncomeStreamId] = useState<string | null>(null);
 
   const persist = useCallback(
     (next: BudgetPalSnapshot | ((prev: BudgetPalSnapshot) => BudgetPalSnapshot)) => {
@@ -496,7 +526,7 @@ export function BudgetPalApp() {
         const first = stored.profiles[0];
         if (first) stored.activeProfileId = first.id;
       }
-      setData(stored);
+      setData(normalizeSnapshotData(stored));
     } else setData(defaultSnapshot());
     setHydrated(true);
   }, [userId]);
@@ -536,6 +566,29 @@ export function BudgetPalApp() {
       (t) => t.profileId === data.activeProfileId && inMonth(t.date, viewYear, viewMonth),
     );
   }, [data.transactions, data.activeProfileId, viewYear, viewMonth]);
+
+  const incomeStreamsForProfile = useMemo(
+    () =>
+      data.incomeStreams
+        .filter((i) => i.profileId === data.activeProfileId)
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
+    [data.incomeStreams, data.activeProfileId],
+  );
+
+  const { incomeByStream, incomeUncategorized } = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const s of incomeStreamsForProfile) map.set(s.id, 0);
+    let incomeUncategorized = 0;
+    for (const t of txForProfileMonth) {
+      if (t.kind !== 'income') continue;
+      if (t.incomeStreamId && map.has(t.incomeStreamId)) {
+        map.set(t.incomeStreamId, (map.get(t.incomeStreamId) ?? 0) + t.amount);
+      } else {
+        incomeUncategorized += t.amount;
+      }
+    }
+    return { incomeByStream: map, incomeUncategorized };
+  }, [txForProfileMonth, incomeStreamsForProfile]);
 
   const spendByCategory = useMemo(() => {
     const map = new Map<string, number>();
@@ -618,11 +671,23 @@ export function BudgetPalApp() {
         activeProfileId: nextActive,
         bankAccounts: d.bankAccounts.filter((a) => a.profileId !== profileId),
         budgetCategories: d.budgetCategories.filter((c) => c.profileId !== profileId),
+        incomeStreams: d.incomeStreams.filter((i) => i.profileId !== profileId),
         transactions: d.transactions.filter((t) => t.profileId !== profileId),
         savingsGoals: d.savingsGoals.filter((g) => g.profileId !== profileId),
       };
     });
     setDeleteProfileId(null);
+  };
+
+  const removeIncomeStream = (streamId: string) => {
+    persist((d) => ({
+      ...d,
+      incomeStreams: d.incomeStreams.filter((i) => i.id !== streamId),
+      transactions: d.transactions.map((t) =>
+        t.incomeStreamId === streamId ? { ...t, incomeStreamId: null } : t,
+      ),
+    }));
+    setDeleteIncomeStreamId(null);
   };
 
   if (!userId) {
@@ -733,12 +798,24 @@ export function BudgetPalApp() {
             spendByCategory={spendByCategory}
             totals={totals}
             accountsTotalBalance={accountsTotalBalance}
+            incomeStreams={incomeStreamsForProfile}
+            incomeByStream={incomeByStream}
+            incomeUncategorized={incomeUncategorized}
             onAddCategory={() => setModal({ type: 'category' })}
+            onAddIncomeStream={() => {
+              setEditIncomeStream(null);
+              setModal({ type: 'incomeStream' });
+            }}
             onAddTransaction={() => setModal({ type: 'transaction' })}
             onEditCategory={(c) => {
               setEditCategory(c);
               setModal({ type: 'category' });
             }}
+            onEditIncomeStream={(s) => {
+              setEditIncomeStream(s);
+              setModal({ type: 'incomeStream' });
+            }}
+            onRequestDeleteIncomeStream={(id) => setDeleteIncomeStreamId(id)}
           />
         )}
 
@@ -750,6 +827,7 @@ export function BudgetPalApp() {
             transactions={txForProfileMonth}
             accounts={accountsForProfile}
             categories={categoriesForProfile}
+            incomeStreams={incomeStreamsForProfile}
             onAdd={() => setModal({ type: 'transaction' })}
             onDelete={(id) => persist((d) => ({ ...d, transactions: d.transactions.filter((t) => t.id !== id) }))}
           />
@@ -896,6 +974,42 @@ export function BudgetPalApp() {
         />
       )}
 
+      {modal?.type === 'incomeStream' && (
+        <IncomeStreamModal
+          initial={editIncomeStream}
+          onClose={() => {
+            setModal(null);
+            setEditIncomeStream(null);
+          }}
+          onSave={(name) => {
+            if (editIncomeStream) {
+              persist((d) => ({
+                ...d,
+                incomeStreams: d.incomeStreams.map((i) =>
+                  i.id === editIncomeStream.id ? { ...i, name } : i,
+                ),
+              }));
+            } else {
+              const id = newId();
+              persist((d) => ({
+                ...d,
+                incomeStreams: [
+                  ...d.incomeStreams,
+                  {
+                    id,
+                    profileId: data.activeProfileId,
+                    name,
+                    sortOrder: d.incomeStreams.filter((x) => x.profileId === data.activeProfileId).length,
+                  },
+                ],
+              }));
+            }
+            setModal(null);
+            setEditIncomeStream(null);
+          }}
+        />
+      )}
+
       {modal?.type === 'goal' && (
         <GoalModal
           initial={editGoal}
@@ -939,6 +1053,7 @@ export function BudgetPalApp() {
           profileId={data.activeProfileId}
           accounts={accountsForProfile}
           categories={categoriesForProfile}
+          incomeStreams={incomeStreamsForProfile}
           onClose={() => setModal(null)}
           onSave={(t) => {
             persist((d) => ({
@@ -953,10 +1068,20 @@ export function BudgetPalApp() {
       {deleteProfileId && (
         <ConfirmModal
           title="Delete profile?"
-          body="This removes all bank accounts, budgets, transactions, and savings for this profile. This cannot be undone."
+          body="This removes all bank accounts, budgets, income streams, transactions, and savings for this profile. This cannot be undone."
           confirmLabel="Delete"
           onCancel={() => setDeleteProfileId(null)}
           onConfirm={() => removeProfileCascade(deleteProfileId)}
+        />
+      )}
+
+      {deleteIncomeStreamId && (
+        <ConfirmModal
+          title="Delete income stream?"
+          body="Future income can still be logged without this stream. Past transactions stay in your history, but will no longer be tagged with this source."
+          confirmLabel="Delete"
+          onCancel={() => setDeleteIncomeStreamId(null)}
+          onConfirm={() => removeIncomeStream(deleteIncomeStreamId)}
         />
       )}
             </>
@@ -978,9 +1103,15 @@ function OverviewPanel(props: {
   totals: { income: number; expense: number; net: number; budgetCap: number };
   /** Sum of stored balances on Accounts — not derived from monthly transactions. */
   accountsTotalBalance: number;
+  incomeStreams: IncomeStream[];
+  incomeByStream: Map<string, number>;
+  incomeUncategorized: number;
   onAddCategory: () => void;
+  onAddIncomeStream: () => void;
   onAddTransaction: () => void;
   onEditCategory: (c: BudgetCategory) => void;
+  onEditIncomeStream: (s: IncomeStream) => void;
+  onRequestDeleteIncomeStream: (id: string) => void;
 }) {
   const { categories, spendByCategory, totals } = props;
   const overBudget =
@@ -1026,6 +1157,14 @@ function OverviewPanel(props: {
           >
             <Plus className="h-4 w-4" />
             Budget line
+          </button>
+          <button
+            type="button"
+            onClick={props.onAddIncomeStream}
+            className="inline-flex items-center gap-1.5 rounded-xl border-2 border-sabres-blue/30 bg-white px-3 py-2 text-sm font-semibold text-sabres-blue hover:bg-sabres-cream"
+          >
+            <Plus className="h-4 w-4" />
+            Income stream
           </button>
         </div>
       </div>
@@ -1139,6 +1278,60 @@ function OverviewPanel(props: {
           </ul>
         )}
       </div>
+
+      <div className="rounded-2xl border-2 border-sabres-blue/20 bg-white p-4 shadow-sm">
+        <p className="text-sm font-bold text-sabres-ink">Income by source</p>
+        <p className="text-xs text-sabres-ink/70 mt-0.5">
+          Received in <strong>{props.monthLabel}</strong> for each stream you define. Add streams above, then tag income
+          when you log transactions.
+        </p>
+        {props.incomeStreams.length === 0 && props.incomeUncategorized === 0 ? (
+          <p className="text-sm text-sabres-ink/70 mt-3">
+            Add income streams (e.g. Salary, Freelance) to see how your revenue breaks down each month.
+          </p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {props.incomeStreams.map((s) => {
+              const received = props.incomeByStream.get(s.id) ?? 0;
+              return (
+                <li key={s.id} className="rounded-xl bg-sabres-cream/50 border border-sabres-blue/10 p-3">
+                  <div className="flex justify-between items-center gap-2">
+                    <div>
+                      <span className="font-semibold text-sabres-ink">{s.name}</span>
+                      <p className="text-sm text-sabres-blue font-bold mt-0.5">{money.format(received)}</p>
+                    </div>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => props.onEditIncomeStream(s)}
+                        className="p-1 rounded-lg text-sabres-blue-mid hover:bg-sabres-surface"
+                        aria-label={`Edit ${s.name}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => props.onRequestDeleteIncomeStream(s.id)}
+                        className="p-1 rounded-lg text-sabres-blue-mid hover:bg-sabres-surface"
+                        aria-label={`Delete ${s.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+            {props.incomeUncategorized > 0 && (
+              <li className="rounded-xl bg-sabres-cream/50 border border-dashed border-sabres-blue/20 p-3">
+                <span className="font-semibold text-sabres-ink/80">Uncategorized</span>
+                <p className="text-sm text-sabres-blue font-bold mt-0.5">{money.format(props.incomeUncategorized)}</p>
+                <p className="text-xs text-sabres-ink/60 mt-1">Income not assigned to a stream this month</p>
+              </li>
+            )}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
@@ -1150,10 +1343,11 @@ function FlowPanel(props: {
   transactions: Transaction[];
   accounts: BankAccount[];
   categories: BudgetCategory[];
+  incomeStreams: IncomeStream[];
   onAdd: () => void;
   onDelete: (id: string) => void;
 }) {
-  const { transactions, accounts, categories } = props;
+  const { transactions, accounts, categories, incomeStreams } = props;
   const sorted = [...transactions].sort(
     (a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id),
   );
@@ -1161,6 +1355,8 @@ function FlowPanel(props: {
     id ? (accounts.find((a) => a.id === id)?.name ?? 'Account') : '—';
   const catName = (id: string | null) =>
     id ? (categories.find((c) => c.id === id)?.name ?? 'Category') : '—';
+  const streamName = (id: string | null) =>
+    id ? (incomeStreams.find((s) => s.id === id)?.name ?? 'Stream') : '—';
 
   return (
     <div className="space-y-3">
@@ -1200,7 +1396,8 @@ function FlowPanel(props: {
                   {t.note || (t.kind === 'income' ? 'Income' : 'Expense')}
                 </p>
                 <p className="text-xs text-sabres-ink/70">
-                  {accName(t.accountId)} · {t.kind === 'expense' ? catName(t.categoryId) : '—'}
+                  {accName(t.accountId)} ·{' '}
+                  {t.kind === 'expense' ? catName(t.categoryId) : streamName(t.incomeStreamId)}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -1686,6 +1883,7 @@ function TransactionModal(props: {
   profileId: string;
   accounts: BankAccount[];
   categories: BudgetCategory[];
+  incomeStreams: IncomeStream[];
   onClose: () => void;
   onSave: (t: Omit<Transaction, 'id'>) => void;
 }) {
@@ -1695,6 +1893,7 @@ function TransactionModal(props: {
   const [note, setNote] = useState('');
   const [accountId, setAccountId] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
+  const [incomeStreamId, setIncomeStreamId] = useState<string>('');
 
   return (
     <ModalShell title="Add transaction" onClose={props.onClose}>
@@ -1707,6 +1906,7 @@ function TransactionModal(props: {
             profileId: props.profileId,
             accountId: accountId || null,
             categoryId: kind === 'expense' ? categoryId || null : null,
+            incomeStreamId: kind === 'income' ? incomeStreamId || null : null,
             amount: a,
             date,
             note: note.trim(),
@@ -1718,7 +1918,10 @@ function TransactionModal(props: {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => setKind('expense')}
+            onClick={() => {
+              setKind('expense');
+              setIncomeStreamId('');
+            }}
             className={`flex-1 rounded-lg py-2 text-sm font-bold ${
               kind === 'expense' ? 'bg-sabres-blue text-white' : 'bg-sabres-surface'
             }`}
@@ -1727,7 +1930,10 @@ function TransactionModal(props: {
           </button>
           <button
             type="button"
-            onClick={() => setKind('income')}
+            onClick={() => {
+              setKind('income');
+              setCategoryId('');
+            }}
             className={`flex-1 rounded-lg py-2 text-sm font-bold ${
               kind === 'income' ? 'bg-sabres-blue text-white' : 'bg-sabres-surface'
             }`}
@@ -1789,6 +1995,23 @@ function TransactionModal(props: {
             </select>
           </div>
         )}
+        {kind === 'income' && (
+          <div>
+            <label className="text-sm font-medium">Revenue stream (optional)</label>
+            <select
+              className="mt-1 w-full rounded-lg border border-sabres-blue/20 px-3 py-2"
+              value={incomeStreamId}
+              onChange={(e) => setIncomeStreamId(e.target.value)}
+            >
+              <option value="">—</option>
+              {props.incomeStreams.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <label className="text-sm font-medium">Note (optional)</label>
           <input
@@ -1804,6 +2027,50 @@ function TransactionModal(props: {
           </button>
           <button type="submit" className="rounded-lg bg-sabres-gold text-sabres-ink px-4 py-2 text-sm font-bold">
             Add
+          </button>
+        </div>
+      </form>
+    </ModalShell>
+  );
+}
+
+function IncomeStreamModal(props: {
+  initial: IncomeStream | null;
+  onClose: () => void;
+  onSave: (name: string) => void;
+}) {
+  const [name, setName] = useState(props.initial?.name ?? '');
+
+  return (
+    <ModalShell
+      title={props.initial ? 'Edit income stream' : 'Add income stream'}
+      onClose={props.onClose}
+    >
+      <form
+        onSubmit={(e: FormEvent) => {
+          e.preventDefault();
+          const trimmed = name.trim();
+          if (!trimmed) return;
+          props.onSave(trimmed);
+        }}
+        className="space-y-3"
+      >
+        <div>
+          <label className="text-sm font-medium">Stream name</label>
+          <input
+            className="mt-1 w-full rounded-lg border border-sabres-blue/20 px-3 py-2"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            placeholder="e.g. Salary, Freelance, Rental"
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={props.onClose} className="px-3 py-2 text-sm">
+            Cancel
+          </button>
+          <button type="submit" className="rounded-lg bg-sabres-blue text-white px-4 py-2 text-sm font-bold">
+            Save
           </button>
         </div>
       </form>

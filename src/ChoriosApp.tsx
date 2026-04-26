@@ -179,6 +179,11 @@ function getNextDueInstantAfter(chore: Chore, after: Date): Date {
   return new Date(y, month1 - 1, 1, h, m, 0, 0);
 }
 
+/** Anchor for next-due math: never use epoch when the chore was never completed (that yields 1970 dates). */
+function anchorInstantForNextDue(chore: Chore): Date {
+  return chore.lastCompletedAt ? new Date(chore.lastCompletedAt) : new Date();
+}
+
 function defaultSnapshot(): PersistedSnapshot {
   return {
     version: STORAGE_VERSION,
@@ -238,7 +243,7 @@ function startOfLocalWeek(d: Date): Date {
 }
 
 function isChoreDueNow(chore: Chore, now: Date): boolean {
-  const after = new Date(chore.lastCompletedAt || 0);
+  const after = anchorInstantForNextDue(chore);
   const nextDue = getNextDueInstantAfter(chore, after);
   if (now < nextDue) return false;
   if (chore.snoozeUntil && now < new Date(chore.snoozeUntil)) return false;
@@ -326,7 +331,7 @@ export function ChoriosApp() {
 
     for (const c of data.chores) {
       counts[c.cadence]++;
-      const after = new Date(c.lastCompletedAt || 0);
+      const after = anchorInstantForNextDue(c);
       const nextDue = getNextDueInstantAfter(c, after);
       upcoming.push({ chore: c, nextDue });
       if (isChoreDueNow(c, now)) dueNow.push(c);
