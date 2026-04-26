@@ -13,6 +13,14 @@ export default {
           'gold-light': '#e8d078',
           'gold-dark': '#9a7c1c',
         },
+        /** Task Master — robin-egg / Tiffany blue-green */
+        tiffany: {
+          DEFAULT: '#0ABAB5',
+          dark: '#089A94',
+          darker: '#067671',
+          light: '#D4F0EE',
+          surface: '#EEF9F8',
+        },
         jd: {
           green: {
             50: '#f1f8ee',

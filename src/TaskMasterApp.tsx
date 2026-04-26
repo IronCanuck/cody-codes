@@ -124,7 +124,7 @@ const PRIORITY_LABEL: Record<TaskPriority, string> = {
 };
 
 const PRIORITY_CLASS: Record<TaskPriority, string> = {
-  low: 'bg-slate-100 text-slate-600 border-slate-200',
+  low: 'bg-tiffany-light/80 text-tiffany-darker/90 border-tiffany/30',
   medium: 'bg-amber-50 text-amber-800 border-amber-200',
   high: 'bg-rose-50 text-rose-800 border-rose-200',
 };
@@ -329,23 +329,23 @@ export function TaskMasterApp() {
 
   if (!userId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-600 text-sm">Sign in to use Task Master.</p>
+      <div className="min-h-screen flex items-center justify-center bg-tiffany-surface">
+        <p className="text-tiffany-darker/80 text-sm">Sign in to use Task Master.</p>
       </div>
     );
   }
 
   if (!hydrated || !activeProject) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-600 text-sm">Loading…</p>
+      <div className="min-h-screen flex items-center justify-center bg-tiffany-surface">
+        <p className="text-tiffany-darker/80 text-sm">Loading…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen max-w-full overflow-x-hidden bg-slate-100 text-slate-900 flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-cody-finnish/10 bg-cody-finnish text-white shadow-md">
+    <div className="min-h-screen max-w-full overflow-x-hidden bg-tiffany-surface text-slate-900 flex flex-col">
+      <header className="sticky top-0 z-30 border-b border-tiffany/30 bg-tiffany text-white shadow-md">
         <div className="max-w-full mx-auto px-3 sm:px-6 h-12 sm:h-14 flex items-center justify-between gap-2 sm:gap-3 min-w-0">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="shrink-0 rounded-lg bg-white/10 p-1.5">
@@ -359,7 +359,7 @@ export function TaskMasterApp() {
           <Link
             to="/dashboard"
             aria-label="Back to hub"
-            className="inline-flex items-center justify-center sm:justify-start gap-1.5 text-xs sm:text-sm font-medium text-white/95 hover:text-white border border-white/30 rounded-lg px-2 sm:px-3 py-1.5 hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-gold shrink-0"
+            className="inline-flex items-center justify-center sm:justify-start gap-1.5 text-xs sm:text-sm font-medium text-white/95 hover:text-white border border-white/40 rounded-lg px-2 sm:px-3 py-1.5 hover:bg-white/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-tiffany-light shrink-0"
           >
             <ArrowLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden />
             <span className="hidden sm:inline">Back to hub</span>
@@ -367,7 +367,7 @@ export function TaskMasterApp() {
         </div>
       </header>
 
-      <div className="border-b border-slate-200 bg-white px-3 sm:px-6 py-3 flex flex-col gap-3 min-w-0">
+      <div className="border-b border-tiffany/20 bg-white/95 px-3 sm:px-6 py-3 flex flex-col gap-3 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-3 min-w-0">
           <div className="flex flex-col gap-1.5 min-w-0 flex-1 sm:max-w-md">
             <label htmlFor="project-select" className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
@@ -377,7 +377,7 @@ export function TaskMasterApp() {
               id="project-select"
               value={data.activeProjectId}
               onChange={(e) => setActiveProjectId(e.target.value)}
-              className="w-full min-w-0 max-w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-medium text-cody-finnish focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-finnish/40"
+              className="w-full min-w-0 max-w-full rounded-lg border border-tiffany/25 bg-white px-2 py-1.5 text-sm font-medium text-tiffany-darker focus:outline-none focus-visible:ring-2 focus-visible:ring-tiffany/50"
             >
               {data.projects.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -393,7 +393,7 @@ export function TaskMasterApp() {
                 setShowNewProject((v) => !v);
                 setNewProjectName('');
               }}
-              className="inline-flex items-center gap-1 rounded-lg border border-cody-finnish/20 bg-cody-finnish/5 px-2.5 py-1.5 text-sm font-medium text-cody-finnish hover:bg-cody-finnish/10"
+              className="inline-flex items-center gap-1 rounded-lg border border-tiffany/35 bg-tiffany/10 px-2.5 py-1.5 text-sm font-medium text-tiffany-darker hover:bg-tiffany/15"
             >
               <Plus className="h-4 w-4" aria-hidden />
               New
@@ -428,7 +428,7 @@ export function TaskMasterApp() {
             <button
               type="button"
               onClick={addProject}
-              className="rounded-lg bg-cody-finnish text-white px-3 py-1.5 text-sm font-medium hover:bg-cody-finnish-dark"
+              className="rounded-lg bg-tiffany text-white px-3 py-1.5 text-sm font-medium hover:bg-tiffany-darker"
             >
               Create
             </button>
@@ -444,21 +444,21 @@ export function TaskMasterApp() {
               return (
                 <section
                   key={col.id}
-                  className="w-full min-w-0 flex flex-col md:w-60 md:shrink-0 h-fit bg-white rounded-lg border border-slate-200 shadow-sm"
+                  className="w-full min-w-0 flex flex-col md:w-60 md:shrink-0 h-fit bg-white rounded-lg border border-tiffany/20 shadow-sm"
                 >
-                  <div className="px-2.5 py-2 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0">
-                    <h2 className="font-semibold text-cody-finnish text-sm truncate">{col.title}</h2>
+                  <div className="px-2.5 py-2 border-b border-tiffany/15 flex items-center justify-between gap-2 shrink-0">
+                    <h2 className="font-semibold text-tiffany-darker text-sm truncate">{col.title}</h2>
                     <span className="text-xs text-slate-400 tabular-nums">{colTasks.length}</span>
                   </div>
                   <ul className="min-h-[2.5rem] max-h-52 sm:max-h-64 overflow-y-auto overscroll-y-contain p-1.5 space-y-1.5 [scrollbar-gutter:stable] md:max-h-[min(50vh,20rem)]">
                     {colTasks.map((t) => (
                       <li key={t.id}>
-                        <article className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 shadow-sm hover:border-cody-finnish/30 transition-colors">
+                        <article className="rounded-lg border border-tiffany/20 bg-tiffany-light/40 p-2.5 shadow-sm hover:border-tiffany/50 hover:bg-tiffany-light/70 transition-colors">
                           <div className="flex justify-between gap-1 items-start">
                             <button
                               type="button"
                               onClick={() => setEditingTask(t)}
-                              className="text-left text-sm font-medium text-slate-900 leading-snug flex-1 hover:text-cody-finnish"
+                              className="text-left text-sm font-medium text-slate-900 leading-snug flex-1 hover:text-tiffany"
                             >
                               {t.title}
                             </button>
@@ -466,7 +466,7 @@ export function TaskMasterApp() {
                               <button
                                 type="button"
                                 onClick={() => setEditingTask(t)}
-                                className="p-1 rounded text-slate-500 hover:text-cody-finnish hover:bg-white"
+                                className="p-1 rounded text-slate-500 hover:text-tiffany hover:bg-white"
                                 aria-label="Edit task"
                               >
                                 <Pencil className="h-3.5 w-3.5" />
@@ -503,7 +503,7 @@ export function TaskMasterApp() {
                                 id={`move-${t.id}`}
                                 value={t.columnId}
                                 onChange={(e) => moveTaskToColumn(t, e.target.value)}
-                                className="flex-1 min-w-0 text-xs rounded border border-slate-200 bg-white py-0.5 pl-1 pr-6"
+                                className="flex-1 min-w-0 text-xs rounded border border-tiffany/25 bg-white py-0.5 pl-1 pr-6"
                               >
                                 {sortedColumns.map((c) => (
                                   <option key={c.id} value={c.id}>
@@ -517,7 +517,7 @@ export function TaskMasterApp() {
                       </li>
                     ))}
                   </ul>
-                  <div className="p-1.5 border-t border-slate-100 shrink-0">
+                  <div className="p-1.5 border-t border-tiffany/15 shrink-0">
                     <div className="flex gap-1 min-w-0">
                       <input
                         type="text"
@@ -527,12 +527,12 @@ export function TaskMasterApp() {
                         }
                         onKeyDown={(e) => e.key === 'Enter' && addTask(col.id)}
                         placeholder="New task…"
-                        className="flex-1 min-w-0 rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                        className="flex-1 min-w-0 rounded-lg border border-tiffany/25 bg-white px-2 py-1.5 text-sm"
                       />
                       <button
                         type="button"
                         onClick={() => addTask(col.id)}
-                        className="shrink-0 rounded-lg bg-cody-finnish/10 text-cody-finnish p-1.5 hover:bg-cody-finnish/20"
+                        className="shrink-0 rounded-lg bg-tiffany/15 text-tiffany-darker p-1.5 hover:bg-tiffany/25"
                         aria-label="Add task"
                       >
                         <Plus className="h-4 w-4" />
@@ -555,7 +555,7 @@ export function TaskMasterApp() {
         >
           <div className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-              <h2 id="edit-task-title" className="text-lg font-bold text-cody-finnish">
+              <h2 id="edit-task-title" className="text-lg font-bold text-tiffany-darker">
                 Task
               </h2>
               <button
@@ -645,7 +645,7 @@ export function TaskMasterApp() {
               <button
                 type="button"
                 onClick={() => saveEditedTask(editingTask)}
-                className="rounded-lg bg-cody-finnish text-white px-3 py-1.5 text-sm font-medium hover:bg-cody-finnish-dark"
+                className="rounded-lg bg-tiffany text-white px-3 py-1.5 text-sm font-medium hover:bg-tiffany-darker"
               >
                 Save
               </button>
@@ -663,7 +663,7 @@ export function TaskMasterApp() {
         >
           <div className="w-full max-w-md bg-white rounded-2xl shadow-xl max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-              <h2 id="col-settings-title" className="text-lg font-bold text-cody-finnish">
+              <h2 id="col-settings-title" className="text-lg font-bold text-tiffany-darker">
                 Pipeline columns
               </h2>
               <button
@@ -723,7 +723,7 @@ export function TaskMasterApp() {
               <button
                 type="button"
                 onClick={addColumn}
-                className="inline-flex items-center justify-center gap-1 rounded-lg border border-cody-finnish/30 bg-cody-finnish/5 text-cody-finnish px-3 py-2 text-sm font-medium"
+                className="inline-flex items-center justify-center gap-1 rounded-lg border border-tiffany/40 bg-tiffany/10 text-tiffany-darker px-3 py-2 text-sm font-medium"
               >
                 <Plus className="h-4 w-4" />
                 Add column
@@ -731,7 +731,7 @@ export function TaskMasterApp() {
               <button
                 type="button"
                 onClick={() => setColumnModalOpen(false)}
-                className="rounded-lg bg-cody-finnish text-white px-4 py-2 text-sm font-medium"
+                className="rounded-lg bg-tiffany text-white px-4 py-2 text-sm font-medium hover:bg-tiffany-darker"
               >
                 Done
               </button>
@@ -743,7 +743,7 @@ export function TaskMasterApp() {
       {deleteProjectConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40" role="alertdialog" aria-modal="true" aria-labelledby="del-proj-title">
           <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-5">
-            <h2 id="del-proj-title" className="text-lg font-bold text-cody-finnish">
+            <h2 id="del-proj-title" className="text-lg font-bold text-tiffany-darker">
               Delete project?
             </h2>
             <p className="mt-2 text-sm text-slate-600">
@@ -772,7 +772,7 @@ export function TaskMasterApp() {
       {deleteTaskId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40" role="alertdialog" aria-modal="true" aria-labelledby="del-task-title">
           <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-5">
-            <h2 id="del-task-title" className="text-lg font-bold text-cody-finnish">
+            <h2 id="del-task-title" className="text-lg font-bold text-tiffany-darker">
               Delete task?
             </h2>
             <p className="mt-2 text-sm text-slate-600">This task will be removed from the board.</p>
