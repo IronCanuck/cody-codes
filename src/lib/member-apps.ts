@@ -1,4 +1,4 @@
-import { Flame, Kanban, Timer, type LucideIcon } from 'lucide-react';
+import { Flame, Kanban, PawPrint, Timer, type LucideIcon } from 'lucide-react';
 
 export type MemberApp = {
   id: string;
@@ -30,5 +30,13 @@ export const PAYWALLED_APPS: MemberApp[] = [
     description: 'Weekly, monthly, and yearly chores — reminders, categories, and your schedule.',
     path: '/chorios',
     icon: Flame,
+  },
+  {
+    id: 'furries',
+    title: 'Furries',
+    description:
+      'Pet health tracker — profiles, gallery, medical and food logs, reminders, and sitter handouts.',
+    path: '/furries',
+    icon: PawPrint,
   },
 ];

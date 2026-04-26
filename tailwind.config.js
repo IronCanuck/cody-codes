@@ -21,6 +21,18 @@ export default {
           light: '#D4F0EE',
           surface: '#EEF9F8',
         },
+        /** Furries — Squirtle-inspired (soft blue, cream belly, shell brown) */
+        squirtle: {
+          blue: '#6BB8E8',
+          'blue-deep': '#3D8BC7',
+          'blue-dark': '#2A6FA3',
+          cream: '#F5ECD8',
+          'cream-deep': '#E8DCC4',
+          shell: '#7A6550',
+          'shell-light': '#9A8268',
+          surface: '#E8F4FC',
+          ink: '#1E3A4C',
+        },
         /** Chorios — Calgary Flames inspired */
         flames: {
           red: '#C8102E',
