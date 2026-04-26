@@ -773,17 +773,10 @@ export function Earnings({
                     <div className="text-xs text-slate-500 mt-1">
                       After about {(abNet.effectiveTotalRate * 100).toFixed(1)}% in tax + CPP + EI;
                       annualized gross ≈ {formatMoney(abNet.annualGross, currency)}/yr
-                      {extraTaxPerPeriod > 0 && (
-                        <>
-                          {' '}
-                          • less {formatMoney(extraTaxPerPeriod, currency)} extra withholding per pay
-                          period (Settings)
-                        </>
-                      )}
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 text-sm">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 text-sm">
                   <div className="rounded-lg bg-white border border-slate-200 p-3">
                     <div className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase">
                       Federal
@@ -812,6 +805,19 @@ export function Earnings({
                     <div className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase">EI</div>
                     <div className="font-semibold text-slate-800 tabular-nums">
                       {formatMoney(abNet.periodEi, currency)}
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-white border border-slate-200 p-3 sm:col-span-2 lg:col-span-1">
+                    <div className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase">
+                      Extra withholding
+                    </div>
+                    <div className="font-semibold text-slate-800 tabular-nums">
+                      {extraTaxPerPeriod > 0
+                        ? formatMoney(extraTaxPerPeriod, currency)
+                        : '—'}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1 leading-snug">
+                      Per pay period · Settings
                     </div>
                   </div>
                 </div>
