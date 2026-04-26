@@ -685,7 +685,7 @@ export function FurriesApp() {
                 className="flex w-full items-center gap-3 rounded-xl border-2 border-transparent px-3 py-3 text-left font-medium text-sm text-squirtle-ink transition-colors hover:bg-squirtle-blue/10 hover:border-squirtle-blue/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-squirtle-blue-deep"
               >
                 <ArrowLeft className="h-5 w-5 shrink-0 text-squirtle-blue-deep" />
-                Your apps
+                Return to Cody Codes
               </Link>
             </nav>
             {session?.user?.email && (
