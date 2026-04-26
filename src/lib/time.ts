@@ -127,6 +127,9 @@ export function formatTimeInputDisplay(hhmm: string): string {
  * Used for "Now" and when loading an existing entry so values match the input step.
  */
 export function toLocalTimeInputValue(d: Date): string {
+  if (!Number.isFinite(d.getTime())) {
+    return '00:00';
+  }
   const dayMinutes = d.getHours() * 60 + d.getMinutes() + d.getSeconds() / 60;
   let r = Math.round(dayMinutes / TIME_INPUT_STEP_MINUTES) * TIME_INPUT_STEP_MINUTES;
   const maxMins = 24 * 60 - TIME_INPUT_STEP_MINUTES;
@@ -139,6 +142,7 @@ export function toLocalTimeInputValue(d: Date): string {
 export function combineDateAndTime(date: string, time: string): string {
   if (!date || !time) return '';
   const d = new Date(`${date}T${time}:00`);
+  if (!Number.isFinite(d.getTime())) return '';
   return d.toISOString();
 }
 
@@ -161,6 +165,9 @@ export function canonicalizeClockPairForWorkDay(
   startIso: string,
   endIso: string,
 ): { startIso: string; endIso: string } {
+  if (!startIso?.trim() || !endIso?.trim()) {
+    return { startIso: startIso ?? '', endIso: endIso ?? '' };
+  }
   const startHhmm = toLocalTimeInputValue(new Date(startIso));
   const endHhmm = toLocalTimeInputValue(new Date(endIso));
   let startComb = combineDateAndTime(anchorYmd, startHhmm);
