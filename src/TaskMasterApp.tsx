@@ -344,74 +344,86 @@ export function TaskMasterApp() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col">
+    <div className="min-h-screen max-w-full overflow-x-hidden bg-slate-100 text-slate-900 flex flex-col">
       <header className="sticky top-0 z-30 border-b border-cody-finnish/10 bg-cody-finnish text-white shadow-md">
-        <div className="max-w-[100vw] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="max-w-full mx-auto px-3 sm:px-6 h-12 sm:h-14 flex items-center justify-between gap-2 sm:gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="shrink-0 rounded-lg bg-white/10 p-1.5">
               <Kanban className="h-5 w-5" strokeWidth={2.25} aria-hidden />
             </div>
             <div className="min-w-0">
-              <h1 className="text-base font-bold tracking-tight truncate">Task Master</h1>
+              <h1 className="text-sm sm:text-base font-bold tracking-tight truncate">Task Master</h1>
               <p className="text-xs text-white/80 truncate hidden sm:block">Project pipeline</p>
             </div>
           </div>
           <Link
             to="/dashboard"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-white/95 hover:text-white border border-white/30 rounded-lg px-3 py-1.5 hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-gold"
+            aria-label="Back to hub"
+            className="inline-flex items-center justify-center sm:justify-start gap-1.5 text-xs sm:text-sm font-medium text-white/95 hover:text-white border border-white/30 rounded-lg px-2 sm:px-3 py-1.5 hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-gold shrink-0"
           >
             <ArrowLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-            Back to hub
+            <span className="hidden sm:inline">Back to hub</span>
           </Link>
         </div>
       </header>
 
-      <div className="border-b border-slate-200 bg-white px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2 min-w-0">
-          <label htmlFor="project-select" className="text-xs font-semibold text-slate-500 uppercase tracking-wide shrink-0">
-            Project
-          </label>
-          <select
-            id="project-select"
-            value={data.activeProjectId}
-            onChange={(e) => setActiveProjectId(e.target.value)}
-            className="max-w-[14rem] rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-medium text-cody-finnish focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-finnish/40"
-          >
-            {data.projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => {
-              setShowNewProject((v) => !v);
-              setNewProjectName('');
-            }}
-            className="inline-flex items-center gap-1 rounded-lg border border-cody-finnish/20 bg-cody-finnish/5 px-2.5 py-1.5 text-sm font-medium text-cody-finnish hover:bg-cody-finnish/10"
-          >
-            <Plus className="h-4 w-4" aria-hidden />
-            New
-          </button>
-          <button
-            type="button"
-            onClick={() => setColumnModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            <Settings2 className="h-4 w-4" aria-hidden />
-            Board settings
-          </button>
+      <div className="border-b border-slate-200 bg-white px-3 sm:px-6 py-3 flex flex-col gap-3 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-3 min-w-0">
+          <div className="flex flex-col gap-1.5 min-w-0 flex-1 sm:max-w-md">
+            <label htmlFor="project-select" className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              Project
+            </label>
+            <select
+              id="project-select"
+              value={data.activeProjectId}
+              onChange={(e) => setActiveProjectId(e.target.value)}
+              className="w-full min-w-0 max-w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-medium text-cody-finnish focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-finnish/40"
+            >
+              {data.projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={() => {
+                setShowNewProject((v) => !v);
+                setNewProjectName('');
+              }}
+              className="inline-flex items-center gap-1 rounded-lg border border-cody-finnish/20 bg-cody-finnish/5 px-2.5 py-1.5 text-sm font-medium text-cody-finnish hover:bg-cody-finnish/10"
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+              New
+            </button>
+            <button
+              type="button"
+              onClick={() => setColumnModalOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Settings2 className="h-4 w-4" aria-hidden />
+              <span className="whitespace-nowrap">Board settings</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeleteProjectConfirm(true)}
+              className="text-xs text-rose-600 hover:underline sm:ml-1"
+            >
+              Delete project
+            </button>
+          </div>
         </div>
         {showNewProject && (
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full">
             <input
               type="text"
               value={newProjectName}
               onChange={(e) => setNewProjectName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addProject()}
               placeholder="Project name"
-              className="flex-1 min-w-[8rem] rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+              className="flex-1 min-w-0 basis-[10rem] rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
             />
             <button
               type="button"
@@ -422,32 +434,23 @@ export function TaskMasterApp() {
             </button>
           </div>
         )}
-        <div className="flex items-center gap-2 sm:ml-auto">
-          <button
-            type="button"
-            onClick={() => setDeleteProjectConfirm(true)}
-            className="text-xs text-rose-600 hover:underline"
-          >
-            Delete project
-          </button>
-        </div>
       </div>
 
-      <main className="flex-1 flex flex-col min-h-0">
-        <div className="flex-1 overflow-x-auto overflow-y-hidden p-4 sm:p-6">
-          <div className="flex gap-4 h-full min-w-min pb-2">
+      <main className="flex-1 flex flex-col min-w-0 min-h-0">
+        <div className="flex-1 w-full min-w-0 min-h-0 p-3 sm:p-4 md:p-6 md:overflow-x-auto md:overflow-y-hidden md:overscroll-x-contain [scrollbar-gutter:stable]">
+          <div className="flex flex-col gap-4 w-full min-w-0 md:flex-row md:items-stretch md:w-max md:max-w-none md:min-h-[min(720px,calc(100dvh-9rem))] md:pb-1 md:gap-4">
             {sortedColumns.map((col) => {
               const colTasks = tasksInColumn(activeProject.tasks, col.id);
               return (
                 <section
                   key={col.id}
-                  className="w-[min(100%,18rem)] sm:w-72 shrink-0 flex flex-col max-h-[calc(100vh-12rem)] bg-white rounded-xl border border-slate-200 shadow-sm"
+                  className="w-full min-w-0 min-h-0 flex flex-col md:w-[min(18rem,80vw)] md:shrink-0 md:max-h-full bg-white rounded-xl border border-slate-200 shadow-sm"
                 >
-                  <div className="px-3 py-2.5 border-b border-slate-100 flex items-center justify-between gap-2">
+                  <div className="px-3 py-2.5 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0">
                     <h2 className="font-semibold text-cody-finnish text-sm truncate">{col.title}</h2>
                     <span className="text-xs text-slate-400 tabular-nums">{colTasks.length}</span>
                   </div>
-                  <ul className="flex-1 overflow-y-auto p-2 space-y-2 min-h-[4rem]">
+                  <ul className="min-h-[3rem] max-h-60 sm:max-h-72 overflow-y-auto overscroll-y-contain p-2 space-y-2 [scrollbar-gutter:stable] md:max-h-none md:flex-1 md:min-h-0">
                     {colTasks.map((t) => (
                       <li key={t.id}>
                         <article className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 shadow-sm hover:border-cody-finnish/30 transition-colors">
@@ -514,8 +517,8 @@ export function TaskMasterApp() {
                       </li>
                     ))}
                   </ul>
-                  <div className="p-2 border-t border-slate-100">
-                    <div className="flex gap-1">
+                  <div className="p-2 border-t border-slate-100 shrink-0">
+                    <div className="flex gap-1 min-w-0">
                       <input
                         type="text"
                         value={newTaskInputs[col.id] ?? ''}
@@ -589,7 +592,7 @@ export function TaskMasterApp() {
                   className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-500" htmlFor="et-priority">
                     Priority
