@@ -591,16 +591,6 @@ export function FurriesApp() {
       <header className="sticky top-0 z-30 border-b-4 border-squirtle-shell bg-squirtle-blue-deep shadow-md">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
-            <button
-              type="button"
-              onClick={() => setMenuOpen(true)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-squirtle-cream"
-              aria-expanded={menuOpen}
-              aria-controls={menuPanelId}
-              aria-label="Open menu"
-            >
-              <Menu className="h-6 w-6" strokeWidth={2.25} />
-            </button>
             {selectedPetId && (
               <button
                 type="button"
@@ -623,6 +613,16 @@ export function FurriesApp() {
               </div>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-squirtle-cream"
+            aria-expanded={menuOpen}
+            aria-controls={menuPanelId}
+            aria-label="Open menu"
+          >
+            <Menu className="h-6 w-6" strokeWidth={2.25} />
+          </button>
         </div>
       </header>
 
@@ -636,7 +636,7 @@ export function FurriesApp() {
           />
           <div
             id={menuPanelId}
-            className="absolute left-0 top-0 flex h-full w-full max-w-[min(100%,20rem)] flex-col border-r-4 border-squirtle-shell bg-white shadow-2xl"
+            className="absolute right-0 top-0 flex h-full w-full max-w-[min(100%,20rem)] flex-col border-l-4 border-squirtle-shell bg-white shadow-2xl"
           >
             <div className="flex h-14 shrink-0 items-center justify-between border-b border-squirtle-blue/15 bg-squirtle-surface px-4">
               <div className="flex items-center gap-2 min-w-0">
