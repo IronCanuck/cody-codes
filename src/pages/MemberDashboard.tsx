@@ -171,7 +171,7 @@ export function MemberDashboard() {
                     className={`group flex gap-4 rounded-2xl border-2 bg-white p-5 shadow-sm hover:shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${s.card}`}
                   >
                     <div
-                      className={`shrink-0 rounded-xl p-3 ring-2 transition-shadow ${s.cardIconWrap}`}
+                      className={`flex shrink-0 items-center justify-center rounded-xl p-3 ring-2 transition-shadow ${s.cardIconWrap}`}
                     >
                       <Icon className={s.cardIcon} size={26} strokeWidth={2} aria-hidden />
                     </div>
