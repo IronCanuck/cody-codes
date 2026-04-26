@@ -1,12 +1,15 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
+  useRef,
   useState,
+  type ChangeEvent,
   type FormEvent,
   type ReactNode,
 } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink, Route, Routes, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowLeftRight,
@@ -15,12 +18,17 @@ import {
   ChevronLeft,
   ChevronRight,
   Landmark,
+  LayoutGrid,
+  LogOut,
+  Menu,
   Pencil,
   PiggyBank,
   Plus,
+  Settings,
   Target,
   Trash2,
   Wallet,
+  X,
 } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
 
@@ -159,8 +167,289 @@ const money = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD
 
 type TabId = 'overview' | 'flow' | 'accounts' | 'savings' | 'profiles';
 
+function BudgetPalHeader(props: { onSignOut: () => void }) {
+  const { session, signOut } = useAuth();
+  const location = useLocation();
+  const menuId = useId();
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (menuOpen) closeBtnRef.current?.focus();
+  }, [menuOpen]);
+
+  const handleSignOut = async () => {
+    setMenuOpen(false);
+    await signOut();
+    props.onSignOut();
+  };
+
+  const onSettings = location.pathname.endsWith('/settings');
+
+  return (
+    <>
+      <header className="sticky top-0 z-30 border-b border-sabres-gold/40 bg-gradient-to-r from-sabres-blue via-sabres-blue-mid to-sabres-blue-bright text-white shadow-lg">
+        <div className="max-w-3xl mx-auto px-3 sm:px-6 h-12 sm:h-14 flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-sabres-gold/50 bg-black/10 text-white hover:bg-black/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sabres-gold"
+              aria-expanded={menuOpen}
+              aria-controls={menuId}
+              aria-label="Open menu"
+            >
+              <Menu className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+            </button>
+            <div className="shrink-0 rounded-lg bg-sabres-gold/20 p-1.5 ring-2 ring-sabres-gold/50">
+              <PiggyBank className="h-5 w-5 text-sabres-gold-light" strokeWidth={2.25} aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base font-bold tracking-tight truncate">
+                {onSettings ? 'Budget Pal · Settings' : 'Budget Pal'}
+              </h1>
+              <p className="text-[10px] sm:text-xs text-white/90 truncate hidden sm:block">
+                {onSettings ? 'Data & preferences' : 'Budgets, accounts & savings'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-sabres-ink/50 backdrop-blur-[1px]"
+          aria-hidden
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
+
+      <div
+        id={menuId}
+        role="dialog"
+        aria-modal="true"
+        aria-hidden={!menuOpen}
+        aria-label="Budget Pal menu"
+        className={`fixed inset-y-0 left-0 z-50 w-[min(100vw-3rem,20rem)] bg-white border-r border-sabres-blue/20 shadow-xl flex flex-col transition-transform duration-200 ease-out ${
+          menuOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'
+        }`}
+      >
+        <div className="h-14 px-4 flex items-center justify-between border-b border-sabres-blue/10 bg-sabres-cream">
+          <p className="text-sm font-bold text-sabres-blue">Menu</p>
+          <button
+            ref={closeBtnRef}
+            type="button"
+            onClick={() => setMenuOpen(false)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-sabres-ink hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sabres-gold"
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+          </button>
+        </div>
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1 text-sabres-ink" aria-label="Budget Pal navigation">
+          <NavLink
+            to="/budget-pal"
+            end
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) =>
+              `flex gap-3 rounded-xl border px-3 py-3 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sabres-gold focus-visible:ring-offset-2 ${
+                isActive
+                  ? 'bg-sabres-blue text-white border-sabres-blue shadow-sm'
+                  : 'border-transparent hover:bg-sabres-surface hover:border-sabres-blue/15'
+              }`
+            }
+          >
+            <PiggyBank className="h-5 w-5 shrink-0 opacity-90" strokeWidth={2} aria-hidden />
+            <span className="font-semibold text-sm">Budget Pal</span>
+          </NavLink>
+          <NavLink
+            to="/budget-pal/settings"
+            onClick={() => setMenuOpen(false)}
+            className={({ isActive }) =>
+              `flex gap-3 rounded-xl border px-3 py-3 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sabres-gold focus-visible:ring-offset-2 ${
+                isActive
+                  ? 'bg-sabres-blue text-white border-sabres-blue shadow-sm'
+                  : 'border-transparent hover:bg-sabres-surface hover:border-sabres-blue/15'
+              }`
+            }
+          >
+            <Settings className="h-5 w-5 shrink-0 opacity-90" strokeWidth={2} aria-hidden />
+            <span className="font-semibold text-sm">Settings</span>
+          </NavLink>
+          <Link
+            to="/dashboard"
+            onClick={() => setMenuOpen(false)}
+            className="flex gap-3 rounded-xl border border-transparent px-3 py-3 hover:bg-sabres-surface hover:border-sabres-blue/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sabres-gold focus-visible:ring-offset-2"
+          >
+            <LayoutGrid className="h-5 w-5 shrink-0 text-sabres-blue" strokeWidth={2} aria-hidden />
+            <span className="font-semibold text-sm text-sabres-ink">App library</span>
+          </Link>
+        </nav>
+        <div className="p-3 border-t border-sabres-blue/10 space-y-2">
+          {session?.user?.email && (
+            <p className="px-1 text-xs text-sabres-ink/60 truncate" title={session.user.email}>
+              {session.user.email}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => void handleSignOut()}
+            className="w-full flex items-center justify-center gap-2 rounded-lg border border-sabres-blue/20 px-3 py-2.5 text-sm font-medium text-sabres-ink hover:bg-sabres-surface transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sabres-gold"
+          >
+            <LogOut className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />
+            Sign out
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function BudgetPalSettingsRoute(props: {
+  data: BudgetPalSnapshot;
+  persist: (next: BudgetPalSnapshot | ((prev: BudgetPalSnapshot) => BudgetPalSnapshot)) => void;
+}) {
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importOk, setImportOk] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const downloadExport = () => {
+    const stamp = todayIso();
+    const blob = new Blob([JSON.stringify(props.data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `budget-pal-backup-${stamp}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const onImportFile = (e: ChangeEvent<HTMLInputElement>) => {
+    setImportError(null);
+    setImportOk(null);
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result)) as BudgetPalSnapshot;
+        if (parsed?.version !== STORAGE_VERSION || !Array.isArray(parsed.profiles) || parsed.profiles.length === 0) {
+          setImportError('That file is not a valid Budget Pal backup.');
+          return;
+        }
+        if (!parsed.profiles.some((p) => p.id === parsed.activeProfileId)) {
+          parsed.activeProfileId = parsed.profiles[0]!.id;
+        }
+        props.persist(parsed);
+        setImportOk('Backup imported. Your data is saved in this browser.');
+      } catch {
+        setImportError('Could not read that file.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const clearAll = () => {
+    if (
+      !window.confirm(
+        'Delete all Budget Pal data on this device for your account? This cannot be undone.',
+      )
+    ) {
+      return;
+    }
+    props.persist(defaultSnapshot());
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto w-full px-3 sm:px-6 py-6 flex-1 space-y-6">
+      <Link
+        to="/budget-pal"
+        className="inline-flex items-center gap-1 text-sm font-semibold text-sabres-blue-mid hover:text-sabres-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-sabres-gold rounded-md"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+        Back to Budget Pal
+      </Link>
+
+      <div className="rounded-2xl border-2 border-sabres-blue/20 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-bold text-sabres-ink">About</h2>
+        <p className="mt-2 text-sm text-sabres-ink/80 leading-relaxed">
+          Budget Pal keeps profiles, accounts, budgets, and transactions in your browser (local storage)
+          tied to your sign-in. Use export to back up, or import to restore on this or another device.
+        </p>
+      </div>
+
+      <div className="rounded-2xl border-2 border-sabres-blue/20 bg-white p-5 shadow-sm space-y-4">
+        <h2 className="text-lg font-bold text-sabres-ink">Backup</h2>
+        <p className="text-sm text-sabres-ink/80">
+          Download a JSON file with all of your Budget Pal data.
+        </p>
+        <button
+          type="button"
+          onClick={downloadExport}
+          className="rounded-xl bg-sabres-blue text-white px-4 py-2.5 text-sm font-bold shadow hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sabres-gold focus-visible:ring-offset-2"
+        >
+          Export backup
+        </button>
+      </div>
+
+      <div className="rounded-2xl border-2 border-sabres-blue/20 bg-white p-5 shadow-sm space-y-4">
+        <h2 className="text-lg font-bold text-sabres-ink">Restore</h2>
+        <p className="text-sm text-sabres-ink/80">
+          Import replaces all Budget Pal data in this browser with the backup file.
+        </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={onImportFile}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="rounded-xl border-2 border-sabres-gold/60 bg-sabres-gold/10 text-sabres-ink px-4 py-2.5 text-sm font-bold hover:bg-sabres-gold/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-sabres-gold focus-visible:ring-offset-2"
+        >
+          Import backup…
+        </button>
+        {importError && <p className="text-sm font-medium text-red-600">{importError}</p>}
+        {importOk && <p className="text-sm font-medium text-green-700">{importOk}</p>}
+      </div>
+
+      <div className="rounded-2xl border-2 border-red-200 bg-red-50/80 p-5 shadow-sm space-y-3">
+        <h2 className="text-lg font-bold text-red-900">Danger zone</h2>
+        <p className="text-sm text-red-900/80">
+          Remove all Budget Pal data for your account from this browser. You can export first if you need a
+          copy.
+        </p>
+        <button
+          type="button"
+          onClick={clearAll}
+          className="rounded-xl bg-red-600 text-white px-4 py-2.5 text-sm font-bold hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 focus-visible:ring-offset-2"
+        >
+          Clear all data
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function BudgetPalApp() {
   const { session } = useAuth();
+  const navigate = useNavigate();
   const userId = session?.user?.id;
 
   const [data, setData] = useState<BudgetPalSnapshot>(() => defaultSnapshot());
@@ -349,30 +638,13 @@ export function BudgetPalApp() {
 
   return (
     <div className="min-h-screen max-w-full overflow-x-hidden bg-sabres-surface text-sabres-ink flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-sabres-gold/40 bg-gradient-to-r from-sabres-blue via-sabres-blue-mid to-sabres-blue-bright text-white shadow-lg">
-        <div className="max-w-3xl mx-auto px-3 sm:px-6 h-12 sm:h-14 flex items-center justify-between gap-2 min-w-0">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="shrink-0 rounded-lg bg-sabres-gold/20 p-1.5 ring-2 ring-sabres-gold/50">
-              <PiggyBank className="h-5 w-5 text-sabres-gold-light" strokeWidth={2.25} aria-hidden />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-sm sm:text-base font-bold tracking-tight truncate">Budget Pal</h1>
-              <p className="text-[10px] sm:text-xs text-white/90 truncate hidden sm:block">
-                Budgets, accounts & savings
-              </p>
-            </div>
-          </div>
-          <Link
-            to="/dashboard"
-            className="inline-flex items-center gap-1 text-xs sm:text-sm font-medium text-white/95 hover:text-white border border-sabres-gold/50 rounded-lg px-2 sm:px-3 py-1.5 bg-black/10 hover:bg-black/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-sabres-gold"
-          >
-            <ArrowLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-            <span className="hidden sm:inline">Apps</span>
-          </Link>
-        </div>
-      </header>
-
-      <div className="max-w-3xl mx-auto w-full px-3 sm:px-6 py-4 flex-1 flex flex-col gap-4">
+      <BudgetPalHeader onSignOut={() => navigate('/', { replace: true })} />
+      <Routes>
+        <Route
+          index
+          element={
+            <>
+              <div className="max-w-3xl mx-auto w-full px-3 sm:px-6 py-4 flex-1 flex flex-col gap-4">
         <div className="rounded-2xl border-2 border-sabres-blue/20 bg-white p-3 sm:p-4 shadow-sm">
           <label className="text-xs font-semibold uppercase tracking-wider text-sabres-blue/70">
             Profile
@@ -681,6 +953,12 @@ export function BudgetPalApp() {
           onConfirm={() => removeProfileCascade(deleteProfileId)}
         />
       )}
+            </>
+          }
+        />
+        <Route path="settings" element={<BudgetPalSettingsRoute data={data} persist={persist} />} />
+        <Route path="*" element={<Navigate to="/budget-pal" replace />} />
+      </Routes>
     </div>
   );
 }

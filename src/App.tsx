@@ -83,7 +83,7 @@ export default function App() {
           <Route path="/taskmaster" element={<TaskMasterRoute />} />
           <Route path="/chorios" element={<ChoriosRoute />} />
           <Route path="/furries" element={<FurriesRoute />} />
-          <Route path="/budget-pal" element={<BudgetPalRoute />} />
+          <Route path="/budget-pal/*" element={<BudgetPalRoute />} />
           <Route path="/consaltyapp" element={<ConsaltyRoute />}>
             <Route index element={<JobTrackerDashboardPage />} />
             <Route path="log" element={<JobTrackerLogPage />} />
