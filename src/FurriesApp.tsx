@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -18,6 +19,7 @@ import {
   FileText,
   ImageIcon,
   LayoutDashboard,
+  Menu,
   PawPrint,
   Pencil,
   Pin,
@@ -289,11 +291,13 @@ type DetailTab = 'overview' | 'gallery' | 'medical' | 'food' | 'sitter';
 export function FurriesApp() {
   const { session } = useAuth();
   const userId = session?.user?.id;
+  const menuPanelId = useId();
 
   const [data, setData] = useState<PersistedSnapshot>(() => defaultSnapshot());
   const [hydrated, setHydrated] = useState(false);
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>('overview');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [creatingPet, setCreatingPet] = useState(false);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
@@ -316,6 +320,28 @@ export function FurriesApp() {
   useEffect(() => {
     document.title = 'Furries · Cody James Fairburn';
   }, []);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [selectedPetId]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!userId) return;
@@ -563,35 +589,116 @@ export function FurriesApp() {
   return (
     <div className="min-h-screen bg-squirtle-surface text-squirtle-ink">
       <header className="sticky top-0 z-30 border-b-4 border-squirtle-shell bg-squirtle-blue-deep shadow-md">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <Link
-              to="/dashboard"
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-squirtle-cream"
-              aria-label="Back to apps"
+              aria-expanded={menuOpen}
+              aria-controls={menuPanelId}
+              aria-label="Open menu"
             >
-              <ArrowLeft className="h-5 w-5" strokeWidth={2.25} />
-            </Link>
+              <Menu className="h-6 w-6" strokeWidth={2.25} />
+            </button>
+            {selectedPetId && (
+              <button
+                type="button"
+                onClick={() => setSelectedPetId(null)}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-squirtle-cream sm:hidden"
+                aria-label="All pets"
+              >
+                <ArrowLeft className="h-5 w-5" strokeWidth={2.25} />
+              </button>
+            )}
             <div className="flex items-center gap-2 min-w-0">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-squirtle-cream/25 text-white ring-2 ring-squirtle-cream/40">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-squirtle-cream/25 text-white ring-2 ring-squirtle-cream/40">
                 <PawPrint className="h-5 w-5" strokeWidth={2.25} />
               </span>
               <div className="min-w-0">
                 <h1 className="text-sm font-bold text-white tracking-tight truncate">Furries</h1>
-                <p className="text-[11px] text-squirtle-cream/90 truncate">Pet health tracker</p>
+                <p className="text-[11px] text-squirtle-cream/90 truncate">
+                  {selectedPet ? selectedPet.name : 'Pet health tracker'}
+                </p>
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-white hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-squirtle-cream"
-            aria-label="Settings"
-          >
-            <Settings2 className="h-5 w-5" strokeWidth={2.25} />
-          </button>
         </div>
       </header>
+
+      {menuOpen && (
+        <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true" aria-label="Furries menu">
+          <button
+            type="button"
+            className="absolute inset-0 bg-squirtle-ink/45 backdrop-blur-[1px]"
+            aria-label="Close menu"
+            onClick={() => setMenuOpen(false)}
+          />
+          <div
+            id={menuPanelId}
+            className="absolute left-0 top-0 flex h-full w-full max-w-[min(100%,20rem)] flex-col border-r-4 border-squirtle-shell bg-white shadow-2xl"
+          >
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-squirtle-blue/15 bg-squirtle-surface px-4">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-squirtle-blue/20 text-squirtle-blue-deep">
+                  <PawPrint className="h-5 w-5" strokeWidth={2.25} />
+                </span>
+                <span className="font-bold text-squirtle-ink text-sm truncate">Menu</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMenuOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-squirtle-ink hover:bg-squirtle-blue/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-squirtle-blue-deep"
+                aria-label="Close menu"
+              >
+                <X className="h-5 w-5" strokeWidth={2.25} />
+              </button>
+            </div>
+            <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3" aria-label="Furries navigation">
+              {selectedPetId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPetId(null);
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl border-2 border-transparent px-3 py-3 text-left font-medium text-sm text-squirtle-ink transition-colors hover:bg-squirtle-blue/10 hover:border-squirtle-blue/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-squirtle-blue-deep"
+                >
+                  <LayoutDashboard className="h-5 w-5 shrink-0 text-squirtle-blue-deep" />
+                  All pets & bulletin
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setSettingsOpen(true);
+                }}
+                className="flex w-full items-center gap-3 rounded-xl border-2 border-transparent px-3 py-3 text-left font-medium text-sm text-squirtle-ink transition-colors hover:bg-squirtle-blue/10 hover:border-squirtle-blue/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-squirtle-blue-deep"
+              >
+                <Settings2 className="h-5 w-5 shrink-0 text-squirtle-shell" />
+                Site settings
+              </button>
+              <Link
+                to="/dashboard"
+                onClick={() => setMenuOpen(false)}
+                className="flex w-full items-center gap-3 rounded-xl border-2 border-transparent px-3 py-3 text-left font-medium text-sm text-squirtle-ink transition-colors hover:bg-squirtle-blue/10 hover:border-squirtle-blue/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-squirtle-blue-deep"
+              >
+                <ArrowLeft className="h-5 w-5 shrink-0 text-squirtle-blue-deep" />
+                Your apps
+              </Link>
+            </nav>
+            {session?.user?.email && (
+              <div className="shrink-0 border-t border-squirtle-blue/15 px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-squirtle-ink/45">
+                  Signed in
+                </p>
+                <p className="text-xs text-squirtle-ink/70 truncate mt-0.5">{session.user.email}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 pb-24">
         {!selectedPet ? (
@@ -1224,7 +1331,7 @@ function SettingsModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border-2 border-squirtle-blue/30 p-5">
-        <h3 className="font-bold text-squirtle-ink text-lg">Furries settings</h3>
+        <h3 className="font-bold text-squirtle-ink text-lg">Site settings</h3>
         <div className="mt-4 space-y-4">
           <label className="block text-xs font-semibold text-squirtle-ink/80">
             Reminder check interval (seconds)
