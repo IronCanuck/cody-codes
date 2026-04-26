@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ExternalLink, Sparkles, Timer } from 'lucide-react';
+import { ArrowRight, ExternalLink, Kanban, Sparkles, Timer } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { SHOWCASE_PROJECTS } from '../lib/showcase-projects';
 
@@ -122,14 +122,15 @@ export function ShellHome() {
               Products
             </h2>
             <p className="mt-2 text-slate-600 max-w-2xl">
-              Start with Consalty—job and hour tracking built for crews and solo operators.
+              Consalty for hours and pay; Task Master for project boards and task flow. Sign in to
+              use either app.
             </p>
 
-            <ul className="mt-10 grid gap-6 sm:grid-cols-1 lg:grid-cols-1 max-w-2xl">
+            <ul className="mt-10 grid gap-6 sm:grid-cols-1 lg:grid-cols-2 max-w-5xl">
               <li>
                 <Link
                   to="/consaltyapp"
-                  className="group flex gap-5 rounded-2xl border-2 border-cody-finnish/20 bg-white p-6 shadow-sm hover:border-cody-finnish/40 hover:shadow-md transition-all"
+                  className="group flex gap-5 rounded-2xl border-2 border-cody-finnish/20 bg-white p-6 shadow-sm hover:border-cody-finnish/40 hover:shadow-md transition-all h-full"
                 >
                   <div className="shrink-0 rounded-xl bg-gradient-to-br from-cody-gold/90 to-cody-gold p-3.5 ring-2 ring-cody-finnish/15 group-hover:ring-cody-finnish/30 transition-shadow">
                     <Timer className="text-cody-finnish" size={28} strokeWidth={2} aria-hidden />
@@ -139,6 +140,26 @@ export function ShellHome() {
                     <p className="text-slate-600 text-sm mt-2 leading-relaxed">
                       Job and hour tracker—log shifts, earnings, and reports in one
                       place.
+                    </p>
+                    <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-cody-finnish group-hover:gap-2 transition-all">
+                      Open app
+                      <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                    </p>
+                  </div>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/taskmaster"
+                  className="group flex gap-5 rounded-2xl border-2 border-cody-finnish/20 bg-white p-6 shadow-sm hover:border-cody-finnish/40 hover:shadow-md transition-all h-full"
+                >
+                  <div className="shrink-0 rounded-xl bg-gradient-to-br from-cody-gold/90 to-cody-gold p-3.5 ring-2 ring-cody-finnish/15 group-hover:ring-cody-finnish/30 transition-shadow">
+                    <Kanban className="text-cody-finnish" size={28} strokeWidth={2} aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <h3 className="font-bold text-cody-finnish text-xl">Task Master</h3>
+                    <p className="text-slate-600 text-sm mt-2 leading-relaxed">
+                      Pipeline boards and tasks—stages, priorities, and due dates in one workspace.
                     </p>
                     <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-cody-finnish group-hover:gap-2 transition-all">
                       Open app

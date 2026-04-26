@@ -11,6 +11,7 @@ import {
   JobTrackerReportsPage,
   JobTrackerSettingsPage,
 } from './JobTrackerApp';
+import { TaskMasterApp } from './TaskMasterApp';
 import { Login } from './pages/Login';
 import { MemberDashboard } from './pages/MemberDashboard';
 import { ShellHome } from './pages/ShellHome';
@@ -31,6 +32,14 @@ function DashboardRoute() {
   );
 }
 
+function TaskMasterRoute() {
+  return (
+    <ProtectedRoute>
+      <TaskMasterApp />
+    </ProtectedRoute>
+  );
+}
+
 export default function App() {
   const native = Capacitor.isNativePlatform();
 
@@ -44,6 +53,7 @@ export default function App() {
             element={native ? <DashboardRoute /> : <ShellHome />}
           />
           <Route path="/dashboard" element={<DashboardRoute />} />
+          <Route path="/taskmaster" element={<TaskMasterRoute />} />
           <Route path="/consaltyapp" element={<ConsaltyRoute />}>
             <Route index element={<JobTrackerDashboardPage />} />
             <Route path="log" element={<JobTrackerLogPage />} />

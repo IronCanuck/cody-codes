@@ -1,4 +1,4 @@
-import { Timer, type LucideIcon } from 'lucide-react';
+import { Kanban, Timer, type LucideIcon } from 'lucide-react';
 
 export type MemberApp = {
   id: string;
@@ -16,5 +16,12 @@ export const PAYWALLED_APPS: MemberApp[] = [
     description: 'Job and hour tracking — log shifts, earnings, and reports.',
     path: '/consaltyapp',
     icon: Timer,
+  },
+  {
+    id: 'taskmaster',
+    title: 'Task Master',
+    description: 'Projects and pipeline boards — tasks, stages, and priorities in one place.',
+    path: '/taskmaster',
+    icon: Kanban,
   },
 ];
