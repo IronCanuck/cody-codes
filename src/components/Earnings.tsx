@@ -26,7 +26,11 @@ import {
   Trash2,
 } from 'lucide-react';
 import { supabase, Job, Settings, SavedDailyReport } from '../lib/supabase';
-import { estimateAlbertaEmploymentNet, ALBERTA_NET_DISCLAIMER } from '../lib/canada-alberta-estimate';
+import {
+  estimateAlbertaEmploymentNet,
+  netAfterExtraPayPeriodTax,
+  ALBERTA_NET_DISCLAIMER,
+} from '../lib/canada-alberta-estimate';
 import {
   computeEarnings,
   formatMoney,
@@ -140,6 +144,12 @@ export function Earnings({
   const abNet = useMemo(
     () => estimateAlbertaEmploymentNet(earnings.totalPay, settings.pay_period_length_days),
     [earnings.totalPay, settings.pay_period_length_days],
+  );
+
+  const extraTaxPerPeriod = Math.max(0, Number(settings.extra_tax_per_pay_period) || 0);
+  const projectedNet = useMemo(
+    () => netAfterExtraPayPeriodTax(abNet.periodNet, settings.extra_tax_per_pay_period),
+    [abNet.periodNet, settings.extra_tax_per_pay_period],
   );
 
   const summaryDayYmds = useMemo(() => earnings.days.map((d) => d.date), [earnings.days]);
@@ -758,11 +768,18 @@ export function Earnings({
                       Est. net (this pay period)
                     </div>
                     <div className="text-2xl sm:text-3xl font-bold text-jd-green-700 tabular-nums">
-                      {formatMoney(abNet.periodNet, currency)}
+                      {formatMoney(projectedNet, currency)}
                     </div>
                     <div className="text-xs text-slate-500 mt-1">
                       After about {(abNet.effectiveTotalRate * 100).toFixed(1)}% in tax + CPP + EI;
                       annualized gross ≈ {formatMoney(abNet.annualGross, currency)}/yr
+                      {extraTaxPerPeriod > 0 && (
+                        <>
+                          {' '}
+                          • less {formatMoney(extraTaxPerPeriod, currency)} extra withholding per pay
+                          period (Settings)
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -3,7 +3,11 @@ import { Job, Settings } from './supabase';
 import { formatTime, formatDate, getWorkDayHoursWithLunchAnchored } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
 import { payPeriodHoursTrackerFilename, reportEmployeeLabel } from './export-filename';
-import { ALBERTA_NET_DISCLAIMER, estimateAlbertaEmploymentNet } from './canada-alberta-estimate';
+import {
+  ALBERTA_NET_DISCLAIMER,
+  estimateAlbertaEmploymentNet,
+  netAfterExtraPayPeriodTax,
+} from './canada-alberta-estimate';
 
 const JD_GREEN = '#367C2B';
 const JD_YELLOW = '#FFDE00';
@@ -203,6 +207,12 @@ function buildPayPeriodAlbertaNetHtml(earnings: EarningsSummary, settings: Setti
     return `<div style="font-size: 12px; color: #64748b; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 18px;">Log pay in this period to see an Alberta net estimate.</div>`;
   }
   const ab = estimateAlbertaEmploymentNet(earnings.totalPay, payLen);
+  const projectedNet = netAfterExtraPayPeriodTax(ab.periodNet, settings.extra_tax_per_pay_period);
+  const extraTax = Math.max(0, Number(settings.extra_tax_per_pay_period) || 0);
+  const subExtra =
+    extraTax > 0
+      ? ` • less ${formatMoney(extraTax, currency)} extra withholding per pay period (Settings)`
+      : '';
   const disc = `${ALBERTA_NET_DISCLAIMER} Varies with RRSP, dependents, other income, and actual payroll settings.`;
   return `
   <div style="border: 2px solid #e2e8f0; border-radius: 12px; background: linear-gradient(to bottom, #f8fafc, #fff); margin-bottom: 18px; overflow: hidden;">
@@ -212,8 +222,8 @@ function buildPayPeriodAlbertaNetHtml(earnings: EarningsSummary, settings: Setti
     </div>
     <div style="padding: 16px 14px 12px;">
       <div style="font-size: 9px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #64748b;">Est. net (this pay period)</div>
-      <div style="font-size: 28px; font-weight: 700; color: ${JD_GREEN}; margin-top: 4px;">${formatMoney(ab.periodNet, currency)}</div>
-      <div style="font-size: 10px; color: #64748b; margin-top: 4px; line-height: 1.35;">After about ${(ab.effectiveTotalRate * 100).toFixed(1)}% in tax + CPP + EI; annualized gross ≈ ${formatMoney(ab.annualGross, currency)}/yr</div>
+      <div style="font-size: 28px; font-weight: 700; color: ${JD_GREEN}; margin-top: 4px;">${formatMoney(projectedNet, currency)}</div>
+      <div style="font-size: 10px; color: #64748b; margin-top: 4px; line-height: 1.35;">After about ${(ab.effectiveTotalRate * 100).toFixed(1)}% in tax + CPP + EI; annualized gross ≈ ${formatMoney(ab.annualGross, currency)}/yr${subExtra}</div>
       <div style="display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin-top: 12px;">
         <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
           <div style="font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.03em;">Federal</div>

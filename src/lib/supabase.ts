@@ -88,6 +88,7 @@ export type Settings = {
   pay_period_length_days: number;
   pay_period_anchor_date: string;
   currency_symbol: string;
+  extra_tax_per_pay_period: number;
   updated_at: string;
 };
 
@@ -99,6 +100,7 @@ export const DEFAULT_SETTINGS: Omit<Settings, 'id' | 'updated_at'> = {
   pay_period_length_days: 14,
   pay_period_anchor_date: '2026-04-26',
   currency_symbol: '$',
+  extra_tax_per_pay_period: 150,
 };
 
 export type SavedDailyReport = {

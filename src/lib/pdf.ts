@@ -4,7 +4,11 @@ import { Job, Settings } from './supabase';
 import { formatTime, formatDate, getWorkDayHoursWithLunchAnchored } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
 import { payPeriodHoursTrackerFilename, reportEmployeeLabel } from './export-filename';
-import { ALBERTA_NET_DISCLAIMER, estimateAlbertaEmploymentNet } from './canada-alberta-estimate';
+import {
+  ALBERTA_NET_DISCLAIMER,
+  estimateAlbertaEmploymentNet,
+  netAfterExtraPayPeriodTax,
+} from './canada-alberta-estimate';
 
 const JD_GREEN: [number, number, number] = [54, 124, 43];
 const JD_YELLOW: [number, number, number] = [255, 222, 0];
@@ -321,6 +325,8 @@ function drawPayPeriodAlbertaNet(
   }
 
   const ab = estimateAlbertaEmploymentNet(earnings.totalPay, payLen);
+  const projectedNet = netAfterExtraPayPeriodTax(ab.periodNet, settings.extra_tax_per_pay_period);
+  const extraTax = Math.max(0, Number(settings.extra_tax_per_pay_period) || 0);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
@@ -343,12 +349,16 @@ function drawPayPeriodAlbertaNet(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(...JD_GREEN);
-  doc.text(formatMoney(ab.periodNet, currency), m, y);
+  doc.text(formatMoney(projectedNet, currency), m, y);
   y += 6;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(100, 116, 139);
-  const sub = `After about ${(ab.effectiveTotalRate * 100).toFixed(1)}% in tax + CPP + EI; annualized gross ≈ ${formatMoney(ab.annualGross, currency)}/yr`;
+  const subExtra =
+    extraTax > 0
+      ? ` • less ${formatMoney(extraTax, currency)} extra withholding per pay period (Settings)`
+      : '';
+  const sub = `After about ${(ab.effectiveTotalRate * 100).toFixed(1)}% in tax + CPP + EI; annualized gross ≈ ${formatMoney(ab.annualGross, currency)}/yr${subExtra}`;
   y = drawWrappedLines(doc, doc.splitTextToSize(sub, maxW), m, y, 3.5);
   y += 2;
 

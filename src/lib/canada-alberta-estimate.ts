@@ -132,5 +132,11 @@ export function estimateAlbertaEmploymentNet(
   };
 }
 
+/** Subtract Settings “extra tax per pay period” after CPP/EI/tax estimate; does not change gross annualization. */
+export function netAfterExtraPayPeriodTax(periodNet: number, extraTaxPerPeriod: number): number {
+  const extra = Math.max(0, Number(extraTaxPerPeriod) || 0);
+  return Math.max(0, periodNet - extra);
+}
+
 export const ALBERTA_NET_DISCLAIMER =
   'Illustration only. Uses 2025 federal/Alberta brackets, CPP, and EI on annualized pay. Not tax, payroll, or legal advice.';

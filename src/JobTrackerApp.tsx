@@ -28,6 +28,7 @@ const SETTINGS_ROW_INSERT = {
   pay_period_length_days: DEFAULT_SETTINGS.pay_period_length_days,
   pay_period_anchor_date: DEFAULT_SETTINGS.pay_period_anchor_date,
   currency_symbol: DEFAULT_SETTINGS.currency_symbol,
+  extra_tax_per_pay_period: DEFAULT_SETTINGS.extra_tax_per_pay_period,
 } as const;
 export function JobTrackerDashboardPage() {
   const { jobs, settings, dailyReports } = useJobTrackerOutlet();
@@ -213,7 +214,11 @@ export function JobTrackerApp() {
       const r = row as SettingsType;
       const fromDb = typeof r.full_name === 'string' ? r.full_name : '';
       const fromLocal = getStoredEmployeeFullName();
-      return { ...r, full_name: fromLocal || fromDb };
+      const extraTax =
+        typeof r.extra_tax_per_pay_period === 'number'
+          ? r.extra_tax_per_pay_period
+          : DEFAULT_SETTINGS.extra_tax_per_pay_period;
+      return { ...r, full_name: fromLocal || fromDb, extra_tax_per_pay_period: extraTax };
     };
 
     if (data) {
@@ -249,6 +254,7 @@ export function JobTrackerApp() {
         pay_period_length_days: next.pay_period_length_days,
         pay_period_anchor_date: next.pay_period_anchor_date,
         currency_symbol: next.currency_symbol,
+        extra_tax_per_pay_period: next.extra_tax_per_pay_period,
         updated_at: new Date().toISOString(),
       })
       .eq('id', next.id);

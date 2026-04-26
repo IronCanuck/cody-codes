@@ -1,5 +1,16 @@
 import { useState, FormEvent, useEffect } from 'react';
-import { Save, DollarSign, Clock, Calendar, Percent, MapPin, ClipboardList, Plus, Trash2 } from 'lucide-react';
+import {
+  Save,
+  DollarSign,
+  Clock,
+  Calendar,
+  Percent,
+  MapPin,
+  ClipboardList,
+  Plus,
+  Trash2,
+  Receipt,
+} from 'lucide-react';
 import { Settings as SettingsType } from '../lib/supabase';
 import {
   getTaskPresets,
@@ -150,6 +161,34 @@ export function Settings({ settings, onSave }: Props) {
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
               />
             </div>
+          </div>
+        </section>
+
+        <section className="pt-6 border-t border-gray-100">
+          <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+            <Receipt size={18} className="text-jd-green-600" /> Extra tax
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Additional amount withheld each pay period (on top of regular tax, CPP, and EI). Used to
+            adjust the estimated take-home on the Earnings page.
+          </p>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Extra tax amount
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.extra_tax_per_pay_period}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  extra_tax_per_pay_period: parseFloat(e.target.value) || 0,
+                })
+              }
+              className="w-full max-w-xs px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
+            />
           </div>
         </section>
 
