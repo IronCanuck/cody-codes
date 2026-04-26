@@ -559,6 +559,11 @@ export function BudgetPalApp() {
     return { income, expense, net: income - expense, budgetCap };
   }, [txForProfileMonth, categoriesForProfile]);
 
+  const accountsTotalBalance = useMemo(
+    () => accountsForProfile.reduce((s, a) => s + a.balance, 0),
+    [accountsForProfile],
+  );
+
   const shiftMonth = (dir: -1 | 1) => {
     setViewMonth((m) => {
       const next = m + dir;
@@ -727,6 +732,7 @@ export function BudgetPalApp() {
             categories={categoriesForProfile}
             spendByCategory={spendByCategory}
             totals={totals}
+            accountsTotalBalance={accountsTotalBalance}
             onAddCategory={() => setModal({ type: 'category' })}
             onAddTransaction={() => setModal({ type: 'transaction' })}
             onEditCategory={(c) => {
@@ -970,6 +976,8 @@ function OverviewPanel(props: {
   categories: BudgetCategory[];
   spendByCategory: Map<string, number>;
   totals: { income: number; expense: number; net: number; budgetCap: number };
+  /** Sum of stored balances on Accounts — not derived from monthly transactions. */
+  accountsTotalBalance: number;
   onAddCategory: () => void;
   onAddTransaction: () => void;
   onEditCategory: (c: BudgetCategory) => void;
@@ -1022,21 +1030,40 @@ function OverviewPanel(props: {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <p className="text-xs text-sabres-ink/70 -mt-1">
+        Income, spent, and net flow are for <strong>{props.monthLabel}</strong> only. Account total is the sum of
+        balances you set on the Accounts tab (not auto-calculated from transactions).
+      </p>
+
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-sabres-blue/15 bg-white p-4 shadow-sm">
           <p className="text-xs font-semibold text-sabres-blue/80 uppercase">Income</p>
+          <p className="text-[10px] text-sabres-ink/55 mt-0.5">This month</p>
           <p className="text-xl font-bold text-sabres-blue mt-1">{money.format(totals.income)}</p>
         </div>
         <div className="rounded-2xl border border-sabres-blue/15 bg-white p-4 shadow-sm">
           <p className="text-xs font-semibold text-sabres-blue/80 uppercase">Spent</p>
+          <p className="text-[10px] text-sabres-ink/55 mt-0.5">This month</p>
           <p className="text-xl font-bold text-sabres-ink mt-1">{money.format(totals.expense)}</p>
         </div>
-        <div className="rounded-2xl border border-sabres-gold/40 bg-gradient-to-br from-white to-sabres-gold/10 p-4 shadow-sm">
-          <p className="text-xs font-semibold text-sabres-blue/80 uppercase">Net</p>
+        <div className="rounded-2xl border border-sabres-blue/15 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold text-sabres-blue/80 uppercase">Net flow</p>
+          <p className="text-[10px] text-sabres-ink/55 mt-0.5">Income − spent (month)</p>
           <p
             className={`text-xl font-bold mt-1 ${totals.net >= 0 ? 'text-emerald-700' : 'text-red-700'}`}
           >
             {money.format(totals.net)}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-sabres-gold/40 bg-gradient-to-br from-white to-sabres-gold/10 p-4 shadow-sm">
+          <p className="text-xs font-semibold text-sabres-blue/80 uppercase">Account total</p>
+          <p className="text-[10px] text-sabres-ink/55 mt-0.5">All accounts (profile)</p>
+          <p
+            className={`text-xl font-bold mt-1 ${
+              props.accountsTotalBalance >= 0 ? 'text-sabres-blue' : 'text-red-700'
+            }`}
+          >
+            {money.format(props.accountsTotalBalance)}
           </p>
         </div>
       </div>
