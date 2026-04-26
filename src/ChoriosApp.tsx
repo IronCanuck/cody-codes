@@ -11,17 +11,21 @@ import {
   AlarmClock,
   ArrowDown,
   ArrowLeft,
+  ArrowRight,
   ArrowUp,
   Bell,
   BellOff,
+  CalendarDays,
   Check,
   Download,
   Flame,
+  LayoutDashboard,
   ListChecks,
   Pencil,
   Plus,
   Settings2,
   Trash2,
+  TrendingUp,
   Upload,
   X,
 } from 'lucide-react';
@@ -224,6 +228,42 @@ function formatDueLabel(d: Date): string {
   });
 }
 
+function startOfLocalWeek(d: Date): Date {
+  const x = new Date(d);
+  const day = x.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  x.setDate(x.getDate() + diff);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function isChoreDueNow(chore: Chore, now: Date): boolean {
+  const after = new Date(chore.lastCompletedAt || 0);
+  const nextDue = getNextDueInstantAfter(chore, after);
+  if (now < nextDue) return false;
+  if (chore.snoozeUntil && now < new Date(chore.snoozeUntil)) return false;
+  if (chore.silencedDueAt === nextDue.toISOString()) return false;
+  return true;
+}
+
+function relativeDueLabel(nextDue: Date, now: Date): string {
+  const dayMs = 86_400_000;
+  const diff = nextDue.getTime() - now.getTime();
+  if (diff < 0) return 'Overdue';
+  if (diff < 60_000) return 'Due now';
+  if (diff < dayMs) {
+    const h = Math.floor(diff / 3_600_000);
+    const m = Math.floor((diff % 3_600_000) / 60_000);
+    return h > 0 ? `in ${h}h ${m}m` : `in ${m}m`;
+  }
+  const days = Math.floor(diff / dayMs);
+  if (days === 1) return 'Tomorrow';
+  if (days < 7) return `in ${days} days`;
+  return formatDueLabel(nextDue);
+}
+
+type MainTab = 'overview' | Cadence;
+
 type ReminderToast = {
   id: string;
   choreId: string;
@@ -237,7 +277,7 @@ export function ChoriosApp() {
 
   const [data, setData] = useState<PersistedSnapshot>(() => defaultSnapshot());
   const [hydrated, setHydrated] = useState(false);
-  const [tab, setTab] = useState<Cadence>('weekly');
+  const [mainTab, setMainTab] = useState<MainTab>('overview');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingChore, setEditingChore] = useState<Chore | null>(null);
   const [creating, setCreating] = useState(false);
@@ -268,11 +308,46 @@ export function ChoriosApp() {
     setHydrated(true);
   }, [userId]);
 
+  const listCadence: Cadence = mainTab === 'overview' ? 'weekly' : mainTab;
+
   const choresForTab = useMemo(() => {
+    if (mainTab === 'overview') return [];
     return data.chores
-      .filter((c) => c.cadence === tab)
+      .filter((c) => c.cadence === mainTab)
       .sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title));
-  }, [data.chores, tab]);
+  }, [data.chores, mainTab]);
+
+  const dashboardModel = useMemo(() => {
+    const now = new Date();
+    const weekStart = startOfLocalWeek(now);
+    const counts = { weekly: 0, monthly: 0, yearly: 0 } as Record<Cadence, number>;
+    const dueNow: Chore[] = [];
+    const upcoming: { chore: Chore; nextDue: Date }[] = [];
+
+    for (const c of data.chores) {
+      counts[c.cadence]++;
+      const after = new Date(c.lastCompletedAt || 0);
+      const nextDue = getNextDueInstantAfter(c, after);
+      upcoming.push({ chore: c, nextDue });
+      if (isChoreDueNow(c, now)) dueNow.push(c);
+    }
+
+    upcoming.sort((a, b) => a.nextDue.getTime() - b.nextDue.getTime());
+
+    const completedThisWeek = data.chores.filter(
+      (c) => c.lastCompletedAt && new Date(c.lastCompletedAt) >= weekStart,
+    ).length;
+
+    return {
+      now,
+      counts,
+      total: data.chores.length,
+      dueNow,
+      upcoming: upcoming.slice(0, 8),
+      completedThisWeek,
+      categoryCount: data.categories.length,
+    };
+  }, [data.chores, data.categories]);
 
   const checkDue = useCallback(() => {
     if (!hydrated) return;
@@ -480,18 +555,32 @@ export function ChoriosApp() {
       <div className="max-w-3xl mx-auto w-full px-3 sm:px-6 py-4 flex-1 flex flex-col gap-4">
         <div
           role="tablist"
-          aria-label="Chore cadence"
-          className="flex rounded-xl border border-flames-orange/25 bg-flames-cream p-1 shadow-sm"
+          aria-label="Chorios navigation"
+          className="flex flex-wrap sm:flex-nowrap gap-1 rounded-xl border border-flames-orange/25 bg-flames-cream p-1 shadow-sm"
         >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mainTab === 'overview'}
+            onClick={() => setMainTab('overview')}
+            className={`flex-1 min-w-[5.5rem] rounded-lg py-2 px-2 text-xs sm:text-sm font-semibold transition-colors inline-flex items-center justify-center gap-1.5 ${
+              mainTab === 'overview'
+                ? 'bg-gradient-to-br from-flames-red to-flames-orange text-white shadow'
+                : 'text-flames-dark/70 hover:bg-white/80'
+            }`}
+          >
+            <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0 opacity-90" aria-hidden />
+            <span>Overview</span>
+          </button>
           {(['weekly', 'monthly', 'yearly'] as const).map((c) => (
             <button
               key={c}
               type="button"
               role="tab"
-              aria-selected={tab === c}
-              onClick={() => setTab(c)}
-              className={`flex-1 rounded-lg py-2 text-xs sm:text-sm font-semibold capitalize transition-colors ${
-                tab === c
+              aria-selected={mainTab === c}
+              onClick={() => setMainTab(c)}
+              className={`flex-1 min-w-[4.5rem] rounded-lg py-2 text-xs sm:text-sm font-semibold capitalize transition-colors ${
+                mainTab === c
                   ? 'bg-gradient-to-br from-flames-red to-flames-orange text-white shadow'
                   : 'text-flames-dark/70 hover:bg-white/80'
               }`}
@@ -515,10 +604,20 @@ export function ChoriosApp() {
           </button>
         </div>
 
-        {choresForTab.length === 0 ? (
+        {mainTab === 'overview' ? (
+          <ChoriosDashboard
+            model={dashboardModel}
+            onGoToCadence={(c) => setMainTab(c)}
+            onAddChore={() => {
+              setCreating(true);
+              setEditingChore(null);
+            }}
+            onComplete={(c) => completeChore(c.id, null)}
+          />
+        ) : choresForTab.length === 0 ? (
           <div className="rounded-2xl border-2 border-dashed border-flames-orange/35 bg-white/60 py-12 px-4 text-center">
             <ListChecks className="h-10 w-10 mx-auto text-flames-orange mb-3" strokeWidth={1.75} />
-            <p className="text-flames-dark font-medium">No {tab} chores yet</p>
+            <p className="text-flames-dark font-medium">No {mainTab} chores yet</p>
             <p className="text-sm text-flames-dark/65 mt-1">Add one to get reminders on your schedule.</p>
           </div>
         ) : (
@@ -601,7 +700,7 @@ export function ChoriosApp() {
       {(creating || editingChore) && (
         <ChoreModal
           chore={editingChore}
-          cadenceDefault={tab}
+          cadenceDefault={listCadence}
           categories={data.categories}
           defaultReminderTime={data.settings.defaultReminderTime}
           onClose={() => {
@@ -685,6 +784,188 @@ export function ChoriosApp() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+type DashboardModel = {
+  now: Date;
+  counts: Record<Cadence, number>;
+  total: number;
+  dueNow: Chore[];
+  upcoming: { chore: Chore; nextDue: Date }[];
+  completedThisWeek: number;
+  categoryCount: number;
+};
+
+function ChoriosDashboard({
+  model,
+  onGoToCadence,
+  onAddChore,
+  onComplete,
+}: {
+  model: DashboardModel;
+  onGoToCadence: (c: Cadence) => void;
+  onAddChore: () => void;
+  onComplete: (c: Chore) => void;
+}) {
+  const { now, counts, total, dueNow, upcoming, completedThisWeek, categoryCount } = model;
+  const greeting =
+    now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
+  const dateLine = now.toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="rounded-2xl border border-flames-orange/20 bg-gradient-to-br from-white to-flames-cream/90 px-4 py-4 sm:px-5 shadow-sm">
+        <p className="text-xs font-bold uppercase tracking-wider text-flames-orange-dark">{greeting}</p>
+        <p className="text-lg sm:text-xl font-bold text-flames-dark mt-0.5">{dateLine}</p>
+        <p className="text-sm text-flames-dark/65 mt-1">
+          Your overview — what needs attention and what&apos;s coming up.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="rounded-2xl border border-flames-red/20 bg-white p-3 sm:p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-flames-red-dark">
+            <ListChecks className="h-4 w-4 shrink-0" strokeWidth={2.25} />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wide">Total</span>
+          </div>
+          <p className="text-2xl sm:text-3xl font-bold text-flames-dark mt-2 tabular-nums">{total}</p>
+          <p className="text-[11px] text-flames-dark/55 mt-0.5">chores tracked</p>
+        </div>
+        <div
+          className={`rounded-2xl border p-3 sm:p-4 shadow-sm ${
+            dueNow.length > 0
+              ? 'border-flames-red/40 bg-gradient-to-br from-flames-red/10 to-flames-orange/5'
+              : 'border-flames-orange/20 bg-white'
+          }`}
+        >
+          <div className="flex items-center gap-2 text-flames-orange-dark">
+            <AlarmClock className="h-4 w-4 shrink-0" strokeWidth={2.25} />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wide">Due</span>
+          </div>
+          <p className="text-2xl sm:text-3xl font-bold text-flames-dark mt-2 tabular-nums">{dueNow.length}</p>
+          <p className="text-[11px] text-flames-dark/55 mt-0.5">need attention</p>
+        </div>
+        <div className="rounded-2xl border border-flames-yellow/35 bg-white p-3 sm:p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-amber-800">
+            <TrendingUp className="h-4 w-4 shrink-0" strokeWidth={2.25} />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wide">Week</span>
+          </div>
+          <p className="text-2xl sm:text-3xl font-bold text-flames-dark mt-2 tabular-nums">
+            {completedThisWeek}
+          </p>
+          <p className="text-[11px] text-flames-dark/55 mt-0.5">done this week</p>
+        </div>
+        <div className="rounded-2xl border border-flames-orange/25 bg-white p-3 sm:p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-flames-orange-dark">
+            <CalendarDays className="h-4 w-4 shrink-0" strokeWidth={2.25} />
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wide">Tags</span>
+          </div>
+          <p className="text-2xl sm:text-3xl font-bold text-flames-dark mt-2 tabular-nums">
+            {categoryCount}
+          </p>
+          <p className="text-[11px] text-flames-dark/55 mt-0.5">categories</p>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wide text-flames-orange-dark mb-2">
+          Cadence
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {(['weekly', 'monthly', 'yearly'] as const).map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => onGoToCadence(c)}
+              className="group flex items-center justify-between rounded-2xl border-2 border-flames-orange/25 bg-white px-4 py-3 text-left shadow-sm hover:border-flames-orange/45 hover:shadow-md transition-all"
+            >
+              <div>
+                <p className="font-bold text-flames-dark capitalize">{c}</p>
+                <p className="text-sm text-flames-dark/60 mt-0.5">
+                  {counts[c]} chore{counts[c] === 1 ? '' : 's'}
+                </p>
+              </div>
+              <ArrowRight
+                className="h-5 w-5 text-flames-orange shrink-0 group-hover:translate-x-0.5 transition-transform"
+                strokeWidth={2.25}
+                aria-hidden
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {dueNow.length > 0 && (
+        <section className="rounded-2xl border-2 border-flames-red/30 bg-white/90 p-4 shadow-sm">
+          <h2 className="text-sm font-bold text-flames-red-dark flex items-center gap-2">
+            <Flame className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+            Due or overdue
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {dueNow.map((c) => (
+              <li
+                key={c.id}
+                className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 ${ACCENT_BG[c.accent]} border-black/5`}
+              >
+                <span className="text-sm font-semibold text-flames-dark min-w-0 truncate">{c.title}</span>
+                <button
+                  type="button"
+                  onClick={() => onComplete(c)}
+                  className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-flames-red text-white text-xs font-bold px-2.5 py-1.5 hover:bg-flames-red-dark"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  Done
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className="rounded-2xl border border-flames-orange/25 bg-white/80 p-4 shadow-sm">
+        <h2 className="text-sm font-bold text-flames-dark">Up next</h2>
+        {upcoming.length === 0 ? (
+          <div className="rounded-xl border-2 border-dashed border-flames-orange/35 bg-flames-cream/50 py-10 px-4 text-center mt-3">
+            <ListChecks className="h-10 w-10 mx-auto text-flames-orange mb-3" strokeWidth={1.75} />
+            <p className="text-flames-dark font-medium">No chores yet</p>
+            <p className="text-sm text-flames-dark/65 mt-1 max-w-xs mx-auto">
+              Add your first weekly, monthly, or yearly task to see it here.
+            </p>
+            <button
+              type="button"
+              onClick={onAddChore}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-flames-red text-white px-4 py-2 text-sm font-semibold shadow hover:bg-flames-red-dark"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.25} />
+              Add chore
+            </button>
+          </div>
+        ) : (
+          <ul className="mt-3 divide-y divide-flames-orange/10">
+            {upcoming.map(({ chore: c, nextDue }) => (
+              <li key={c.id} className="flex items-center gap-3 py-2.5 first:pt-0">
+                <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${ACCENT_DOT[c.accent]}`} aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-flames-dark truncate">{c.title}</p>
+                  <p className="text-xs text-flames-dark/55 capitalize">
+                    {c.cadence} · {relativeDueLabel(nextDue, now)}
+                  </p>
+                </div>
+                <span className="text-[11px] font-medium text-flames-orange-dark shrink-0 text-right max-w-[7rem] sm:max-w-none">
+                  {formatDueLabel(nextDue)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
