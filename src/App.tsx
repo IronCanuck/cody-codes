@@ -11,6 +11,7 @@ import {
   JobTrackerReportsPage,
   JobTrackerSettingsPage,
 } from './JobTrackerApp';
+import { ChoriosApp } from './ChoriosApp';
 import { TaskMasterApp } from './TaskMasterApp';
 import { Login } from './pages/Login';
 import { MemberDashboard } from './pages/MemberDashboard';
@@ -40,6 +41,14 @@ function TaskMasterRoute() {
   );
 }
 
+function ChoriosRoute() {
+  return (
+    <ProtectedRoute>
+      <ChoriosApp />
+    </ProtectedRoute>
+  );
+}
+
 export default function App() {
   const native = Capacitor.isNativePlatform();
 
@@ -54,6 +63,7 @@ export default function App() {
           />
           <Route path="/dashboard" element={<DashboardRoute />} />
           <Route path="/taskmaster" element={<TaskMasterRoute />} />
+          <Route path="/chorios" element={<ChoriosRoute />} />
           <Route path="/consaltyapp" element={<ConsaltyRoute />}>
             <Route index element={<JobTrackerDashboardPage />} />
             <Route path="log" element={<JobTrackerLogPage />} />

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ExternalLink, Kanban, Sparkles, Timer } from 'lucide-react';
+import { ArrowRight, ExternalLink, Flame, Kanban, Sparkles, Timer } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { SHOWCASE_PROJECTS } from '../lib/showcase-projects';
 
@@ -122,11 +122,11 @@ export function ShellHome() {
               Products
             </h2>
             <p className="mt-2 text-slate-600 max-w-2xl">
-              Consalty for hours and pay; Task Master for project boards and task flow. Sign in to
-              use either app.
+              Consalty for hours and pay; Task Master for project boards; Chorios for recurring chores
+              on your calendar. Sign in to use any app.
             </p>
 
-            <ul className="mt-10 grid gap-6 sm:grid-cols-1 lg:grid-cols-2 max-w-5xl">
+            <ul className="mt-10 grid gap-6 sm:grid-cols-1 lg:grid-cols-3 max-w-5xl">
               <li>
                 <Link
                   to="/consaltyapp"
@@ -162,6 +162,27 @@ export function ShellHome() {
                       Pipeline boards and tasks—stages, priorities, and due dates in one workspace.
                     </p>
                     <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-cody-finnish group-hover:gap-2 transition-all">
+                      Open app
+                      <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                    </p>
+                  </div>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/chorios"
+                  className="group flex gap-5 rounded-2xl border-2 border-flames-orange/35 bg-white p-6 shadow-sm hover:border-flames-orange/55 hover:shadow-md transition-all h-full"
+                >
+                  <div className="shrink-0 rounded-xl bg-gradient-to-br from-flames-red via-flames-orange to-flames-yellow p-3.5 ring-2 ring-flames-red/20 group-hover:ring-flames-orange/40 transition-shadow">
+                    <Flame className="text-white" size={28} strokeWidth={2} aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <h3 className="font-bold text-flames-red-dark text-xl">Chorios</h3>
+                    <p className="text-slate-600 text-sm mt-2 leading-relaxed">
+                      Weekly, monthly, and yearly chore lists—custom categories, reminders, and optional
+                      system notifications.
+                    </p>
+                    <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-flames-orange-dark group-hover:gap-2 transition-all">
                       Open app
                       <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
                     </p>

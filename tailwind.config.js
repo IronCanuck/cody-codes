@@ -21,6 +21,18 @@ export default {
           light: '#D4F0EE',
           surface: '#EEF9F8',
         },
+        /** Chorios — Calgary Flames inspired */
+        flames: {
+          red: '#C8102E',
+          'red-dark': '#9E0C24',
+          orange: '#F47A38',
+          'orange-dark': '#D96528',
+          yellow: '#F1BE48',
+          'yellow-light': '#FCE8A6',
+          dark: '#1A1A1A',
+          surface: '#FFF5F0',
+          cream: '#FFFBF7',
+        },
         jd: {
           green: {
             50: '#f1f8ee',

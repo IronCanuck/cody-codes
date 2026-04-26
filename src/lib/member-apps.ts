@@ -1,4 +1,4 @@
-import { Kanban, Timer, type LucideIcon } from 'lucide-react';
+import { Flame, Kanban, Timer, type LucideIcon } from 'lucide-react';
 
 export type MemberApp = {
   id: string;
@@ -23,5 +23,12 @@ export const PAYWALLED_APPS: MemberApp[] = [
     description: 'Projects and pipeline boards — tasks, stages, and priorities in one place.',
     path: '/taskmaster',
     icon: Kanban,
+  },
+  {
+    id: 'chorios',
+    title: 'Chorios',
+    description: 'Weekly, monthly, and yearly chores — reminders, categories, and your schedule.',
+    path: '/chorios',
+    icon: Flame,
   },
 ];
