@@ -438,19 +438,19 @@ export function TaskMasterApp() {
 
       <main className="flex-1 flex flex-col min-w-0 min-h-0">
         <div className="flex-1 w-full min-w-0 min-h-0 p-3 sm:p-4 md:p-6 md:overflow-x-auto md:overflow-y-hidden md:overscroll-x-contain [scrollbar-gutter:stable]">
-          <div className="flex flex-col gap-4 w-full min-w-0 md:flex-row md:items-stretch md:w-max md:max-w-none md:min-h-[min(720px,calc(100dvh-9rem))] md:pb-1 md:gap-4">
+          <div className="flex flex-col gap-4 w-full min-w-0 md:flex-row md:items-start md:w-max md:max-w-none md:pb-1 md:gap-3">
             {sortedColumns.map((col) => {
               const colTasks = tasksInColumn(activeProject.tasks, col.id);
               return (
                 <section
                   key={col.id}
-                  className="w-full min-w-0 min-h-0 flex flex-col md:w-[min(18rem,80vw)] md:shrink-0 md:max-h-full bg-white rounded-xl border border-slate-200 shadow-sm"
+                  className="w-full min-w-0 flex flex-col md:w-60 md:shrink-0 h-fit bg-white rounded-lg border border-slate-200 shadow-sm"
                 >
-                  <div className="px-3 py-2.5 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0">
+                  <div className="px-2.5 py-2 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0">
                     <h2 className="font-semibold text-cody-finnish text-sm truncate">{col.title}</h2>
                     <span className="text-xs text-slate-400 tabular-nums">{colTasks.length}</span>
                   </div>
-                  <ul className="min-h-[3rem] max-h-60 sm:max-h-72 overflow-y-auto overscroll-y-contain p-2 space-y-2 [scrollbar-gutter:stable] md:max-h-none md:flex-1 md:min-h-0">
+                  <ul className="min-h-[2.5rem] max-h-52 sm:max-h-64 overflow-y-auto overscroll-y-contain p-1.5 space-y-1.5 [scrollbar-gutter:stable] md:max-h-[min(50vh,20rem)]">
                     {colTasks.map((t) => (
                       <li key={t.id}>
                         <article className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 shadow-sm hover:border-cody-finnish/30 transition-colors">
@@ -517,7 +517,7 @@ export function TaskMasterApp() {
                       </li>
                     ))}
                   </ul>
-                  <div className="p-2 border-t border-slate-100 shrink-0">
+                  <div className="p-1.5 border-t border-slate-100 shrink-0">
                     <div className="flex gap-1 min-w-0">
                       <input
                         type="text"
