@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ExternalLink, Flame, Kanban, Sparkles, Timer } from 'lucide-react';
+import { ArrowRight, ExternalLink, Flame, Kanban, PiggyBank, Sparkles, Timer } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { SHOWCASE_PROJECTS } from '../lib/showcase-projects';
 
@@ -122,11 +122,11 @@ export function ShellHome() {
               Products
             </h2>
             <p className="mt-2 text-slate-600 max-w-2xl">
-              Consalty for hours and pay; Task Master for project boards; Chorios for recurring chores
-              on your calendar. Sign in to use any app.
+              Consalty for hours and pay; Task Master for project boards; Chorios for recurring chores;
+              Budget Pal for profiles, accounts, and monthly budgets. Sign in to use any app.
             </p>
 
-            <ul className="mt-10 grid gap-6 sm:grid-cols-1 lg:grid-cols-3 max-w-5xl">
+            <ul className="mt-10 grid gap-6 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 max-w-5xl">
               <li>
                 <Link
                   to="/consaltyapp"
@@ -183,6 +183,27 @@ export function ShellHome() {
                       system notifications.
                     </p>
                     <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-flames-orange-dark group-hover:gap-2 transition-all">
+                      Open app
+                      <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                    </p>
+                  </div>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/budget-pal"
+                  className="group flex gap-5 rounded-2xl border-2 border-sabres-blue/25 bg-white p-6 shadow-sm hover:border-sabres-gold/60 hover:shadow-md transition-all h-full"
+                >
+                  <div className="shrink-0 rounded-xl bg-gradient-to-br from-sabres-blue to-sabres-blue-mid p-3.5 ring-2 ring-sabres-gold/35 group-hover:ring-sabres-gold/60 transition-shadow">
+                    <PiggyBank className="text-sabres-gold-light" size={28} strokeWidth={2} aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <h3 className="font-bold text-sabres-blue text-xl">Budget Pal</h3>
+                    <p className="text-slate-600 text-sm mt-2 leading-relaxed">
+                      Personal and business profiles, bank accounts, monthly budget lines, and savings
+                      goals—see how you are tracking against the plan.
+                    </p>
+                    <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-sabres-blue-mid group-hover:gap-2 transition-all">
                       Open app
                       <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
                     </p>

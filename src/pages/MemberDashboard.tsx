@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, ExternalLink, LayoutGrid, List, Menu, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { PAYWALLED_APPS } from '../lib/member-apps';
+import { APP_LIBRARY_SCHEMES, PAYWALLED_APPS } from '../lib/member-apps';
 import { SHOWCASE_PROJECTS } from '../lib/showcase-projects';
 
 export function MemberDashboard() {
@@ -109,21 +109,24 @@ export function MemberDashboard() {
         <nav className="flex-1 overflow-y-auto p-3 space-y-1" aria-label="Paywalled apps">
           {PAYWALLED_APPS.map((app) => {
             const Icon = app.icon;
+            const s = APP_LIBRARY_SCHEMES[app.scheme];
             return (
               <Link
                 key={app.id}
                 to={app.path}
-                className="flex gap-3 rounded-xl border border-transparent px-3 py-3 hover:bg-cody-finnish/5 hover:border-cody-finnish/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-finnish focus-visible:ring-offset-2"
+                className={`flex gap-3 rounded-xl border border-transparent px-3 py-3 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${s.menuLink}`}
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cody-gold/15 text-cody-finnish">
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${s.menuIconWrap} ${s.menuIconColor}`}
+                >
                   <Icon className="h-5 w-5" strokeWidth={2} aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="font-semibold text-cody-finnish text-sm block">{app.title}</span>
+                  <span className={`font-semibold text-sm block ${s.menuTitle}`}>{app.title}</span>
                   <span className="text-xs text-slate-600 line-clamp-2 mt-0.5">{app.description}</span>
                 </span>
                 <ArrowRight
-                  className="h-4 w-4 shrink-0 text-cody-finnish mt-1 opacity-60"
+                  className={`h-4 w-4 shrink-0 mt-1 ${s.menuArrow}`}
                   strokeWidth={2.25}
                   aria-hidden
                 />
@@ -160,19 +163,24 @@ export function MemberDashboard() {
           <ul className="mt-4 grid gap-4">
             {PAYWALLED_APPS.map((app) => {
               const Icon = app.icon;
+              const s = APP_LIBRARY_SCHEMES[app.scheme];
               return (
                 <li key={app.id}>
                   <Link
                     to={app.path}
-                    className="group flex gap-4 rounded-2xl border-2 border-cody-finnish/15 bg-white p-5 shadow-sm hover:border-cody-finnish/35 hover:shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-finnish focus-visible:ring-offset-2"
+                    className={`group flex gap-4 rounded-2xl border-2 bg-white p-5 shadow-sm hover:shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${s.card}`}
                   >
-                    <div className="shrink-0 rounded-xl bg-gradient-to-br from-cody-gold/90 to-cody-gold p-3 ring-2 ring-cody-finnish/10 group-hover:ring-cody-finnish/25 transition-shadow">
-                      <Icon className="text-cody-finnish" size={26} strokeWidth={2} aria-hidden />
+                    <div
+                      className={`shrink-0 rounded-xl p-3 ring-2 transition-shadow ${s.cardIconWrap}`}
+                    >
+                      <Icon className={s.cardIcon} size={26} strokeWidth={2} aria-hidden />
                     </div>
                     <div className="min-w-0 flex-1 text-left">
-                      <h4 className="font-bold text-cody-finnish text-lg">{app.title}</h4>
+                      <h4 className={`font-bold text-lg ${s.cardTitle}`}>{app.title}</h4>
                       <p className="text-slate-600 text-sm mt-1 leading-relaxed">{app.description}</p>
-                      <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-cody-finnish group-hover:gap-2 transition-all">
+                      <p
+                        className={`mt-3 inline-flex items-center gap-1 text-sm font-semibold group-hover:gap-2 transition-all ${s.cardCta}`}
+                      >
                         Open
                         <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
                       </p>

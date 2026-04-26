@@ -33,6 +33,18 @@ export default {
           surface: '#E8F4FC',
           ink: '#1E3A4C',
         },
+        /** Budget Pal — Buffalo Sabres inspired (royal blue & gold) */
+        sabres: {
+          blue: '#002654',
+          'blue-mid': '#003087',
+          'blue-bright': '#0038A8',
+          gold: '#FDB827',
+          'gold-light': '#FFC72C',
+          'gold-dark': '#C4A000',
+          surface: '#EEF2F8',
+          cream: '#F7F9FC',
+          ink: '#0A1628',
+        },
         /** Chorios — Calgary Flames inspired */
         flames: {
           red: '#C8102E',
