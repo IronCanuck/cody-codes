@@ -1,12 +1,21 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
   type FormEvent,
 } from 'react';
-import { Link } from 'react-router-dom';
+import {
+  Link,
+  NavLink,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import {
   AlarmClock,
   ArrowDown,
@@ -17,13 +26,17 @@ import {
   BellOff,
   CalendarDays,
   Check,
+  Database,
   Download,
   Flame,
+  Info,
   LayoutDashboard,
   ListChecks,
+  Menu,
   Pencil,
   Plus,
   Settings2,
+  Tag,
   Trash2,
   TrendingUp,
   Upload,
@@ -276,6 +289,169 @@ type ReminderToast = {
   dueIso: string;
 };
 
+function ChoriosAppHeader({
+  menuOpen,
+  setMenuOpen,
+}: {
+  menuOpen: boolean;
+  setMenuOpen: (open: boolean) => void;
+}) {
+  const { session, signOut } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const menuId = useId();
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (menuOpen) closeBtnRef.current?.focus();
+  }, [menuOpen]);
+
+  const path = location.pathname.replace(/\/$/, '');
+  const subTitle =
+    path.endsWith('/settings')
+      ? 'Site settings'
+      : path.endsWith('/categories')
+        ? 'Categories'
+        : path.endsWith('/data')
+          ? 'Backup & data'
+          : path.endsWith('/help')
+            ? 'Help'
+            : 'Weekly, monthly & yearly chores';
+
+  const handleSignOut = async () => {
+    setMenuOpen(false);
+    await signOut();
+    navigate('/', { replace: true });
+  };
+
+  const navClass = ({ isActive }: { isActive: boolean }) =>
+    `flex items-center gap-3 rounded-xl border px-3 py-3 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+      isActive
+        ? 'border-flames-orange bg-gradient-to-br from-flames-red/10 to-flames-orange/10 text-flames-red-dark'
+        : 'border-flames-orange/20 bg-white hover:bg-flames-cream/80 text-flames-dark'
+    }`;
+
+  return (
+    <>
+      <header className="sticky top-0 z-30 border-b border-flames-orange/30 bg-gradient-to-r from-flames-red via-flames-orange to-flames-yellow text-white shadow-lg">
+        <div className="max-w-3xl mx-auto px-3 sm:px-6 h-12 sm:h-14 flex items-center justify-between gap-2 min-w-0">
+          <Link
+            to="/chorios"
+            className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 rounded-lg"
+          >
+            <div className="shrink-0 rounded-lg bg-black/15 p-1.5 ring-1 ring-white/25">
+              <Flame className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+            </div>
+            <div className="min-w-0 text-left">
+              <h1 className="text-sm sm:text-base font-bold tracking-tight truncate">Chorios</h1>
+              <p className="text-[10px] sm:text-xs text-white/85 truncate hidden sm:block">{subTitle}</p>
+            </div>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/40 bg-black/10 text-white hover:bg-white/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+            aria-expanded={menuOpen}
+            aria-controls={menuId}
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+          </button>
+        </div>
+      </header>
+
+      {menuOpen ? (
+        <div
+          className="fixed inset-0 z-40 bg-flames-dark/45 backdrop-blur-[1px]"
+          aria-hidden
+          onClick={() => setMenuOpen(false)}
+        />
+      ) : null}
+
+      <div
+        id={menuId}
+        role="dialog"
+        aria-modal="true"
+        aria-hidden={!menuOpen}
+        aria-label="Chorios menu"
+        className={`fixed inset-y-0 right-0 z-50 w-[min(100vw-2.5rem,20rem)] bg-flames-cream border-l border-flames-orange/30 shadow-2xl flex flex-col transition-transform duration-200 ease-out ${
+          menuOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'
+        }`}
+      >
+        <div className="h-14 px-4 flex items-center justify-between border-b border-flames-orange/20 bg-white/90">
+          <p className="text-sm font-bold text-flames-dark">Menu</p>
+          <button
+            ref={closeBtnRef}
+            type="button"
+            onClick={() => setMenuOpen(false)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-flames-dark/70 hover:bg-flames-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-flames-orange"
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+          </button>
+        </div>
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1" aria-label="Chorios navigation">
+          <NavLink to="/chorios" end onClick={() => setMenuOpen(false)} className={navClass}>
+            <LayoutDashboard className="h-4 w-4 shrink-0 text-flames-orange" aria-hidden />
+            Overview & chores
+          </NavLink>
+          <NavLink to="/chorios/settings" onClick={() => setMenuOpen(false)} className={navClass}>
+            <Settings2 className="h-4 w-4 shrink-0 text-flames-orange" aria-hidden />
+            Site settings
+          </NavLink>
+          <NavLink to="/chorios/categories" onClick={() => setMenuOpen(false)} className={navClass}>
+            <Tag className="h-4 w-4 shrink-0 text-flames-orange" aria-hidden />
+            Categories
+          </NavLink>
+          <NavLink to="/chorios/data" onClick={() => setMenuOpen(false)} className={navClass}>
+            <Database className="h-4 w-4 shrink-0 text-flames-orange" aria-hidden />
+            Backup & data
+          </NavLink>
+          <NavLink to="/chorios/help" onClick={() => setMenuOpen(false)} className={navClass}>
+            <Info className="h-4 w-4 shrink-0 text-flames-orange" aria-hidden />
+            Help & tips
+          </NavLink>
+        </nav>
+        <div className="p-3 border-t border-flames-orange/20 space-y-2 bg-white/80">
+          <Link
+            to="/dashboard"
+            onClick={() => setMenuOpen(false)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-flames-orange/35 bg-white px-3 py-2.5 text-sm font-semibold text-flames-dark hover:bg-flames-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-flames-orange"
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+            All apps
+          </Link>
+          {session?.user?.email ? (
+            <p className="px-1 text-[11px] text-flames-dark/55 truncate" title={session.user.email}>
+              {session.user.email}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void handleSignOut()}
+            className="w-full rounded-xl border border-flames-red/30 px-3 py-2.5 text-sm font-semibold text-flames-red-dark hover:bg-flames-red/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-flames-red"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function ChoriosApp() {
   const { session } = useAuth();
   const userId = session?.user?.id;
@@ -283,7 +459,7 @@ export function ChoriosApp() {
   const [data, setData] = useState<PersistedSnapshot>(() => defaultSnapshot());
   const [hydrated, setHydrated] = useState(false);
   const [mainTab, setMainTab] = useState<MainTab>('overview');
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [editingChore, setEditingChore] = useState<Chore | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleteChoreId, setDeleteChoreId] = useState<string | null>(null);
@@ -524,40 +700,12 @@ export function ChoriosApp() {
 
   return (
     <div className="min-h-screen max-w-full overflow-x-hidden bg-flames-surface text-flames-dark flex flex-col">
-      <header className="sticky top-0 z-30 border-b border-flames-orange/30 bg-gradient-to-r from-flames-red via-flames-orange to-flames-yellow text-white shadow-lg">
-        <div className="max-w-3xl mx-auto px-3 sm:px-6 h-12 sm:h-14 flex items-center justify-between gap-2 min-w-0">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="shrink-0 rounded-lg bg-black/15 p-1.5 ring-1 ring-white/25">
-              <Flame className="h-5 w-5" strokeWidth={2.25} aria-hidden />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-sm sm:text-base font-bold tracking-tight truncate">Chorios</h1>
-              <p className="text-[10px] sm:text-xs text-white/85 truncate hidden sm:block">
-                Weekly, monthly & yearly chores
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => setSettingsOpen(true)}
-              className="inline-flex items-center justify-center rounded-lg border border-white/40 p-2 hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
-              aria-label="Settings"
-            >
-              <Settings2 className="h-4 w-4" strokeWidth={2.25} />
-            </button>
-            <Link
-              to="/dashboard"
-              className="inline-flex items-center gap-1 text-xs sm:text-sm font-medium text-white/95 hover:text-white border border-white/40 rounded-lg px-2 sm:px-3 py-1.5 hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
-            >
-              <ArrowLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-              <span className="hidden sm:inline">Apps</span>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-3xl mx-auto w-full px-3 sm:px-6 py-4 flex-1 flex flex-col gap-4">
+      <ChoriosAppHeader menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
+      <Routes basename="/chorios">
+        <Route
+          index
+          element={
+            <div className="max-w-3xl mx-auto w-full px-3 sm:px-6 py-4 flex-1 flex flex-col gap-4">
         <div
           role="tablist"
           aria-label="Chorios navigation"
@@ -639,7 +787,65 @@ export function ChoriosApp() {
             onComplete={(c) => completeChore(c.id, null)}
           />
         )}
-      </div>
+            </div>
+          }
+        />
+        <Route
+          path="settings"
+          element={
+            <div className="max-w-3xl mx-auto w-full px-3 sm:px-6 py-4 flex-1">
+              <ChoriosSiteSettingsPage
+                settings={data.settings}
+                onSave={(s) => persist((d) => ({ ...d, settings: s }))}
+                onRequestNotificationPermission={async () => {
+                  if (typeof Notification === 'undefined') return 'unsupported';
+                  if (Notification.permission === 'granted') return 'granted';
+                  if (Notification.permission === 'denied') return 'denied';
+                  const r = await Notification.requestPermission();
+                  return r;
+                }}
+              />
+            </div>
+          }
+        />
+        <Route
+          path="categories"
+          element={
+            <div className="max-w-3xl mx-auto w-full px-3 sm:px-6 py-4 flex-1">
+              <ChoriosCategoriesPage
+                categories={data.categories}
+                onAddCategory={addCategory}
+                onDeleteCategory={deleteCategory}
+              />
+            </div>
+          }
+        />
+        <Route
+          path="data"
+          element={
+            <div className="max-w-3xl mx-auto w-full px-3 sm:px-6 py-4 flex-1">
+              <ChoriosDataPage
+                onExport={exportJson}
+                onImport={importJson}
+                onClearAll={() => {
+                  if (window.confirm('Erase all Chorios data for this account on this device?')) {
+                    persist(defaultSnapshot());
+                  }
+                }}
+              />
+            </div>
+          }
+        />
+        <Route
+          path="help"
+          element={
+            <div className="max-w-3xl mx-auto w-full px-3 sm:px-6 py-4 flex-1">
+              <ChoriosHelpPage />
+            </div>
+          }
+        />
+        <Route path="*" element={<Navigate to="/chorios" replace />} />
+      </Routes>
 
       {toasts.length > 0 && (
         <div className="fixed bottom-4 left-3 right-3 z-50 flex flex-col gap-2 sm:left-auto sm:right-5 sm:w-96 max-h-[50vh] overflow-y-auto pointer-events-auto">
@@ -765,30 +971,6 @@ export function ChoriosApp() {
         </div>
       )}
 
-      {settingsOpen && (
-        <SettingsModal
-          settings={data.settings}
-          categories={data.categories}
-          onClose={() => setSettingsOpen(false)}
-          onSaveSettings={(s) => persist((d) => ({ ...d, settings: s }))}
-          onAddCategory={addCategory}
-          onDeleteCategory={deleteCategory}
-          onRequestNotificationPermission={async () => {
-            if (typeof Notification === 'undefined') return 'unsupported';
-            if (Notification.permission === 'granted') return 'granted';
-            if (Notification.permission === 'denied') return 'denied';
-            const r = await Notification.requestPermission();
-            return r;
-          }}
-          onExport={exportJson}
-          onImport={importJson}
-          onClearAll={() => {
-            if (window.confirm('Erase all Chorios data for this account on this device?')) {
-              persist(defaultSnapshot());
-            }
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -1363,31 +1545,17 @@ function ChoreModal({
   );
 }
 
-function SettingsModal({
+function ChoriosSiteSettingsPage({
   settings,
-  categories,
-  onClose,
-  onSaveSettings,
-  onAddCategory,
-  onDeleteCategory,
+  onSave,
   onRequestNotificationPermission,
-  onExport,
-  onImport,
-  onClearAll,
 }: {
   settings: ChoriosSettings;
-  categories: Category[];
-  onClose: () => void;
-  onSaveSettings: (s: ChoriosSettings) => void;
-  onAddCategory: (label: string) => void;
-  onDeleteCategory: (id: string) => void;
+  onSave: (s: ChoriosSettings) => void;
   onRequestNotificationPermission: () => Promise<'granted' | 'denied' | 'default' | 'unsupported'>;
-  onExport: () => void;
-  onImport: (f: File) => void;
-  onClearAll: () => void;
 }) {
+  const navigate = useNavigate();
   const [local, setLocal] = useState(settings);
-  const [newCat, setNewCat] = useState('');
   const [permHint, setPermHint] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1395,18 +1563,23 @@ function SettingsModal({
   }, [settings]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/45">
-      <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto border border-flames-orange/20">
-        <div className="sticky top-0 flex items-center justify-between px-4 py-3 border-b border-flames-orange/15 bg-flames-surface">
-          <p className="font-bold text-flames-dark flex items-center gap-2">
-            <Settings2 className="h-5 w-5 text-flames-orange" />
-            Settings
-          </p>
-          <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-white" aria-label="Close">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="p-4 space-y-5">
+    <div className="space-y-6">
+      <Link
+        to="/chorios"
+        className="inline-flex items-center gap-1 text-sm font-semibold text-flames-orange-dark hover:text-flames-red-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-flames-orange rounded-md"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+        Back to Chorios
+      </Link>
+      <div className="rounded-2xl border-2 border-flames-orange/20 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-bold text-flames-dark flex items-center gap-2">
+          <Settings2 className="h-5 w-5 text-flames-orange" />
+          Site settings
+        </h2>
+        <p className="text-sm text-flames-dark/65 mt-1">
+          Reminder timing, defaults for new chores, grouping, and browser notifications.
+        </p>
+        <div className="mt-5 space-y-5">
           <div>
             <label className="block text-xs font-semibold text-flames-dark/80 mb-1">Reminder check interval</label>
             <select
@@ -1438,7 +1611,7 @@ function SettingsModal({
               onChange={(e) => setLocal((s) => ({ ...s, groupByCategory: e.target.checked }))}
               className="rounded border-flames-orange text-flames-red focus:ring-flames-orange"
             />
-            <span className="text-sm font-medium text-flames-dark">Group chores by category</span>
+            <span className="text-sm font-medium text-flames-dark">Group chores by category on list tabs</span>
           </label>
           <div className="rounded-xl border border-flames-orange/25 p-3 bg-flames-cream/50">
             <div className="flex items-center gap-2 mb-2">
@@ -1480,90 +1653,193 @@ function SettingsModal({
             </div>
             {permHint ? <p className="text-xs text-flames-red-dark mt-2">{permHint}</p> : null}
           </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            onSave(local);
+            navigate('/chorios');
+          }}
+          className="mt-6 w-full py-3 rounded-xl bg-gradient-to-r from-flames-red to-flames-orange text-white font-bold shadow hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-flames-orange focus-visible:ring-offset-2"
+        >
+          Save settings
+        </button>
+      </div>
+    </div>
+  );
+}
 
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-flames-orange-dark mb-2">Categories</p>
-            <ul className="space-y-1.5 mb-2">
-              {categories.map((c) => (
-                <li key={c.id} className="flex items-center justify-between text-sm rounded-lg px-2 py-1 bg-slate-50">
-                  <span className="flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${ACCENT_DOT[c.accent]}`} />
-                    {c.label}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteCategory(c.id)}
-                    className="text-flames-red text-xs font-semibold"
-                  >
-                    Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <div className="flex gap-2">
-              <input
-                value={newCat}
-                onChange={(e) => setNewCat(e.target.value)}
-                placeholder="New category"
-                className="flex-1 rounded-xl border border-flames-orange/30 px-3 py-2 text-sm"
-              />
+function ChoriosCategoriesPage({
+  categories,
+  onAddCategory,
+  onDeleteCategory,
+}: {
+  categories: Category[];
+  onAddCategory: (label: string) => void;
+  onDeleteCategory: (id: string) => void;
+}) {
+  const [newCat, setNewCat] = useState('');
+
+  return (
+    <div className="space-y-6">
+      <Link
+        to="/chorios"
+        className="inline-flex items-center gap-1 text-sm font-semibold text-flames-orange-dark hover:text-flames-red-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-flames-orange rounded-md"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+        Back to Chorios
+      </Link>
+      <div className="rounded-2xl border-2 border-flames-orange/20 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-bold text-flames-dark flex items-center gap-2">
+          <Tag className="h-5 w-5 text-flames-orange" />
+          Categories
+        </h2>
+        <p className="text-sm text-flames-dark/65 mt-1">
+          Tags for grouping chores. Removing a category leaves chores uncategorized.
+        </p>
+        <ul className="mt-4 space-y-1.5">
+          {categories.map((c) => (
+            <li
+              key={c.id}
+              className="flex items-center justify-between text-sm rounded-xl px-3 py-2 bg-flames-surface border border-flames-orange/15"
+            >
+              <span className="flex items-center gap-2 font-medium text-flames-dark">
+                <span className={`h-2 w-2 rounded-full ${ACCENT_DOT[c.accent]}`} />
+                {c.label}
+              </span>
               <button
                 type="button"
-                onClick={() => {
-                  onAddCategory(newCat);
-                  setNewCat('');
-                }}
-                className="rounded-xl bg-flames-yellow text-flames-dark px-3 text-sm font-bold hover:bg-flames-yellow-light"
+                onClick={() => onDeleteCategory(c.id)}
+                className="text-flames-red text-xs font-semibold hover:underline"
               >
-                Add
+                Remove
               </button>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={onExport}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border border-flames-orange/40 hover:bg-flames-orange/10"
-            >
-              <Download className="h-4 w-4" />
-              Export JSON
-            </button>
-            <label className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border border-flames-orange/40 hover:bg-flames-orange/10 cursor-pointer">
-              <Upload className="h-4 w-4" />
-              Import
-              <input
-                type="file"
-                accept="application/json"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) onImport(f);
-                  e.target.value = '';
-                }}
-              />
-            </label>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClearAll}
-            className="w-full py-2 rounded-xl border border-red-200 text-flames-red text-sm font-semibold hover:bg-red-50"
-          >
-            Clear all Chorios data…
-          </button>
-
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 flex gap-2">
+          <input
+            value={newCat}
+            onChange={(e) => setNewCat(e.target.value)}
+            placeholder="New category"
+            className="flex-1 rounded-xl border border-flames-orange/30 px-3 py-2 text-sm"
+          />
           <button
             type="button"
             onClick={() => {
-              onSaveSettings(local);
-              onClose();
+              onAddCategory(newCat);
+              setNewCat('');
             }}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-flames-red to-flames-orange text-white font-bold shadow"
+            className="rounded-xl bg-flames-yellow text-flames-dark px-4 text-sm font-bold hover:bg-flames-yellow-light focus:outline-none focus-visible:ring-2 focus-visible:ring-flames-orange"
           >
-            Save settings
+            Add
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ChoriosDataPage({
+  onExport,
+  onImport,
+  onClearAll,
+}: {
+  onExport: () => void;
+  onImport: (f: File) => void;
+  onClearAll: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <Link
+        to="/chorios"
+        className="inline-flex items-center gap-1 text-sm font-semibold text-flames-orange-dark hover:text-flames-red-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-flames-orange rounded-md"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+        Back to Chorios
+      </Link>
+      <div className="rounded-2xl border-2 border-flames-orange/20 bg-white p-5 shadow-sm space-y-4">
+        <h2 className="text-lg font-bold text-flames-dark flex items-center gap-2">
+          <Database className="h-5 w-5 text-flames-orange" />
+          Backup & data
+        </h2>
+        <p className="text-sm text-flames-dark/70 leading-relaxed">
+          Chorios stores your chores in this browser for your signed-in account. Export regularly if you switch
+          devices or clear site data.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onExport}
+            className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-xl border-2 border-flames-orange/40 bg-flames-cream/50 hover:bg-flames-orange/10"
+          >
+            <Download className="h-4 w-4" />
+            Export JSON
+          </button>
+          <label className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-xl border-2 border-flames-orange/40 bg-flames-cream/50 hover:bg-flames-orange/10 cursor-pointer">
+            <Upload className="h-4 w-4" />
+            Import backup
+            <input
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onImport(f);
+                e.target.value = '';
+              }}
+            />
+          </label>
+        </div>
+        <button
+          type="button"
+          onClick={onClearAll}
+          className="w-full py-2.5 rounded-xl border border-red-200 text-flames-red text-sm font-semibold hover:bg-red-50"
+        >
+          Clear all Chorios data…
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ChoriosHelpPage() {
+  return (
+    <div className="space-y-6">
+      <Link
+        to="/chorios"
+        className="inline-flex items-center gap-1 text-sm font-semibold text-flames-orange-dark hover:text-flames-red-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-flames-orange rounded-md"
+      >
+        <ArrowLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+        Back to Chorios
+      </Link>
+      <div className="rounded-2xl border-2 border-flames-orange/20 bg-white p-5 shadow-sm space-y-4">
+        <h2 className="text-lg font-bold text-flames-dark flex items-center gap-2">
+          <Info className="h-5 w-5 text-flames-orange" />
+          Help & tips
+        </h2>
+        <ul className="text-sm text-flames-dark/80 space-y-3 list-disc pl-5 leading-relaxed">
+          <li>
+            <strong className="text-flames-dark">Cadences:</strong> Weekly chores repeat on a chosen weekday;
+            monthly on a day of the month; yearly on a calendar date.
+          </li>
+          <li>
+            <strong className="text-flames-dark">Due &amp; next:</strong> “Next” is the upcoming reminder after
+            your last completion (or from today if you never marked done). Mark a chore done to advance the cycle.
+          </li>
+          <li>
+            <strong className="text-flames-dark">Reminders:</strong> In-app toasts check on an interval you set in
+            Site settings. Optional browser notifications need permission.
+          </li>
+          <li>
+            <strong className="text-flames-dark">Snooze:</strong> From a reminder, snooze pushes the next prompt;
+            dismiss silences that occurrence until the next cycle.
+          </li>
+          <li>
+            <strong className="text-flames-dark">Data:</strong> Everything is kept locally per browser and
+            account—use Backup &amp; data to move or restore.
+          </li>
+        </ul>
       </div>
     </div>
   );
