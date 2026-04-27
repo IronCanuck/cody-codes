@@ -80,8 +80,8 @@ export default function App() {
             element={native ? <DashboardRoute /> : <ShellHome />}
           />
           <Route path="/dashboard" element={<DashboardRoute />} />
-          <Route path="/taskmaster" element={<TaskMasterRoute />} />
-          <Route path="/chorios" element={<ChoriosRoute />} />
+          <Route path="/taskmaster/*" element={<TaskMasterRoute />} />
+          <Route path="/chorios/*" element={<ChoriosRoute />} />
           <Route path="/furries" element={<FurriesRoute />} />
           <Route path="/budget-pal/*" element={<BudgetPalRoute />} />
           <Route path="/consaltyapp" element={<ConsaltyRoute />}>

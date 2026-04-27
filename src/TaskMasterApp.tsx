@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
 import {
   ArrowDown,
   ArrowLeft,
   ArrowUp,
   Kanban,
+  Menu,
   Pencil,
   Plus,
   Settings2,
@@ -12,100 +13,21 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
-
-const STORAGE_VERSION = 1 as const;
-const DEFAULT_COLUMN_TITLES = ['Backlog', 'In progress', 'Review', 'Done'] as const;
-
-type TaskPriority = 'low' | 'medium' | 'high';
-
-type Task = {
-  id: string;
-  title: string;
-  description: string;
-  columnId: string;
-  order: number;
-  priority?: TaskPriority;
-  dueDate?: string;
-  createdAt: string;
-};
-
-type BoardColumn = {
-  id: string;
-  title: string;
-  order: number;
-};
-
-type Project = {
-  id: string;
-  name: string;
-  columns: BoardColumn[];
-  tasks: Task[];
-};
-
-type PersistedSnapshot = {
-  version: typeof STORAGE_VERSION;
-  activeProjectId: string;
-  projects: Project[];
-};
-
-function newId() {
-  return typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `tm-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-}
-
-function makeDefaultColumns(): BoardColumn[] {
-  return DEFAULT_COLUMN_TITLES.map((title, i) => ({
-    id: newId(),
-    title,
-    order: i,
-  }));
-}
-
-function defaultSnapshot(): PersistedSnapshot {
-  const pId = newId();
-  return {
-    version: STORAGE_VERSION,
-    activeProjectId: pId,
-    projects: [
-      {
-        id: pId,
-        name: 'My first project',
-        columns: makeDefaultColumns(),
-        tasks: [],
-      },
-    ],
-  };
-}
-
-function storageKeyForUser(userId: string) {
-  return `taskmaster:${userId}`;
-}
-
-function loadSnapshot(userId: string | undefined): PersistedSnapshot | null {
-  if (!userId) return null;
-  try {
-    const raw = localStorage.getItem(storageKeyForUser(userId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as PersistedSnapshot;
-    if (parsed?.version !== STORAGE_VERSION || !Array.isArray(parsed.projects) || !parsed.activeProjectId) {
-      return null;
-    }
-    if (parsed.projects.length === 0) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function saveSnapshot(userId: string | undefined, data: PersistedSnapshot) {
-  if (!userId) return;
-  try {
-    localStorage.setItem(storageKeyForUser(userId), JSON.stringify(data));
-  } catch {
-    // ignore quota errors
-  }
-}
+import { TaskMasterActionsProvider, type TaskMasterActions } from './lib/taskmaster-actions-context';
+import {
+  defaultSnapshot,
+  loadSnapshot,
+  makeDefaultColumns,
+  newId,
+  parsePersistedSnapshotJson,
+  saveSnapshot,
+} from './lib/taskmaster-storage';
+import type { BoardColumn, Project, Task, TaskPriority, PersistedSnapshot } from './lib/taskmaster-types';
+import {
+  TaskMasterSettingsDataPage,
+  TaskMasterSettingsGeneralPage,
+  TaskMasterSettingsLayout,
+} from './pages/TaskMasterSettingsPages';
 
 function sortColumns(cols: BoardColumn[]) {
   return [...cols].sort((a, b) => a.order - b.order);
@@ -142,6 +64,20 @@ export function TaskMasterApp() {
   const [showNewProject, setShowNewProject] = useState(false);
   const [deleteProjectConfirm, setDeleteProjectConfirm] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    if (!menuOpen) return;
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [menuOpen]);
 
   useEffect(() => {
     document.title = 'Task Master · Cody James Fairburn';
@@ -167,6 +103,45 @@ export function TaskMasterApp() {
       });
     },
     [userId],
+  );
+
+  const exportSnapshot = useCallback(() => {
+    if (!userId) return;
+    const raw = JSON.stringify(data, null, 2);
+    const blob = new Blob([raw], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    a.href = url;
+    a.download = `taskmaster-backup-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [data, userId]);
+
+  const importSnapshot = useCallback(
+    async (file: File) => {
+      const text = await file.text();
+      const next = parsePersistedSnapshotJson(text);
+      persist(() => next);
+      setMenuOpen(false);
+      navigate('/taskmaster', { replace: true });
+    },
+    [persist, navigate],
+  );
+
+  const clearAllData = useCallback(() => {
+    persist(() => defaultSnapshot());
+  }, [persist]);
+
+  const taskMasterActions: TaskMasterActions = useMemo(
+    () => ({
+      exportSnapshot,
+      importSnapshot,
+      clearAllData,
+      getSnapshot: () => data,
+    }),
+    [data, exportSnapshot, importSnapshot, clearAllData],
   );
 
   const activeProject = useMemo(
@@ -344,6 +319,7 @@ export function TaskMasterApp() {
   }
 
   return (
+    <TaskMasterActionsProvider value={taskMasterActions}>
     <div className="min-h-screen max-w-full overflow-x-hidden bg-tiffany-surface text-slate-900 flex flex-col">
       <header className="sticky top-0 z-30 border-b border-tiffany/30 bg-tiffany text-white shadow-md">
         <div className="max-w-full mx-auto px-3 sm:px-6 h-12 sm:h-14 flex items-center justify-between gap-2 sm:gap-3 min-w-0">
@@ -356,17 +332,74 @@ export function TaskMasterApp() {
               <p className="text-xs text-white/80 truncate hidden sm:block">Project pipeline</p>
             </div>
           </div>
-          <Link
-            to="/dashboard"
-            aria-label="Back to Cody Codes"
-            className="inline-flex items-center justify-center sm:justify-start gap-1.5 text-xs sm:text-sm font-medium text-white/95 hover:text-white border border-white/40 rounded-lg px-2 sm:px-3 py-1.5 hover:bg-white/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-tiffany-light shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-            <span className="hidden sm:inline">Back to Cody Codes</span>
-          </Link>
+          <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0">
+            <Link
+              to="/dashboard"
+              aria-label="Back to Cody Codes"
+              className="inline-flex items-center justify-center sm:justify-start gap-1.5 text-xs sm:text-sm font-medium text-white/95 hover:text-white border border-white/40 rounded-lg px-2 sm:px-3 py-1.5 hover:bg-white/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-tiffany-light"
+            >
+              <ArrowLeft className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+              <span className="hidden sm:inline">Back to Cody Codes</span>
+            </Link>
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((o) => !o)}
+                className="inline-flex items-center justify-center rounded-lg border border-white/40 p-1.5 sm:px-2.5 sm:py-1.5 text-white/95 hover:bg-white/15 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-tiffany-light"
+                aria-expanded={menuOpen}
+                aria-haspopup="true"
+                aria-controls="taskmaster-header-menu"
+                id="taskmaster-menu-button"
+              >
+                <Menu className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+                <span className="sr-only">Open menu</span>
+              </button>
+              {menuOpen && (
+                <div
+                  id="taskmaster-header-menu"
+                  role="menu"
+                  aria-labelledby="taskmaster-menu-button"
+                  className="absolute right-0 top-full mt-1.5 w-56 rounded-lg border border-white/20 bg-tiffany-darker/98 text-white py-1 shadow-lg z-40"
+                >
+                  <NavLink
+                    to="/taskmaster/settings"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-3 py-2 text-sm text-white/95 hover:bg-white/10"
+                    role="menuitem"
+                  >
+                    General settings
+                  </NavLink>
+                  <NavLink
+                    to="/taskmaster/settings/data"
+                    onClick={() => setMenuOpen(false)}
+                    className="block px-3 py-2 text-sm text-white/95 hover:bg-white/10"
+                    role="menuitem"
+                  >
+                    Data &amp; storage
+                  </NavLink>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </header>
 
+      <Routes>
+        <Route
+          path="/taskmaster/settings"
+          element={
+            <main className="flex-1 min-h-0 flex flex-col min-w-0">
+              <TaskMasterSettingsLayout />
+            </main>
+          }
+        >
+          <Route index element={<TaskMasterSettingsGeneralPage />} />
+          <Route path="data" element={<TaskMasterSettingsDataPage />} />
+        </Route>
+        <Route
+          path="/taskmaster"
+          element={
+      <>
       <div className="border-b border-tiffany/20 bg-white/95 px-3 sm:px-6 py-3 flex flex-col gap-3 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-3 min-w-0">
           <div className="flex flex-col gap-1.5 min-w-0 flex-1 sm:max-w-md">
@@ -545,6 +578,10 @@ export function TaskMasterApp() {
           </div>
         </div>
       </main>
+    </>
+          }
+        />
+      </Routes>
 
       {editingTask && (
         <div
@@ -796,5 +833,6 @@ export function TaskMasterApp() {
         </div>
       )}
     </div>
+    </TaskMasterActionsProvider>
   );
 }
