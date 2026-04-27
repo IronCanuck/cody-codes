@@ -24,6 +24,7 @@ import {
   Pencil,
   Pin,
   Plus,
+  RefreshCw,
   Settings2,
   Stethoscope,
   Trash2,
@@ -32,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
 import { downloadFurriesCarePdf, downloadFurriesCarePng, type FurriesCareExportInput } from './lib/furries-care-export';
+import { supabase } from './lib/supabase';
 
 const STORAGE_VERSION = 1 as const;
 const MAX_GALLERY = 28;
@@ -107,6 +109,8 @@ type FurriesSettings = {
 
 type PersistedSnapshot = {
   version: typeof STORAGE_VERSION;
+  /** ISO time of last write — compared with server `updated_at` for cross-browser sync */
+  savedAt?: string;
   pets: Pet[];
   reminders: Reminder[];
   settings: FurriesSettings;
@@ -145,10 +149,62 @@ function storageKeyForUser(userId: string) {
 function defaultSnapshot(): PersistedSnapshot {
   return {
     version: STORAGE_VERSION,
+    savedAt: new Date().toISOString(),
     pets: [],
     reminders: [],
     settings: { ...DEFAULT_SETTINGS },
   };
+}
+
+function parseSnapshotIsoMs(iso: string | undefined): number {
+  if (!iso) return 0;
+  const n = Date.parse(iso);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function normalizeFurriesSnapshot(s: PersistedSnapshot): PersistedSnapshot {
+  return {
+    version: STORAGE_VERSION,
+    savedAt: s.savedAt,
+    pets: s.pets.map((p) => ({
+      ...p,
+      gender: typeof p.gender === 'string' ? p.gender : '',
+    })),
+    reminders: s.reminders,
+    settings: { ...DEFAULT_SETTINGS, ...s.settings },
+  };
+}
+
+function coalesceRemoteSnapshotJson(raw: unknown): PersistedSnapshot | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const p = raw as Partial<PersistedSnapshot>;
+  if (p.version !== STORAGE_VERSION || !Array.isArray(p.pets) || !Array.isArray(p.reminders)) {
+    return null;
+  }
+  return normalizeFurriesSnapshot({
+    ...defaultSnapshot(),
+    ...p,
+  } as PersistedSnapshot);
+}
+
+async function upsertFurriesCloud(
+  userId: string,
+  snapshot: PersistedSnapshot,
+): Promise<{ errorMessage: string | null }> {
+  const updatedAt = snapshot.savedAt ?? new Date().toISOString();
+  const { error } = await supabase.from('furries_snapshots').upsert(
+    {
+      user_id: userId,
+      snapshot: { ...snapshot, savedAt: updatedAt },
+      updated_at: updatedAt,
+    },
+    { onConflict: 'user_id' },
+  );
+  if (error) {
+    console.warn('Furries cloud sync failed', error);
+    return { errorMessage: error.message || 'Account sync failed' };
+  }
+  return { errorMessage: null };
 }
 
 function loadSnapshot(userId: string | undefined): PersistedSnapshot | null {
@@ -160,13 +216,15 @@ function loadSnapshot(userId: string | undefined): PersistedSnapshot | null {
     if (parsed?.version !== STORAGE_VERSION || !Array.isArray(parsed.pets) || !Array.isArray(parsed.reminders)) {
       return null;
     }
-    return {
+    const base = {
       ...parsed,
       pets: parsed.pets.map((p) => ({
         ...p,
         gender: typeof (p as Pet).gender === 'string' ? (p as Pet).gender : '',
       })),
+      settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
     };
+    return normalizeFurriesSnapshot(base as PersistedSnapshot);
   } catch {
     return null;
   }
@@ -295,6 +353,61 @@ type ReminderToast = {
 
 type DetailTab = 'overview' | 'gallery' | 'medical' | 'food' | 'sitter';
 
+function FurriesSyncBanner(props: {
+  loadError: string | null;
+  saveError: string | null;
+  onDismiss: () => void;
+  onSyncNow: () => void;
+  onReloadFromAccount: () => void;
+  syncBusy: boolean;
+}) {
+  if (!props.loadError && !props.saveError) return null;
+  return (
+    <div
+      className="mb-6 rounded-2xl border-2 border-amber-200 bg-amber-50 px-4 py-3 text-amber-950 shadow-sm"
+      role="alert"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+        <div className="min-w-0">
+          <p className="font-bold text-amber-950">Account sync needs attention</p>
+          {props.loadError && <p className="text-sm text-amber-900/90 mt-1">{props.loadError}</p>}
+          {props.saveError && <p className="text-sm text-amber-900/90 mt-1">{props.saveError}</p>}
+          <p className="text-xs text-amber-800/80 mt-2">
+            Pets and reminders sync to your account when you are signed in. If sync fails, this browser may be out
+            of date. Try Sync now, or load the copy saved in your account.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={props.onSyncNow}
+            disabled={props.syncBusy}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-amber-800 px-3 py-2 text-xs font-semibold text-white hover:opacity-95 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${props.syncBusy ? 'animate-spin' : ''}`} />
+            Sync now
+          </button>
+          <button
+            type="button"
+            onClick={props.onReloadFromAccount}
+            disabled={props.syncBusy}
+            className="rounded-xl border border-amber-300/80 bg-white px-3 py-2 text-xs font-medium text-amber-950 hover:bg-amber-100/50 disabled:opacity-50"
+          >
+            From account
+          </button>
+          <button
+            type="button"
+            onClick={props.onDismiss}
+            className="rounded-xl border border-amber-300/80 bg-white px-3 py-2 text-xs font-medium text-amber-950 hover:bg-amber-100/50"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function FurriesApp() {
   const { session } = useAuth();
   const userId = session?.user?.id;
@@ -313,15 +426,49 @@ export function FurriesApp() {
   const [toasts, setToasts] = useState<ReminderToast[]>([]);
   const firedKeysRef = useRef<Set<string>>(new Set());
 
+  const [cloudLoadError, setCloudLoadError] = useState<string | null>(null);
+  const [cloudSaveError, setCloudSaveError] = useState<string | null>(null);
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [dismissedSyncErrKey, setDismissedSyncErrKey] = useState('');
+
+  const dataRef = useRef(data);
+  dataRef.current = data;
+
+  const cloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleCloudSave = useCallback((uid: string | undefined, snapshot: PersistedSnapshot) => {
+    if (!uid) return;
+    if (cloudSaveTimerRef.current) clearTimeout(cloudSaveTimerRef.current);
+    cloudSaveTimerRef.current = setTimeout(() => {
+      cloudSaveTimerRef.current = null;
+      void (async () => {
+        const { errorMessage } = await upsertFurriesCloud(uid, snapshot);
+        if (errorMessage) {
+          setCloudSaveError(errorMessage);
+        } else {
+          setCloudSaveError(null);
+        }
+      })();
+    }, 450);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (cloudSaveTimerRef.current) clearTimeout(cloudSaveTimerRef.current);
+    };
+  }, []);
+
   const persist = useCallback(
     (next: PersistedSnapshot | ((prev: PersistedSnapshot) => PersistedSnapshot)) => {
       setData((prev) => {
-        const resolved = typeof next === 'function' ? next(prev) : next;
+        const resolvedRaw = typeof next === 'function' ? next(prev) : next;
+        const resolved = { ...resolvedRaw, savedAt: new Date().toISOString() };
         saveSnapshot(userId, resolved);
+        scheduleCloudSave(userId, resolved);
         return resolved;
       });
     },
-    [userId],
+    [userId, scheduleCloudSave],
   );
 
   useEffect(() => {
@@ -351,12 +498,131 @@ export function FurriesApp() {
   }, [menuOpen]);
 
   useEffect(() => {
-    if (!userId) return;
-    const stored = loadSnapshot(userId);
-    if (stored) setData(stored);
-    else setData(defaultSnapshot());
-    setHydrated(true);
+    setDismissedSyncErrKey('');
   }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+
+    (async () => {
+      let stored = loadSnapshot(userId);
+      if (stored && !stored.savedAt) {
+        stored = { ...stored, savedAt: new Date().toISOString() };
+        saveSnapshot(userId, stored);
+      }
+
+      const { data: row, error } = await supabase
+        .from('furries_snapshots')
+        .select('snapshot, updated_at')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.warn('Furries cloud load failed', error);
+        setCloudLoadError(
+          (error as { message?: string })?.message ||
+            'Could not load data from your account. Check the network, or that the app database is up to date.',
+        );
+        if (stored) {
+          setData(normalizeFurriesSnapshot(stored));
+        } else {
+          setData(defaultSnapshot());
+        }
+        setCloudSaveError(null);
+        setHydrated(true);
+        return;
+      }
+
+      setCloudLoadError(null);
+
+      const remoteSnap = row?.snapshot != null ? coalesceRemoteSnapshotJson(row.snapshot) : null;
+      const remoteMs = parseSnapshotIsoMs(row?.updated_at);
+      const localMs = parseSnapshotIsoMs(stored?.savedAt);
+
+      if (remoteSnap && row?.updated_at) {
+        const stampedRemote = { ...remoteSnap, savedAt: row.updated_at };
+        if (!stored || remoteMs >= localMs) {
+          setData(normalizeFurriesSnapshot(stampedRemote));
+          saveSnapshot(userId, stampedRemote);
+          setCloudSaveError(null);
+          setHydrated(true);
+          return;
+        }
+      }
+
+      const initial = stored ?? defaultSnapshot();
+      const normalized = normalizeFurriesSnapshot(initial);
+      setData(normalized);
+      saveSnapshot(userId, normalized);
+      setHydrated(true);
+      if (!remoteSnap || localMs > remoteMs) {
+        const { errorMessage } = await upsertFurriesCloud(userId, normalized);
+        if (!cancelled) {
+          if (errorMessage) {
+            setCloudSaveError(errorMessage);
+          } else {
+            setCloudSaveError(null);
+          }
+        }
+      } else if (!cancelled) {
+        setCloudSaveError(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  const handleSyncNow = useCallback(async () => {
+    if (!userId) return;
+    setSyncBusy(true);
+    setCloudSaveError(null);
+    const { errorMessage } = await upsertFurriesCloud(userId, dataRef.current);
+    setSyncBusy(false);
+    if (errorMessage) {
+      setCloudSaveError(errorMessage);
+    }
+  }, [userId]);
+
+  const handleReloadFromAccount = useCallback(async () => {
+    if (!userId) return;
+    setSyncBusy(true);
+    setCloudLoadError(null);
+    setCloudSaveError(null);
+    const { data: row, error } = await supabase
+      .from('furries_snapshots')
+      .select('snapshot, updated_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) {
+      setSyncBusy(false);
+      setCloudLoadError(error.message || 'Could not read account data.');
+      return;
+    }
+    const remoteSnap = row?.snapshot != null ? coalesceRemoteSnapshotJson(row.snapshot) : null;
+    if (!remoteSnap || !row?.updated_at) {
+      setSyncBusy(false);
+      setCloudLoadError(
+        'No backup was found in your account yet, or the backup is not valid. Open Furries on a device that has your data, then use Sync now.',
+      );
+      return;
+    }
+    const stamped = { ...remoteSnap, savedAt: row.updated_at };
+    const n = normalizeFurriesSnapshot(stamped);
+    setData(n);
+    saveSnapshot(userId, n);
+    setSyncBusy(false);
+    setCloudLoadError(null);
+    setCloudSaveError(null);
+  }, [userId]);
+
+  const syncErrKey = `${cloudLoadError ?? ''}|${cloudSaveError ?? ''}`;
+  const showSyncBanner =
+    Boolean(cloudLoadError || cloudSaveError) && dismissedSyncErrKey !== syncErrKey;
 
   const petById = useMemo(() => {
     const m = new Map<string, Pet>();
@@ -716,6 +982,16 @@ export function FurriesApp() {
       )}
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 pb-24">
+        {showSyncBanner && (
+          <FurriesSyncBanner
+            loadError={cloudLoadError}
+            saveError={cloudSaveError}
+            onDismiss={() => setDismissedSyncErrKey(syncErrKey)}
+            onSyncNow={() => void handleSyncNow()}
+            onReloadFromAccount={() => void handleReloadFromAccount()}
+            syncBusy={syncBusy}
+          />
+        )}
         {!selectedPet ? (
           <>
             <section className="rounded-2xl border-2 border-squirtle-blue/40 bg-white shadow-sm overflow-hidden">
