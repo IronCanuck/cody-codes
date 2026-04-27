@@ -57,6 +57,24 @@ const authSessionStorage = {
   },
 };
 
+/** Matches SupabaseClient default: `sb-<project-ref>-auth-token` */
+function supabaseAuthStorageRootKey(): string {
+  const host = new URL(supabaseUrl).hostname.split('.')[0];
+  return `sb-${host}-auth-token`;
+}
+
+/**
+ * Wipes persisted auth keys from both localStorage and sessionStorage (via the
+ * custom adapter). Use when `signOut()` fails before the client clears storage
+ * (e.g. network error on the logout request).
+ */
+export function clearSupabaseAuthStorage(): void {
+  const root = supabaseAuthStorageRootKey();
+  authSessionStorage.removeItem(root);
+  authSessionStorage.removeItem(`${root}-code-verifier`);
+  authSessionStorage.removeItem(`${root}-user`);
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: authSessionStorage,
