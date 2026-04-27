@@ -24,6 +24,7 @@ import {
   Pencil,
   PiggyBank,
   Plus,
+  RefreshCw,
   Settings,
   Target,
   Trash2,
@@ -139,6 +140,13 @@ function normalizeSnapshotData(s: BudgetPalSnapshot): BudgetPalSnapshot {
   };
 }
 
+function fixActiveProfileId(s: BudgetPalSnapshot) {
+  if (!s.profiles.some((p) => p.id === s.activeProfileId)) {
+    const first = s.profiles[0];
+    if (first) s.activeProfileId = first.id;
+  }
+}
+
 function parseSnapshotIsoMs(iso: string | undefined): number {
   if (!iso) return 0;
   const n = Date.parse(iso);
@@ -155,7 +163,10 @@ function coalesceRemoteSnapshotJson(raw: unknown): BudgetPalSnapshot | null {
   });
 }
 
-async function upsertBudgetPalCloud(userId: string, snapshot: BudgetPalSnapshot) {
+async function upsertBudgetPalCloud(
+  userId: string,
+  snapshot: BudgetPalSnapshot,
+): Promise<{ errorMessage: string | null }> {
   const updatedAt = snapshot.savedAt ?? new Date().toISOString();
   const { error } = await supabase.from('budget_pal_snapshots').upsert(
     {
@@ -165,7 +176,11 @@ async function upsertBudgetPalCloud(userId: string, snapshot: BudgetPalSnapshot)
     },
     { onConflict: 'user_id' },
   );
-  if (error) console.warn('Budget Pal cloud sync failed', error);
+  if (error) {
+    console.warn('Budget Pal cloud sync failed', error);
+    return { errorMessage: error.message || 'Account sync failed' };
+  }
+  return { errorMessage: null };
 }
 
 function loadSnapshot(userId: string | undefined): BudgetPalSnapshot | null {
@@ -224,6 +239,58 @@ function inMonth(iso: string, year: number, monthIndex0: number): boolean {
 const money = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' });
 
 type TabId = 'overview' | 'flow' | 'accounts' | 'savings' | 'profiles';
+
+function BudgetPalSyncBanner(props: {
+  loadError: string | null;
+  saveError: string | null;
+  onDismiss: () => void;
+}) {
+  if (!props.loadError && !props.saveError) return null;
+  return (
+    <div
+      role="alert"
+      aria-live="polite"
+      className="w-full max-w-3xl mx-auto px-3 sm:px-6 pt-3"
+    >
+      <div className="rounded-xl border-2 border-amber-200 bg-amber-50/95 text-amber-950 px-3 py-2.5 sm:px-4 sm:py-3 text-sm flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1 min-w-0">
+          <p className="font-bold text-amber-950">Account sync needs attention</p>
+          {props.loadError && (
+            <p className="text-amber-900/90 break-words">
+              <span className="font-semibold">Load: </span>
+              {props.loadError}
+            </p>
+          )}
+          {props.saveError && (
+            <p className="text-amber-900/90 break-words">
+              <span className="font-semibold">Save: </span>
+              {props.saveError}
+            </p>
+          )}
+          <p className="text-amber-900/80 text-xs sm:text-sm">
+            Your full list of profiles and data may only exist in this browser until the account syncs. Use
+            settings to retry or pull from the account.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 shrink-0 sm:pl-2">
+          <Link
+            to="/budget-pal/settings"
+            className="inline-flex items-center justify-center rounded-lg bg-sabres-blue text-white px-3 py-1.5 text-xs sm:text-sm font-bold hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+          >
+            Open sync settings
+          </Link>
+          <button
+            type="button"
+            onClick={props.onDismiss}
+            className="text-xs sm:text-sm font-medium text-amber-900/80 hover:text-amber-950 underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function BudgetPalHeader(props: { onSignOut: () => void }) {
   const { session, signOut } = useAuth();
@@ -379,6 +446,12 @@ function BudgetPalHeader(props: { onSignOut: () => void }) {
 function BudgetPalSettingsRoute(props: {
   data: BudgetPalSnapshot;
   persist: (next: BudgetPalSnapshot | ((prev: BudgetPalSnapshot) => BudgetPalSnapshot)) => void;
+  loadError: string | null;
+  saveError: string | null;
+  onSyncNow: () => void;
+  onReloadFromAccount: () => void;
+  syncBusy: boolean;
+  lastPushedAt: string | null;
 }) {
   const [importError, setImportError] = useState<string | null>(null);
   const [importOk, setImportOk] = useState<string | null>(null);
@@ -456,6 +529,65 @@ function BudgetPalSettingsRoute(props: {
           <span className="font-semibold">www.codycodes.ca</span> so the address stays consistent. Export and
           import remain available for backups.
         </p>
+      </div>
+
+      <div className="rounded-2xl border-2 border-sabres-blue/20 bg-white p-5 shadow-sm space-y-4">
+        <h2 className="text-lg font-bold text-sabres-ink">Account sync</h2>
+        <p className="text-sm text-sabres-ink/80">
+          Pushes this browser&apos;s data to your account, or replaces this browser with what is stored for
+          your account. Use this if profiles or transactions are missing on another device.
+        </p>
+        {(props.loadError || props.saveError) && (
+          <div
+            role="alert"
+            className="rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-sm text-amber-950 space-y-1"
+          >
+            {props.loadError && (
+              <p>
+                <span className="font-semibold">Load: </span>
+                {props.loadError}
+              </p>
+            )}
+            {props.saveError && (
+              <p>
+                <span className="font-semibold">Save: </span>
+                {props.saveError}
+              </p>
+            )}
+          </div>
+        )}
+        {props.lastPushedAt && !props.saveError && (
+          <p className="text-sm font-medium text-green-800">
+            Last saved to account:{' '}
+            {new Date(props.lastPushedAt).toLocaleString(undefined, {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+            })}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={props.syncBusy}
+            onClick={() => void props.onSyncNow()}
+            className="inline-flex items-center gap-2 rounded-xl bg-sabres-blue text-white px-4 py-2.5 text-sm font-bold shadow hover:opacity-95 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sabres-gold focus-visible:ring-offset-2"
+          >
+            <RefreshCw
+              className={`h-4 w-4 shrink-0 ${props.syncBusy ? 'animate-spin' : ''}`}
+              strokeWidth={2.25}
+              aria-hidden
+            />
+            Sync now
+          </button>
+          <button
+            type="button"
+            disabled={props.syncBusy}
+            onClick={() => void props.onReloadFromAccount()}
+            className="rounded-xl border-2 border-sabres-blue/30 bg-white text-sabres-ink px-4 py-2.5 text-sm font-bold hover:bg-sabres-surface disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sabres-gold focus-visible:ring-offset-2"
+          >
+            Reload from account
+          </button>
+        </div>
       </div>
 
       <div className="rounded-2xl border-2 border-sabres-blue/20 bg-white p-5 shadow-sm space-y-4">
@@ -542,6 +674,15 @@ export function BudgetPalApp() {
   const [deleteProfileId, setDeleteProfileId] = useState<string | null>(null);
   const [deleteIncomeStreamId, setDeleteIncomeStreamId] = useState<string | null>(null);
 
+  const [cloudLoadError, setCloudLoadError] = useState<string | null>(null);
+  const [cloudSaveError, setCloudSaveError] = useState<string | null>(null);
+  const [lastPushedAt, setLastPushedAt] = useState<string | null>(null);
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [dismissedSyncErrKey, setDismissedSyncErrKey] = useState('');
+
+  const dataRef = useRef(data);
+  dataRef.current = data;
+
   const cloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scheduleCloudSave = useCallback((uid: string | undefined, snapshot: BudgetPalSnapshot) => {
@@ -549,7 +690,15 @@ export function BudgetPalApp() {
     if (cloudSaveTimerRef.current) clearTimeout(cloudSaveTimerRef.current);
     cloudSaveTimerRef.current = setTimeout(() => {
       cloudSaveTimerRef.current = null;
-      void upsertBudgetPalCloud(uid, snapshot);
+      void (async () => {
+        const { errorMessage } = await upsertBudgetPalCloud(uid, snapshot);
+        if (errorMessage) {
+          setCloudSaveError(errorMessage);
+        } else {
+          setCloudSaveError(null);
+          setLastPushedAt(new Date().toISOString());
+        }
+      })();
     }, 450);
   }, []);
 
@@ -577,15 +726,12 @@ export function BudgetPalApp() {
   }, []);
 
   useEffect(() => {
+    setDismissedSyncErrKey('');
+  }, [userId]);
+
+  useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-
-    const fixActiveId = (s: BudgetPalSnapshot) => {
-      if (!s.profiles.some((p) => p.id === s.activeProfileId)) {
-        const first = s.profiles[0];
-        if (first) s.activeProfileId = first.id;
-      }
-    };
 
     (async () => {
       let stored = loadSnapshot(userId);
@@ -604,13 +750,22 @@ export function BudgetPalApp() {
 
       if (error) {
         console.warn('Budget Pal cloud load failed', error);
+        setCloudLoadError(
+          (error as { message?: string })?.message ||
+            'Could not load data from your account. Check the network, or that the app database is up to date.',
+        );
         if (stored) {
-          fixActiveId(stored);
+          fixActiveProfileId(stored);
           setData(normalizeSnapshotData(stored));
-        } else setData(defaultSnapshot());
+        } else {
+          setData(defaultSnapshot());
+        }
+        setCloudSaveError(null);
         setHydrated(true);
         return;
       }
+
+      setCloudLoadError(null);
 
       const remoteSnap = row?.snapshot != null ? coalesceRemoteSnapshotJson(row.snapshot) : null;
       const remoteMs = parseSnapshotIsoMs(row?.updated_at);
@@ -619,22 +774,33 @@ export function BudgetPalApp() {
       if (remoteSnap && row?.updated_at) {
         const stampedRemote = { ...remoteSnap, savedAt: row.updated_at };
         if (!stored || remoteMs >= localMs) {
-          fixActiveId(stampedRemote);
+          fixActiveProfileId(stampedRemote);
           setData(normalizeSnapshotData(stampedRemote));
           saveSnapshot(userId, stampedRemote);
+          setCloudSaveError(null);
           setHydrated(true);
           return;
         }
       }
 
       const initial = stored ?? defaultSnapshot();
-      fixActiveId(initial);
+      fixActiveProfileId(initial);
       const normalized = normalizeSnapshotData(initial);
       setData(normalized);
       saveSnapshot(userId, normalized);
       setHydrated(true);
       if (!remoteSnap || localMs > remoteMs) {
-        await upsertBudgetPalCloud(userId, normalized);
+        const { errorMessage } = await upsertBudgetPalCloud(userId, normalized);
+        if (!cancelled) {
+          if (errorMessage) {
+            setCloudSaveError(errorMessage);
+          } else {
+            setCloudSaveError(null);
+            setLastPushedAt(new Date().toISOString());
+          }
+        }
+      } else if (!cancelled) {
+        setCloudSaveError(null);
       }
     })();
 
@@ -642,6 +808,56 @@ export function BudgetPalApp() {
       cancelled = true;
     };
   }, [userId]);
+
+  const handleSyncNow = useCallback(async () => {
+    if (!userId) return;
+    setSyncBusy(true);
+    setCloudSaveError(null);
+    const { errorMessage } = await upsertBudgetPalCloud(userId, dataRef.current);
+    setSyncBusy(false);
+    if (errorMessage) {
+      setCloudSaveError(errorMessage);
+    } else {
+      setLastPushedAt(new Date().toISOString());
+    }
+  }, [userId]);
+
+  const handleReloadFromAccount = useCallback(async () => {
+    if (!userId) return;
+    setSyncBusy(true);
+    setCloudLoadError(null);
+    setCloudSaveError(null);
+    const { data: row, error } = await supabase
+      .from('budget_pal_snapshots')
+      .select('snapshot, updated_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) {
+      setSyncBusy(false);
+      setCloudLoadError(error.message || 'Could not read account data.');
+      return;
+    }
+    const remoteSnap = row?.snapshot != null ? coalesceRemoteSnapshotJson(row.snapshot) : null;
+    if (!remoteSnap || !row?.updated_at) {
+      setSyncBusy(false);
+      setCloudLoadError(
+        'No backup was found in your account yet, or the backup is not valid. Use Sync now on a device that has your data, or import a file.',
+      );
+      return;
+    }
+    const stamped = { ...remoteSnap, savedAt: row.updated_at };
+    fixActiveProfileId(stamped);
+    const n = normalizeSnapshotData(stamped);
+    setData(n);
+    saveSnapshot(userId, n);
+    setSyncBusy(false);
+    setCloudLoadError(null);
+    setCloudSaveError(null);
+  }, [userId]);
+
+  const syncErrKey = `${cloudLoadError ?? ''}|${cloudSaveError ?? ''}`;
+  const showSyncBanner =
+    Boolean(cloudLoadError || cloudSaveError) && dismissedSyncErrKey !== syncErrKey;
 
   const active = data.profiles.find((p) => p.id === data.activeProfileId) ?? data.profiles[0];
 
@@ -821,6 +1037,13 @@ export function BudgetPalApp() {
   return (
     <div className="min-h-screen max-w-full overflow-x-hidden bg-sabres-surface text-sabres-ink flex flex-col">
       <BudgetPalHeader onSignOut={() => navigate('/', { replace: true })} />
+      {showSyncBanner && (
+        <BudgetPalSyncBanner
+          loadError={cloudLoadError}
+          saveError={cloudSaveError}
+          onDismiss={() => setDismissedSyncErrKey(syncErrKey)}
+        />
+      )}
       <Routes>
         <Route
           index
@@ -1199,7 +1422,21 @@ export function BudgetPalApp() {
             </>
           }
         />
-        <Route path="settings" element={<BudgetPalSettingsRoute data={data} persist={persist} />} />
+        <Route
+          path="settings"
+          element={
+            <BudgetPalSettingsRoute
+              data={data}
+              persist={persist}
+              loadError={cloudLoadError}
+              saveError={cloudSaveError}
+              onSyncNow={handleSyncNow}
+              onReloadFromAccount={handleReloadFromAccount}
+              syncBusy={syncBusy}
+              lastPushedAt={lastPushedAt}
+            />
+          }
+        />
         <Route path="*" element={<Navigate to="/budget-pal" replace />} />
       </Routes>
     </div>
