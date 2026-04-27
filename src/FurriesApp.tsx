@@ -187,6 +187,11 @@ function coalesceRemoteSnapshotJson(raw: unknown): PersistedSnapshot | null {
   } as PersistedSnapshot);
 }
 
+/** True if there is something worth storing in the cloud (never upsert a totally empty state from a new browser). */
+function hasMeaningfulFurriesData(p: PersistedSnapshot): boolean {
+  return p.pets.length > 0 || p.reminders.length > 0;
+}
+
 async function upsertFurriesCloud(
   userId: string,
   snapshot: PersistedSnapshot,
@@ -433,6 +438,8 @@ export function FurriesApp() {
 
   const dataRef = useRef(data);
   dataRef.current = data;
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
 
   const cloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -454,7 +461,15 @@ export function FurriesApp() {
 
   useEffect(() => {
     return () => {
-      if (cloudSaveTimerRef.current) clearTimeout(cloudSaveTimerRef.current);
+      const hadPending = cloudSaveTimerRef.current != null;
+      if (cloudSaveTimerRef.current) {
+        clearTimeout(cloudSaveTimerRef.current);
+        cloudSaveTimerRef.current = null;
+      }
+      const uid = userIdRef.current;
+      if (uid && hadPending) {
+        void upsertFurriesCloud(uid, dataRef.current);
+      }
     };
   }, []);
 
@@ -558,7 +573,11 @@ export function FurriesApp() {
       setData(normalized);
       saveSnapshot(userId, normalized);
       setHydrated(true);
-      if (!remoteSnap || localMs > remoteMs) {
+      // Never write an all-empty row: a "fresh" second browser was beating an unsynced first device
+      // and wiping pets in the cloud. Only push when there is real data, or we are ahead of the server.
+      const shouldInitialUpsert =
+        hasMeaningfulFurriesData(normalized) && (!remoteSnap || localMs > remoteMs);
+      if (shouldInitialUpsert) {
         const { errorMessage } = await upsertFurriesCloud(userId, normalized);
         if (!cancelled) {
           if (errorMessage) {
