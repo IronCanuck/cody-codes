@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, ExternalLink, LayoutGrid, List, Menu, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_LIBRARY_SCHEMES, PAYWALLED_APPS } from '../lib/member-apps';
+import { loadMemberAppInsights, type AllMemberAppInsights, type AppInsight } from '../lib/member-app-insights';
 import { SHOWCASE_PROJECTS } from '../lib/showcase-projects';
 
 export function MemberDashboard() {
@@ -13,10 +14,22 @@ export function MemberDashboard() {
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showcaseView, setShowcaseView] = useState<'list' | 'card'>('list');
+  const [appGlance, setAppGlance] = useState<AllMemberAppInsights | null>(null);
 
   useEffect(() => {
     document.title = 'Your apps · Cody James Fairburn';
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const data = await loadMemberAppInsights(session?.user?.id);
+      if (!cancelled) setAppGlance(data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id]);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -153,6 +166,78 @@ export function MemberDashboard() {
         <p className="mt-2 text-slate-600 text-sm sm:text-base max-w-xl">
           Open an app from the menu or choose one below. More tools will show up here as they ship.
         </p>
+
+        <section aria-labelledby="at-a-glance-heading" className="mt-10">
+          <h3 id="at-a-glance-heading" className="text-lg font-bold text-cody-finnish">
+            At a glance
+          </h3>
+          <p className="mt-1 text-slate-600 text-sm max-w-xl">
+            Reminders and quick stats from your apps. Open an app to update the details.
+          </p>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+            {PAYWALLED_APPS.map((app) => {
+              const s = APP_LIBRARY_SCHEMES[app.scheme];
+              const Icon = app.icon;
+              const insight: AppInsight | undefined = appGlance?.[app.id];
+              return (
+                <li key={app.id}>
+                  <Link
+                    to={app.path}
+                    className={`block rounded-2xl border-2 bg-white p-4 shadow-sm transition-all hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 h-full ${s.card}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`flex shrink-0 items-center justify-center rounded-lg p-2.5 ring-2 ${s.cardIconWrap}`}
+                      >
+                        <Icon className={s.cardIcon} size={22} strokeWidth={2} aria-hidden />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h4 className={`font-bold text-sm ${s.cardTitle}`}>{app.title}</h4>
+                        {insight ? (
+                          <>
+                            <dl className="mt-2 space-y-1.5 text-xs sm:text-sm text-slate-600">
+                              {insight.lines.map(
+                                (row, i) =>
+                                  row.value && (
+                                    <div
+                                      key={i}
+                                      className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5"
+                                    >
+                                      {row.label ? (
+                                        <>
+                                          <dt className="text-slate-500 shrink-0">{row.label}</dt>
+                                          <dd className="text-slate-800 font-medium text-right">{row.value}</dd>
+                                        </>
+                                      ) : (
+                                        <dd className="text-slate-800 font-medium w-full">{row.value}</dd>
+                                      )}
+                                    </div>
+                                  ),
+                              )}
+                            </dl>
+                            {insight.reminder && (
+                              <p
+                                className={`mt-2 text-xs sm:text-sm font-medium leading-snug ${s.cardCta} opacity-90`}
+                              >
+                                {insight.reminder}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="mt-2 text-slate-500 text-sm">Loading&hellip;</p>
+                        )}
+                      </div>
+                    </div>
+                    <p className={`mt-3 text-xs font-semibold ${s.cardCta} flex items-center gap-1`}>
+                      Open app
+                      <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+                    </p>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
 
         <section aria-labelledby="app-library-heading" className="mt-10">
           <h3 id="app-library-heading" className="text-lg font-bold text-cody-finnish">
