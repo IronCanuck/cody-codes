@@ -31,6 +31,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
+import { supabase } from './lib/supabase';
 
 const STORAGE_VERSION = 1 as const;
 
@@ -90,6 +91,8 @@ type SavingsGoal = {
 
 type BudgetPalSnapshot = {
   version: typeof STORAGE_VERSION;
+  /** ISO time of last write — compared with server `updated_at` for cross-browser sync */
+  savedAt?: string;
   activeProfileId: string;
   profiles: Profile[];
   bankAccounts: BankAccount[];
@@ -111,8 +114,10 @@ function storageKeyForUser(userId: string) {
 
 function defaultSnapshot(): BudgetPalSnapshot {
   const pId = newId();
+  const savedAt = new Date().toISOString();
   return {
     version: STORAGE_VERSION,
+    savedAt,
     activeProfileId: pId,
     profiles: [{ id: pId, name: 'Personal', sortOrder: 0 }],
     bankAccounts: [],
@@ -134,6 +139,35 @@ function normalizeSnapshotData(s: BudgetPalSnapshot): BudgetPalSnapshot {
   };
 }
 
+function parseSnapshotIsoMs(iso: string | undefined): number {
+  if (!iso) return 0;
+  const n = Date.parse(iso);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function coalesceRemoteSnapshotJson(raw: unknown): BudgetPalSnapshot | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const p = raw as Partial<BudgetPalSnapshot>;
+  if (p.version !== STORAGE_VERSION || !Array.isArray(p.profiles) || p.profiles.length === 0) return null;
+  return normalizeSnapshotData({
+    ...defaultSnapshot(),
+    ...p,
+  });
+}
+
+async function upsertBudgetPalCloud(userId: string, snapshot: BudgetPalSnapshot) {
+  const updatedAt = snapshot.savedAt ?? new Date().toISOString();
+  const { error } = await supabase.from('budget_pal_snapshots').upsert(
+    {
+      user_id: userId,
+      snapshot: { ...snapshot, savedAt: updatedAt },
+      updated_at: updatedAt,
+    },
+    { onConflict: 'user_id' },
+  );
+  if (error) console.warn('Budget Pal cloud sync failed', error);
+}
+
 function loadSnapshot(userId: string | undefined): BudgetPalSnapshot | null {
   if (!userId) return null;
   try {
@@ -142,10 +176,12 @@ function loadSnapshot(userId: string | undefined): BudgetPalSnapshot | null {
     const parsed = JSON.parse(raw) as BudgetPalSnapshot;
     if (parsed?.version !== STORAGE_VERSION || !Array.isArray(parsed.profiles)) return null;
     if (parsed.profiles.length === 0) return null;
-    return normalizeSnapshotData({
+    const merged = normalizeSnapshotData({
       ...defaultSnapshot(),
       ...parsed,
     });
+    if (!parsed.savedAt) merged.savedAt = undefined;
+    return merged;
   } catch {
     return null;
   }
@@ -225,17 +261,7 @@ function BudgetPalHeader(props: { onSignOut: () => void }) {
     <>
       <header className="sticky top-0 z-30 border-b border-sabres-gold/40 bg-gradient-to-r from-sabres-blue via-sabres-blue-mid to-sabres-blue-bright text-white shadow-lg">
         <div className="max-w-3xl mx-auto px-3 sm:px-6 h-12 sm:h-14 flex items-center justify-between gap-2 min-w-0">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={() => setMenuOpen(true)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-sabres-gold/50 bg-black/10 text-white hover:bg-black/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sabres-gold"
-              aria-expanded={menuOpen}
-              aria-controls={menuId}
-              aria-label="Open menu"
-            >
-              <Menu className="h-5 w-5" strokeWidth={2.25} aria-hidden />
-            </button>
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <div className="shrink-0 rounded-lg bg-sabres-gold/20 p-1.5 ring-2 ring-sabres-gold/50">
               <PiggyBank className="h-5 w-5 text-sabres-gold-light" strokeWidth={2.25} aria-hidden />
             </div>
@@ -248,6 +274,16 @@ function BudgetPalHeader(props: { onSignOut: () => void }) {
               </p>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-sabres-gold/50 bg-black/10 text-white hover:bg-black/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sabres-gold"
+            aria-expanded={menuOpen}
+            aria-controls={menuId}
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+          </button>
         </div>
       </header>
 
@@ -265,8 +301,8 @@ function BudgetPalHeader(props: { onSignOut: () => void }) {
         aria-modal="true"
         aria-hidden={!menuOpen}
         aria-label="Budget Pal menu"
-        className={`fixed inset-y-0 left-0 z-50 w-[min(100vw-3rem,20rem)] bg-white border-r border-sabres-blue/20 shadow-xl flex flex-col transition-transform duration-200 ease-out ${
-          menuOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'
+        className={`fixed inset-y-0 right-0 z-50 w-[min(100vw-3rem,20rem)] bg-white border-l border-sabres-blue/20 shadow-xl flex flex-col transition-transform duration-200 ease-out ${
+          menuOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'
         }`}
       >
         <div className="h-14 px-4 flex items-center justify-between border-b border-sabres-blue/10 bg-sabres-cream">
@@ -414,10 +450,11 @@ function BudgetPalSettingsRoute(props: {
       <div className="rounded-2xl border-2 border-sabres-blue/20 bg-white p-5 shadow-sm">
         <h2 className="text-lg font-bold text-sabres-ink">About</h2>
         <p className="mt-2 text-sm text-sabres-ink/80 leading-relaxed">
-          Budget Pal keeps profiles, accounts, budgets, and transactions in your browser (local storage)
-          tied to your sign-in and the exact site address you use—<span className="font-semibold">www</span> and
-          non-<span className="font-semibold">www</span> URLs are separate until your host redirects to one
-          canonical domain. Use export to back up, or import to restore or merge if you ever used both URLs.
+          While signed in, your data syncs to your account in the cloud and is cached in this browser (local
+          storage), so profiles match across browsers and devices. The site also redirects{' '}
+          <span className="font-semibold">codycodes.ca</span> to{' '}
+          <span className="font-semibold">www.codycodes.ca</span> so the address stays consistent. Export and
+          import remain available for backups.
         </p>
       </div>
 
@@ -505,15 +542,34 @@ export function BudgetPalApp() {
   const [deleteProfileId, setDeleteProfileId] = useState<string | null>(null);
   const [deleteIncomeStreamId, setDeleteIncomeStreamId] = useState<string | null>(null);
 
+  const cloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleCloudSave = useCallback((uid: string | undefined, snapshot: BudgetPalSnapshot) => {
+    if (!uid) return;
+    if (cloudSaveTimerRef.current) clearTimeout(cloudSaveTimerRef.current);
+    cloudSaveTimerRef.current = setTimeout(() => {
+      cloudSaveTimerRef.current = null;
+      void upsertBudgetPalCloud(uid, snapshot);
+    }, 450);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (cloudSaveTimerRef.current) clearTimeout(cloudSaveTimerRef.current);
+    };
+  }, []);
+
   const persist = useCallback(
     (next: BudgetPalSnapshot | ((prev: BudgetPalSnapshot) => BudgetPalSnapshot)) => {
       setData((prev) => {
-        const resolved = typeof next === 'function' ? next(prev) : next;
+        const resolvedRaw = typeof next === 'function' ? next(prev) : next;
+        const resolved = { ...resolvedRaw, savedAt: new Date().toISOString() };
         saveSnapshot(userId, resolved);
+        scheduleCloudSave(userId, resolved);
         return resolved;
       });
     },
-    [userId],
+    [userId, scheduleCloudSave],
   );
 
   useEffect(() => {
@@ -522,15 +578,69 @@ export function BudgetPalApp() {
 
   useEffect(() => {
     if (!userId) return;
-    const stored = loadSnapshot(userId);
-    if (stored) {
-      if (!stored.profiles.some((p) => p.id === stored.activeProfileId)) {
-        const first = stored.profiles[0];
-        if (first) stored.activeProfileId = first.id;
+    let cancelled = false;
+
+    const fixActiveId = (s: BudgetPalSnapshot) => {
+      if (!s.profiles.some((p) => p.id === s.activeProfileId)) {
+        const first = s.profiles[0];
+        if (first) s.activeProfileId = first.id;
       }
-      setData(normalizeSnapshotData(stored));
-    } else setData(defaultSnapshot());
-    setHydrated(true);
+    };
+
+    (async () => {
+      let stored = loadSnapshot(userId);
+      if (stored && !stored.savedAt) {
+        stored = { ...stored, savedAt: new Date().toISOString() };
+        saveSnapshot(userId, stored);
+      }
+
+      const { data: row, error } = await supabase
+        .from('budget_pal_snapshots')
+        .select('snapshot, updated_at')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error) {
+        console.warn('Budget Pal cloud load failed', error);
+        if (stored) {
+          fixActiveId(stored);
+          setData(normalizeSnapshotData(stored));
+        } else setData(defaultSnapshot());
+        setHydrated(true);
+        return;
+      }
+
+      const remoteSnap = row?.snapshot != null ? coalesceRemoteSnapshotJson(row.snapshot) : null;
+      const remoteMs = parseSnapshotIsoMs(row?.updated_at);
+      const localMs = parseSnapshotIsoMs(stored?.savedAt);
+
+      if (remoteSnap && row?.updated_at) {
+        const stampedRemote = { ...remoteSnap, savedAt: row.updated_at };
+        if (!stored || remoteMs >= localMs) {
+          fixActiveId(stampedRemote);
+          setData(normalizeSnapshotData(stampedRemote));
+          saveSnapshot(userId, stampedRemote);
+          setHydrated(true);
+          return;
+        }
+      }
+
+      const initial = stored ?? defaultSnapshot();
+      fixActiveId(initial);
+      const normalized = normalizeSnapshotData(initial);
+      setData(normalized);
+      saveSnapshot(userId, normalized);
+      setHydrated(true);
+      if (!remoteSnap || localMs > remoteMs) {
+        await upsertBudgetPalCloud(userId, normalized);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   const active = data.profiles.find((p) => p.id === data.activeProfileId) ?? data.profiles[0];

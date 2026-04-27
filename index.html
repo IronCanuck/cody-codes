@@ -15,6 +15,13 @@
     <meta name="twitter:image" content="https://codycodes.ca/og-landing.png" />
   </head>
   <body>
+    <script>
+      (function () {
+        if (location.hostname === 'codycodes.ca') {
+          location.replace('https://www.codycodes.ca' + location.pathname + location.search + location.hash);
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
