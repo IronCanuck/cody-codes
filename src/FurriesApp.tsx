@@ -77,6 +77,7 @@ type Pet = {
   name: string;
   species: string;
   breed: string;
+  gender: string;
   birthdate: string;
   microchip: string;
   profilePhoto: string | null;
@@ -159,7 +160,13 @@ function loadSnapshot(userId: string | undefined): PersistedSnapshot | null {
     if (parsed?.version !== STORAGE_VERSION || !Array.isArray(parsed.pets) || !Array.isArray(parsed.reminders)) {
       return null;
     }
-    return parsed;
+    return {
+      ...parsed,
+      pets: parsed.pets.map((p) => ({
+        ...p,
+        gender: typeof (p as Pet).gender === 'string' ? (p as Pet).gender : '',
+      })),
+    };
   } catch {
     return null;
   }
@@ -482,13 +489,20 @@ export function FurriesApp() {
     }));
   };
 
-  const addPet = (name: string, species: string) => {
+  const addPet = (input: {
+    name: string;
+    species: string;
+    breed: string;
+    gender: string;
+    birthdate: string;
+  }) => {
     const pet: Pet = {
       id: newId(),
-      name: name.trim() || 'Unnamed',
-      species: species.trim() || 'Pet',
-      breed: '',
-      birthdate: '',
+      name: input.name.trim() || 'Unnamed',
+      species: input.species.trim() || 'Pet',
+      breed: input.breed.trim(),
+      gender: input.gender.trim(),
+      birthdate: input.birthdate.trim(),
       microchip: '',
       profilePhoto: null,
       gallery: [],
@@ -569,6 +583,7 @@ export function FurriesApp() {
       petName: pet.name,
       species: pet.species,
       breed: pet.breed,
+      gender: pet.gender,
       birthdate: pet.birthdate,
       microchip: pet.microchip,
       profilePhotoDataUrl: pet.profilePhoto,
@@ -936,7 +951,7 @@ export function FurriesApp() {
       {creatingPet && (
         <CreatePetModal
           onClose={() => setCreatingPet(false)}
-          onCreate={(name, species) => addPet(name, species)}
+          onCreate={(input) => addPet(input)}
         />
       )}
 
@@ -989,19 +1004,28 @@ function CreatePetModal({
   onCreate,
 }: {
   onClose: () => void;
-  onCreate: (name: string, species: string) => void;
+  onCreate: (input: {
+    name: string;
+    species: string;
+    breed: string;
+    gender: string;
+    birthdate: string;
+  }) => void;
 }) {
   const [name, setName] = useState('');
   const [species, setSpecies] = useState('');
+  const [breed, setBreed] = useState('');
+  const [gender, setGender] = useState('');
+  const [birthdate, setBirthdate] = useState('');
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border-2 border-squirtle-blue/30 p-5">
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border-2 border-squirtle-blue/30 p-5 max-h-[min(90vh,640px)] overflow-y-auto">
         <h3 className="font-bold text-squirtle-ink text-lg">New pet</h3>
         <form
           className="mt-4 space-y-3"
           onSubmit={(e: FormEvent) => {
             e.preventDefault();
-            onCreate(name, species);
+            onCreate({ name, species, breed, gender, birthdate });
           }}
         >
           <label className="block text-xs font-semibold text-squirtle-ink/80">
@@ -1014,15 +1038,50 @@ function CreatePetModal({
               autoFocus
             />
           </label>
-          <label className="block text-xs font-semibold text-squirtle-ink/80">
-            Species
-            <input
-              className="mt-1 w-full rounded-lg border border-squirtle-blue/30 px-3 py-2 text-sm"
-              value={species}
-              onChange={(e) => setSpecies(e.target.value)}
-              placeholder="e.g. Dog, Cat"
-            />
-          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="block text-xs font-semibold text-squirtle-ink/80">
+              Species
+              <input
+                className="mt-1 w-full rounded-lg border border-squirtle-blue/30 px-3 py-2 text-sm"
+                value={species}
+                onChange={(e) => setSpecies(e.target.value)}
+                placeholder="e.g. Dog, Cat"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-squirtle-ink/80">
+              Breed
+              <input
+                className="mt-1 w-full rounded-lg border border-squirtle-blue/30 px-3 py-2 text-sm"
+                value={breed}
+                onChange={(e) => setBreed(e.target.value)}
+                placeholder="e.g. Golden retriever"
+              />
+            </label>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="block text-xs font-semibold text-squirtle-ink/80">
+              Gender
+              <select
+                className="mt-1 w-full rounded-lg border border-squirtle-blue/30 px-3 py-2 text-sm bg-white"
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+              >
+                <option value="">Not specified</option>
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Other">Other / unknown</option>
+              </select>
+            </label>
+            <label className="block text-xs font-semibold text-squirtle-ink/80">
+              Birthday
+              <input
+                type="date"
+                className="mt-1 w-full rounded-lg border border-squirtle-blue/30 px-3 py-2 text-sm bg-white"
+                value={birthdate}
+                onChange={(e) => setBirthdate(e.target.value)}
+              />
+            </label>
+          </div>
           <div className="flex gap-2 justify-end pt-2">
             <button
               type="button"
@@ -1469,6 +1528,7 @@ function PetDetailView({
           <p className="text-sm text-squirtle-ink/65">
             {pet.species}
             {pet.breed ? ` · ${pet.breed}` : ''}
+            {pet.gender ? ` · ${pet.gender}` : ''}
           </p>
         </div>
         <button
@@ -1556,7 +1616,20 @@ function PetDetailView({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block text-xs font-semibold text-squirtle-ink/80">
-                  Birthdate
+                  Gender
+                  <select
+                    className="mt-1 w-full rounded-lg border border-squirtle-blue/30 px-3 py-2 text-sm bg-white"
+                    value={pet.gender}
+                    onChange={(e) => onUpdate({ gender: e.target.value })}
+                  >
+                    <option value="">Not specified</option>
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Other">Other / unknown</option>
+                  </select>
+                </label>
+                <label className="block text-xs font-semibold text-squirtle-ink/80">
+                  Birthday
                   <input
                     type="date"
                     className="mt-1 w-full rounded-lg border border-squirtle-blue/30 px-3 py-2 text-sm bg-white"
@@ -1564,15 +1637,15 @@ function PetDetailView({
                     onChange={(e) => onUpdate({ birthdate: e.target.value })}
                   />
                 </label>
-                <label className="block text-xs font-semibold text-squirtle-ink/80">
-                  Microchip
-                  <input
-                    className="mt-1 w-full rounded-lg border border-squirtle-blue/30 px-3 py-2 text-sm bg-white"
-                    value={pet.microchip}
-                    onChange={(e) => onUpdate({ microchip: e.target.value })}
-                  />
-                </label>
               </div>
+              <label className="block text-xs font-semibold text-squirtle-ink/80">
+                Microchip
+                <input
+                  className="mt-1 w-full rounded-lg border border-squirtle-blue/30 px-3 py-2 text-sm bg-white"
+                  value={pet.microchip}
+                  onChange={(e) => onUpdate({ microchip: e.target.value })}
+                />
+              </label>
             </div>
           </div>
 

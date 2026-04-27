@@ -23,6 +23,7 @@ export type FurriesCareExportInput = {
   petName: string;
   species: string;
   breed: string;
+  gender: string;
   birthdate: string;
   microchip: string;
   profilePhotoDataUrl: string | null;
@@ -87,6 +88,7 @@ function careSheetHtml(data: FurriesCareExportInput): string {
     <div style="padding:18px 20px;">
       <div style="font-size:11px;color:#5a7a8c;margin-bottom:14px;">
         <strong>ID:</strong> ${escapeHtml(data.species)}${data.breed ? ` · ${escapeHtml(data.breed)}` : ''}
+        ${data.gender ? ` · ${escapeHtml(data.gender)}` : ''}
         ${data.birthdate ? ` · Born ${escapeHtml(data.birthdate)}` : ''}
         ${data.microchip ? ` · Chip ${escapeHtml(data.microchip)}` : ''}
       </div>
@@ -221,6 +223,7 @@ export function downloadFurriesCarePdf(data: FurriesCareExportInput): void {
   const idLine = [
     data.species,
     data.breed,
+    data.gender,
     data.birthdate ? `Born ${data.birthdate}` : '',
     data.microchip ? `Chip ${data.microchip}` : '',
   ]
