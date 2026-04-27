@@ -415,7 +415,9 @@ function BudgetPalSettingsRoute(props: {
         <h2 className="text-lg font-bold text-sabres-ink">About</h2>
         <p className="mt-2 text-sm text-sabres-ink/80 leading-relaxed">
           Budget Pal keeps profiles, accounts, budgets, and transactions in your browser (local storage)
-          tied to your sign-in. Use export to back up, or import to restore on this or another device.
+          tied to your sign-in and the exact site address you use—<span className="font-semibold">www</span> and
+          non-<span className="font-semibold">www</span> URLs are separate until your host redirects to one
+          canonical domain. Use export to back up, or import to restore or merge if you ever used both URLs.
         </p>
       </div>
 
