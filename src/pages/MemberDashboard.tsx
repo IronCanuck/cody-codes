@@ -174,7 +174,7 @@ export function MemberDashboard() {
           <p className="mt-1 text-slate-600 text-sm max-w-xl">
             Reminders and quick stats from your apps. Open an app to update the details.
           </p>
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          <ul className="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             {PAYWALLED_APPS.map((app) => {
               const s = APP_LIBRARY_SCHEMES[app.scheme];
               const Icon = app.icon;
