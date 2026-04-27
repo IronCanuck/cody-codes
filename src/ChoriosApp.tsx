@@ -361,7 +361,7 @@ export function ChoriosApp() {
     const canNotify = typeof Notification !== 'undefined' && Notification.permission === 'granted';
 
     for (const chore of data.chores) {
-      const after = new Date(chore.lastCompletedAt || 0);
+      const after = anchorInstantForNextDue(chore);
       const nextDue = getNextDueInstantAfter(chore, after);
       if (now < nextDue) continue;
       if (chore.snoozeUntil && now < new Date(chore.snoozeUntil)) continue;
@@ -1073,7 +1073,7 @@ function ChoreRow({
   onMove: (dir: -1 | 1) => void;
   onComplete: () => void;
 }) {
-  const after = new Date(chore.lastCompletedAt || 0);
+  const after = anchorInstantForNextDue(chore);
   const nextDue = getNextDueInstantAfter(chore, after);
   const schedule =
     chore.cadence === 'weekly'

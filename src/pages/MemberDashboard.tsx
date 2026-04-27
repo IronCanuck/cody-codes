@@ -47,7 +47,19 @@ export function MemberDashboard() {
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
       <header className="sticky top-0 z-30 border-b border-slate-200/90 bg-white shadow-sm">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-sm font-bold text-cody-finnish tracking-tight truncate">Your apps</h1>
+            {session?.user?.email && (
+              <p className="text-xs text-slate-500 truncate">{session.user.email}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <Link
+              to="/"
+              className="text-xs sm:text-sm font-medium text-slate-600 hover:text-cody-finnish"
+            >
+              codycodes.ca
+            </Link>
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
@@ -58,21 +70,7 @@ export function MemberDashboard() {
             >
               <Menu className="h-5 w-5" strokeWidth={2.25} aria-hidden />
             </button>
-            <div className="min-w-0">
-              <h1 className="text-sm font-bold text-cody-finnish tracking-tight truncate">
-                Your apps
-              </h1>
-              {session?.user?.email && (
-                <p className="text-xs text-slate-500 truncate">{session.user.email}</p>
-              )}
-            </div>
           </div>
-          <Link
-            to="/"
-            className="text-xs sm:text-sm font-medium text-slate-600 hover:text-cody-finnish shrink-0"
-          >
-            codycodes.ca
-          </Link>
         </div>
       </header>
 
@@ -90,8 +88,8 @@ export function MemberDashboard() {
         aria-modal="true"
         aria-hidden={!menuOpen}
         aria-label="Apps menu"
-        className={`fixed inset-y-0 left-0 z-50 w-[min(100vw-3rem,20rem)] bg-white border-r border-slate-200 shadow-xl flex flex-col transition-transform duration-200 ease-out ${
-          menuOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'
+        className={`fixed inset-y-0 right-0 z-50 w-[min(100vw-3rem,20rem)] bg-white border-l border-slate-200 shadow-xl flex flex-col transition-transform duration-200 ease-out ${
+          menuOpen ? 'translate-x-0' : 'translate-x-full pointer-events-none'
         }`}
       >
         <div className="h-14 px-4 flex items-center justify-between border-b border-slate-100">
