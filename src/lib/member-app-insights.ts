@@ -196,6 +196,57 @@ function budgetPalInsight(userId: string | undefined): AppInsight {
   };
 }
 
+type PlantBasedMenuSnap = {
+  version: number;
+  ingredients: { id: string }[];
+  recipes: { id: string; baseServings: number; ingredients: { id: string }[] }[];
+};
+
+function plantBasedMenuInsight(userId: string | undefined): AppInsight {
+  if (!userId) return { lines: [{ label: '', value: 'Sign in to load recipes' }], reminder: null };
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(`plantbasedmenu:${userId}`);
+  } catch {
+    return { lines: [{ label: 'Status', value: "Couldn't read data" }], reminder: null };
+  }
+  if (!raw) {
+    return {
+      lines: [{ label: 'Recipes', value: 'Not set up' }],
+      reminder: 'Open Plant-Based Menu to add your first recipe',
+    };
+  }
+  let parsed: PlantBasedMenuSnap;
+  try {
+    parsed = JSON.parse(raw) as PlantBasedMenuSnap;
+  } catch {
+    return { lines: [{ label: 'Recipes', value: '—' }], reminder: null };
+  }
+  if (parsed?.version !== 1) {
+    return { lines: [{ label: 'Menu', value: '—' }], reminder: 'Open Plant-Based Menu' };
+  }
+
+  const recipeCount = Array.isArray(parsed.recipes) ? parsed.recipes.length : 0;
+  const ingredientCount = Array.isArray(parsed.ingredients) ? parsed.ingredients.length : 0;
+  const avgServings =
+    recipeCount > 0
+      ? Math.round(
+          (parsed.recipes.reduce((sum, recipe) => sum + (Number(recipe.baseServings) || 0), 0) / recipeCount) *
+            10,
+        ) / 10
+      : 0;
+  return {
+    lines: [
+      { label: 'Recipes', value: String(recipeCount) },
+      { label: 'Ingredients', value: String(ingredientCount) },
+    ],
+    reminder:
+      recipeCount > 0
+        ? `Average base servings: ${avgServings}`
+        : 'Build your first recipe and scale for any group size',
+  };
+}
+
 export type AllMemberAppInsights = Record<string, AppInsight>;
 
 export async function loadMemberAppInsights(userId: string | undefined): Promise<AllMemberAppInsights> {
@@ -205,6 +256,7 @@ export async function loadMemberAppInsights(userId: string | undefined): Promise
     taskmaster: taskmasterInsight(userId),
     chorios: choriosInsight(userId),
     furries: furriesInsight(userId),
+    'plant-based-menu': plantBasedMenuInsight(userId),
     'budget-pal': budgetPalInsight(userId),
   };
 }

@@ -57,6 +57,14 @@ export default {
           surface: '#FFF5F0',
           cream: '#FFFBF7',
         },
+        /** Plant-Based Menu — rich evergreen palette */
+        evergreen: {
+          DEFAULT: '#1E5631',
+          dark: '#154427',
+          ink: '#0E2D1A',
+          light: '#DCEBDE',
+          surface: '#F2F8F2',
+        },
         jd: {
           green: {
             50: '#f1f8ee',
