@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ExternalLink, Flame, Kanban, PiggyBank, Sparkles, Timer } from 'lucide-react';
+import { ArrowRight, ExternalLink, Flame, Kanban, Leaf, PiggyBank, Sparkles, Timer } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { SHOWCASE_PROJECTS } from '../lib/showcase-projects';
 
@@ -123,7 +123,8 @@ export function ShellHome() {
             </h2>
             <p className="mt-2 text-slate-600 max-w-2xl">
               Consalty for hours and pay; Task Master for project boards; Chorios for recurring chores;
-              Budget Pal for profiles, accounts, and monthly budgets. Sign in to use any app.
+              Plant-Based Menu for recipe scaling and ingredient libraries; Budget Pal for profiles,
+              accounts, and monthly budgets. Sign in to use any app.
             </p>
 
             <ul className="mt-10 grid gap-6 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 max-w-5xl">
@@ -204,6 +205,27 @@ export function ShellHome() {
                       goals—see how you are tracking against the plan.
                     </p>
                     <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-sabres-blue-mid group-hover:gap-2 transition-all">
+                      Open app
+                      <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                    </p>
+                  </div>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/plant-based-menu"
+                  className="group flex gap-5 rounded-2xl border-2 border-evergreen/25 bg-white p-6 shadow-sm hover:border-evergreen/50 hover:shadow-md transition-all h-full"
+                >
+                  <div className="shrink-0 rounded-xl bg-gradient-to-br from-evergreen-light to-evergreen p-3.5 ring-2 ring-evergreen/20 group-hover:ring-evergreen/40 transition-shadow">
+                    <Leaf className="text-evergreen-dark" size={28} strokeWidth={2} aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <h3 className="font-bold text-evergreen-dark text-xl">Plant-Based Menu</h3>
+                    <p className="text-slate-600 text-sm mt-2 leading-relaxed">
+                      Build plant-based recipes, maintain an ingredient library, and instantly scale
+                      ingredient amounts by how many people you are feeding.
+                    </p>
+                    <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-evergreen-dark group-hover:gap-2 transition-all">
                       Open app
                       <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
                     </p>

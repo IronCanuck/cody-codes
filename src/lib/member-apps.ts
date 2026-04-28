@@ -1,4 +1,4 @@
-import { Flame, Kanban, PawPrint, PiggyBank, Timer, type LucideIcon } from 'lucide-react';
+import { Flame, Kanban, Leaf, PawPrint, PiggyBank, Timer, type LucideIcon } from 'lucide-react';
 
 /** Visual tokens for app library cards and the slide-out menu (maps to tailwind.config.js palettes). */
 export type AppLibraryScheme = {
@@ -83,6 +83,20 @@ export const APP_LIBRARY_SCHEMES = {
     cardTitle: 'text-sabres-ink',
     cardCta: 'text-sabres-blue',
   },
+  plantBased: {
+    menuLink:
+      'hover:bg-evergreen-light/55 hover:border-evergreen/25 focus-visible:ring-evergreen',
+    menuIconWrap: 'bg-evergreen-light',
+    menuIconColor: 'text-evergreen-dark',
+    menuTitle: 'text-evergreen-dark',
+    menuArrow: 'text-evergreen-dark opacity-65',
+    card: 'border-evergreen/20 hover:border-evergreen/45 focus-visible:ring-evergreen',
+    cardIconWrap:
+      'bg-gradient-to-br from-evergreen-light to-evergreen ring-evergreen/15 group-hover:ring-evergreen/35',
+    cardIcon: 'text-evergreen-dark',
+    cardTitle: 'text-evergreen-dark',
+    cardCta: 'text-evergreen-dark',
+  },
 } as const satisfies Record<string, AppLibraryScheme>;
 
 export type AppLibrarySchemeKey = keyof typeof APP_LIBRARY_SCHEMES;
@@ -130,6 +144,15 @@ export const PAYWALLED_APPS: MemberApp[] = [
     path: '/furries',
     icon: PawPrint,
     scheme: 'furries',
+  },
+  {
+    id: 'plant-based-menu',
+    title: 'Plant-Based Menu',
+    description:
+      'Recipe builder with an ingredient library and automatic scaling by people to feed.',
+    path: '/plant-based-menu',
+    icon: Leaf,
+    scheme: 'plantBased',
   },
   {
     id: 'budget-pal',
