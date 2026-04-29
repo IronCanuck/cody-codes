@@ -386,7 +386,7 @@ export function TaskMasterApp() {
 
       <Routes>
         <Route
-          path="/taskmaster/settings"
+          path="settings"
           element={
             <main className="flex-1 min-h-0 flex flex-col min-w-0">
               <TaskMasterSettingsLayout />
@@ -397,7 +397,7 @@ export function TaskMasterApp() {
           <Route path="data" element={<TaskMasterSettingsDataPage />} />
         </Route>
         <Route
-          path="/taskmaster"
+          path=""
           element={
       <>
       <div className="border-b border-tiffany/20 bg-white/95 px-3 sm:px-6 py-3 flex flex-col gap-3 min-w-0">
