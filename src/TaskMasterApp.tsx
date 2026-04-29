@@ -65,6 +65,8 @@ export function TaskMasterApp() {
   const [deleteProjectConfirm, setDeleteProjectConfirm] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<{ columnId: string; index: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -239,6 +241,79 @@ export function TaskMasterApp() {
         ],
       };
     });
+  };
+
+  const moveTaskToIndex = (taskId: string, targetColumnId: string, targetIndex: number) => {
+    updateProject((p) => {
+      const moving = p.tasks.find((t) => t.id === taskId);
+      if (!moving) return p;
+      const targetTasks = p.tasks
+        .filter((t) => t.columnId === targetColumnId && t.id !== taskId)
+        .sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt));
+      const clamped = Math.max(0, Math.min(targetIndex, targetTasks.length));
+      const updated: Task = { ...moving, columnId: targetColumnId };
+      const reordered = [
+        ...targetTasks.slice(0, clamped),
+        updated,
+        ...targetTasks.slice(clamped),
+      ].map((t, i) => ({ ...t, order: i }));
+      const others = p.tasks.filter(
+        (t) => t.columnId !== targetColumnId && t.id !== taskId,
+      );
+      return { ...p, tasks: [...others, ...reordered] };
+    });
+  };
+
+  const handleCardDragStart = (e: React.DragEvent, taskId: string) => {
+    setDraggingTaskId(taskId);
+    e.dataTransfer.effectAllowed = 'move';
+    try {
+      e.dataTransfer.setData('text/plain', taskId);
+    } catch {
+      // Some browsers throw if setData is called outside a real drag
+    }
+  };
+
+  const handleCardDragEnd = () => {
+    setDraggingTaskId(null);
+    setDragOver(null);
+  };
+
+  const handleCardDragOver = (
+    e: React.DragEvent,
+    columnId: string,
+    index: number,
+  ) => {
+    if (!draggingTaskId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const isAfter = e.clientY - rect.top > rect.height / 2;
+    const insertAt = isAfter ? index + 1 : index;
+    setDragOver((prev) =>
+      prev && prev.columnId === columnId && prev.index === insertAt
+        ? prev
+        : { columnId, index: insertAt },
+    );
+  };
+
+  const handleColumnDragOver = (e: React.DragEvent, columnId: string, taskCount: number) => {
+    if (!draggingTaskId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOver((prev) =>
+      prev && prev.columnId === columnId ? prev : { columnId, index: taskCount },
+    );
+  };
+
+  const handleColumnDrop = (e: React.DragEvent, columnId: string, fallbackIndex: number) => {
+    if (!draggingTaskId) return;
+    e.preventDefault();
+    const targetIndex = dragOver && dragOver.columnId === columnId ? dragOver.index : fallbackIndex;
+    moveTaskToIndex(draggingTaskId, columnId, targetIndex);
+    setDraggingTaskId(null);
+    setDragOver(null);
   };
 
   const renameColumn = (columnId: string, title: string) => {
@@ -477,16 +552,40 @@ export function TaskMasterApp() {
               return (
                 <section
                   key={col.id}
-                  className="w-full min-w-0 flex flex-col md:w-60 md:shrink-0 h-fit bg-white rounded-lg border border-tiffany/20 shadow-sm"
+                  className={`w-full min-w-0 flex flex-col md:w-60 md:shrink-0 h-fit bg-white rounded-lg border shadow-sm transition-colors ${
+                    dragOver?.columnId === col.id && draggingTaskId
+                      ? 'border-tiffany ring-2 ring-tiffany/40'
+                      : 'border-tiffany/20'
+                  }`}
                 >
                   <div className="px-2.5 py-2 border-b border-tiffany/15 flex items-center justify-between gap-2 shrink-0">
                     <h2 className="font-semibold text-tiffany-darker text-sm truncate">{col.title}</h2>
                     <span className="text-xs text-slate-400 tabular-nums">{colTasks.length}</span>
                   </div>
-                  <ul className="min-h-[2.5rem] max-h-52 sm:max-h-64 overflow-y-auto overscroll-y-contain p-1.5 space-y-1.5 [scrollbar-gutter:stable] md:max-h-[min(50vh,20rem)]">
-                    {colTasks.map((t) => (
-                      <li key={t.id}>
-                        <article className="rounded-lg border border-tiffany/20 bg-tiffany-light/40 p-2.5 shadow-sm hover:border-tiffany/50 hover:bg-tiffany-light/70 transition-colors">
+                  <ul
+                    className="min-h-[2.5rem] max-h-52 sm:max-h-64 overflow-y-auto overscroll-y-contain p-1.5 space-y-1.5 [scrollbar-gutter:stable] md:max-h-[min(50vh,20rem)]"
+                    onDragOver={(e) => handleColumnDragOver(e, col.id, colTasks.length)}
+                    onDrop={(e) => handleColumnDrop(e, col.id, colTasks.length)}
+                  >
+                    {colTasks.map((t, idx) => (
+                      <li
+                        key={t.id}
+                        onDragOver={(e) => handleCardDragOver(e, col.id, idx)}
+                        onDrop={(e) => handleColumnDrop(e, col.id, idx)}
+                        className={
+                          dragOver?.columnId === col.id && dragOver.index === idx
+                            ? 'border-t-2 border-tiffany pt-1 -mt-1'
+                            : ''
+                        }
+                      >
+                        <article
+                          draggable
+                          onDragStart={(e) => handleCardDragStart(e, t.id)}
+                          onDragEnd={handleCardDragEnd}
+                          className={`rounded-lg border border-tiffany/20 bg-tiffany-light/40 p-2.5 shadow-sm hover:border-tiffany/50 hover:bg-tiffany-light/70 transition-colors cursor-grab active:cursor-grabbing ${
+                            draggingTaskId === t.id ? 'opacity-40' : ''
+                          }`}
+                        >
                           <div className="flex justify-between gap-1 items-start">
                             <button
                               type="button"
@@ -549,6 +648,11 @@ export function TaskMasterApp() {
                         </article>
                       </li>
                     ))}
+                    {draggingTaskId &&
+                      dragOver?.columnId === col.id &&
+                      dragOver.index >= colTasks.length && (
+                        <li className="h-0 border-t-2 border-tiffany" aria-hidden />
+                      )}
                   </ul>
                   <div className="p-1.5 border-t border-tiffany/15 shrink-0">
                     <div className="flex gap-1 min-w-0">
