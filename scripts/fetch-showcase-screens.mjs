@@ -23,6 +23,7 @@ const PROJECTS = [
   { key: 'spartanwrestling', url: 'https://www.spartanwrestling.ca' },
   { key: 'canadawrestlinghq', url: 'https://www.wrestlingtournaments.ca' },
   { key: 'firereportpro', url: 'https://www.firereportpro.com' },
+  { key: 'digitalpivot', url: 'https://www.thedigitalpivot.ca' },
 ];
 
 const DELAY_MS = 2000;

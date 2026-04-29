@@ -79,4 +79,10 @@ export const SHOWCASE_PROJECTS: readonly ShowcaseProject[] = [
     href: 'https://www.firereportpro.com',
     image: '/showcase/firereportpro.png',
   },
+  {
+    title: 'Digital Pivot',
+    description: 'Digital marketing and web platform builds.',
+    href: 'https://www.thedigitalpivot.ca',
+    image: '/showcase/digitalpivot.png',
+  },
 ];
