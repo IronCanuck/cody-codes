@@ -1,4 +1,13 @@
-import { Flame, Kanban, Leaf, PawPrint, PiggyBank, Timer, type LucideIcon } from 'lucide-react';
+import {
+  Flame,
+  Kanban,
+  Leaf,
+  PawPrint,
+  PiggyBank,
+  StickyNote,
+  Timer,
+  type LucideIcon,
+} from 'lucide-react';
 
 /** Visual tokens for app library cards and the slide-out menu (maps to tailwind.config.js palettes). */
 export type AppLibraryScheme = {
@@ -97,6 +106,20 @@ export const APP_LIBRARY_SCHEMES = {
     cardTitle: 'text-evergreen-dark',
     cardCta: 'text-evergreen-dark',
   },
+  sticky: {
+    menuLink:
+      'hover:bg-miami-pink/10 hover:border-miami-pink/30 focus-visible:ring-miami-pink',
+    menuIconWrap: 'bg-gradient-to-br from-miami-pink-bright to-miami-cyan',
+    menuIconColor: 'text-white',
+    menuTitle: 'text-miami-pink-bright',
+    menuArrow: 'text-miami-pink-bright opacity-75',
+    card: 'border-miami-pink/30 hover:border-miami-cyan/55 focus-visible:ring-miami-pink',
+    cardIconWrap:
+      'bg-gradient-to-br from-miami-pink-bright via-miami-purple to-miami-cyan ring-miami-pink/30 group-hover:ring-miami-cyan/50',
+    cardIcon: 'text-white',
+    cardTitle: 'text-miami-pink-bright',
+    cardCta: 'text-miami-blue-deep',
+  },
 } as const satisfies Record<string, AppLibraryScheme>;
 
 export type AppLibrarySchemeKey = keyof typeof APP_LIBRARY_SCHEMES;
@@ -162,5 +185,14 @@ export const PAYWALLED_APPS: MemberApp[] = [
     path: '/budget-pal',
     icon: PiggyBank,
     scheme: 'budget',
+  },
+  {
+    id: 'sticky',
+    title: 'Sticky',
+    description:
+      'Miami Vice sticky-note board — drag, type, attach images, and organize reminders by category.',
+    path: '/sticky',
+    icon: StickyNote,
+    scheme: 'sticky',
   },
 ];

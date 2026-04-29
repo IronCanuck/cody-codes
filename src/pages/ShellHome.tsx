@@ -1,6 +1,16 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ExternalLink, Flame, Kanban, Leaf, PiggyBank, Sparkles, Timer } from 'lucide-react';
+import {
+  ArrowRight,
+  ExternalLink,
+  Flame,
+  Kanban,
+  Leaf,
+  PiggyBank,
+  Sparkles,
+  StickyNote,
+  Timer,
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { SHOWCASE_PROJECTS } from '../lib/showcase-projects';
 
@@ -205,6 +215,27 @@ export function ShellHome() {
                       goals—see how you are tracking against the plan.
                     </p>
                     <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-sabres-blue-mid group-hover:gap-2 transition-all">
+                      Open app
+                      <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                    </p>
+                  </div>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/sticky"
+                  className="group flex gap-5 rounded-2xl border-2 border-miami-pink/30 bg-white p-6 shadow-sm hover:border-miami-cyan/55 hover:shadow-md transition-all h-full"
+                >
+                  <div className="shrink-0 rounded-xl bg-gradient-to-br from-miami-pink-bright via-miami-purple to-miami-cyan p-3.5 ring-2 ring-miami-pink/30 group-hover:ring-miami-cyan/50 transition-shadow">
+                    <StickyNote className="text-white" size={28} strokeWidth={2} aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <h3 className="font-bold text-miami-pink-bright text-xl">Sticky</h3>
+                    <p className="text-slate-600 text-sm mt-2 leading-relaxed">
+                      A neon Miami Vice sticky-note board. Drag, type, attach images, and organize
+                      reminders by category.
+                    </p>
+                    <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-miami-blue-deep group-hover:gap-2 transition-all">
                       Open app
                       <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
                     </p>

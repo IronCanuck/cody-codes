@@ -57,6 +57,25 @@ export default {
           surface: '#FFF5F0',
           cream: '#FFFBF7',
         },
+        /** Sticky — Miami Vice neon (vibrant blue & pink on deep night) */
+        miami: {
+          pink: '#FF2E93',
+          'pink-light': '#FF6EC7',
+          'pink-bright': '#FF0080',
+          cyan: '#00E5FF',
+          'cyan-bright': '#06FFFF',
+          blue: '#0066FF',
+          'blue-deep': '#0033A0',
+          purple: '#8E1FFF',
+          sunset: '#FF8AC0',
+          yellow: '#FFD93D',
+          night: '#0A0E27',
+          'night-deep': '#070A1F',
+          surface: '#0D1530',
+          'surface-light': '#1A1F44',
+          ink: '#F1F5FF',
+          mute: '#9AA8D6',
+        },
         /** Plant-Based Menu — rich evergreen palette */
         evergreen: {
           DEFAULT: '#1E5631',

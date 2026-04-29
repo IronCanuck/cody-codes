@@ -247,6 +247,58 @@ function plantBasedMenuInsight(userId: string | undefined): AppInsight {
   };
 }
 
+type StickySnap = {
+  version: number;
+  notes: { id: string; categoryId: string | null; updatedAt: string; media: unknown[] }[];
+  categories: { id: string }[];
+};
+
+function stickyInsight(userId: string | undefined): AppInsight {
+  if (!userId) return { lines: [{ label: '', value: 'Sign in to load notes' }], reminder: null };
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(`sticky:${userId}`);
+  } catch {
+    return { lines: [{ label: 'Status', value: "Couldn't read data" }], reminder: null };
+  }
+  if (!raw) {
+    return {
+      lines: [{ label: 'Notes', value: 'Not set up' }],
+      reminder: 'Open Sticky to add your first reminder',
+    };
+  }
+  let parsed: StickySnap;
+  try {
+    parsed = JSON.parse(raw) as StickySnap;
+  } catch {
+    return { lines: [{ label: 'Notes', value: '—' }], reminder: null };
+  }
+  if (parsed?.version !== 1) {
+    return { lines: [{ label: 'Sticky', value: '—' }], reminder: 'Open Sticky' };
+  }
+  const noteCount = Array.isArray(parsed.notes) ? parsed.notes.length : 0;
+  const catCount = Array.isArray(parsed.categories) ? parsed.categories.length : 0;
+  const withMedia = Array.isArray(parsed.notes)
+    ? parsed.notes.filter((n) => Array.isArray(n.media) && n.media.length > 0).length
+    : 0;
+  if (noteCount === 0) {
+    return {
+      lines: [
+        { label: 'Categories', value: String(catCount) },
+        { label: 'Notes', value: '0' },
+      ],
+      reminder: 'Drop a sticky onto the neon board',
+    };
+  }
+  return {
+    lines: [
+      { label: 'Notes', value: String(noteCount) },
+      { label: 'Categories', value: String(catCount) },
+    ],
+    reminder: withMedia > 0 ? `${withMedia} note${withMedia === 1 ? '' : 's'} with images` : null,
+  };
+}
+
 export type AllMemberAppInsights = Record<string, AppInsight>;
 
 export async function loadMemberAppInsights(userId: string | undefined): Promise<AllMemberAppInsights> {
@@ -258,5 +310,6 @@ export async function loadMemberAppInsights(userId: string | undefined): Promise
     furries: furriesInsight(userId),
     'plant-based-menu': plantBasedMenuInsight(userId),
     'budget-pal': budgetPalInsight(userId),
+    sticky: stickyInsight(userId),
   };
 }

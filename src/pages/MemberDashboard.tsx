@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, ExternalLink, LayoutGrid, List, Menu, X } from 'lucide-react';
+import { ArrowRight, ExternalLink, Home, LayoutGrid, List, Menu, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { APP_LIBRARY_SCHEMES, PAYWALLED_APPS } from '../lib/member-apps';
 import { loadMemberAppInsights, type AllMemberAppInsights, type AppInsight } from '../lib/member-app-insights';
@@ -145,7 +145,15 @@ export function MemberDashboard() {
             );
           })}
         </nav>
-        <div className="p-3 border-t border-slate-100">
+        <div className="p-3 border-t border-slate-100 space-y-2">
+          <Link
+            to="/"
+            onClick={() => setMenuOpen(false)}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-cody-gold/40 bg-cody-gold/10 px-3 py-2.5 text-sm font-semibold text-cody-finnish hover:bg-cody-gold/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cody-finnish"
+          >
+            <Home className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+            Back to codycodes.ca
+          </Link>
           <button
             type="button"
             onClick={() => void handleSignOut()}
