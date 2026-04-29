@@ -35,15 +35,28 @@ import { StickyBoard } from './StickyBoard';
 import { StickySettings } from './StickySettings';
 
 function pickStartingPosition(notes: StickyNoteType[]): { x: number; y: number } {
-  const offset = 24;
+  const gap = 24;
   const baseX = 60;
   const baseY = 60;
+  const defaultWidth = 240;
+  const defaultHeight = 220;
+  const rowWrapAt = 1140;
+
   if (notes.length === 0) return { x: baseX, y: baseY };
-  const idx = notes.length;
-  return {
-    x: baseX + (idx % 6) * offset,
-    y: baseY + (idx % 6) * offset,
-  };
+
+  const last = notes.reduce((acc, n) => (n.createdAt > acc.createdAt ? n : acc), notes[0]);
+  const lastWidth = last.width || defaultWidth;
+  const lastHeight = last.height || defaultHeight;
+
+  let nextX = last.x + lastWidth + gap;
+  let nextY = last.y;
+
+  if (nextX + defaultWidth > rowWrapAt) {
+    nextX = baseX;
+    nextY = last.y + lastHeight + gap;
+  }
+
+  return { x: nextX, y: nextY };
 }
 
 function StickyShell() {
