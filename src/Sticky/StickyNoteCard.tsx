@@ -115,7 +115,7 @@ export function StickyNoteCard({
   );
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 && event.pointerType === 'mouse') return;
     if (!elRef.current) return;
     onFocusBringToFront();
     const targetRect = elRef.current.getBoundingClientRect();
@@ -126,13 +126,18 @@ export function StickyNoteCard({
       startX: note.x,
       startY: note.y,
     };
-    elRef.current.setPointerCapture(event.pointerId);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // ignore capture failures (e.g. pointer already released)
+    }
     setDragging(true);
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!dragState.current || dragState.current.pointerId !== event.pointerId) return;
     if (!boardEl) return;
+    event.preventDefault();
     const boardRect = boardEl.getBoundingClientRect();
     const innerEl = boardEl.firstElementChild as HTMLElement | null;
     const innerWidth = innerEl?.offsetWidth ?? boardRect.width;
@@ -141,8 +146,8 @@ export function StickyNoteCard({
       event.clientX - boardRect.left + boardEl.scrollLeft - dragState.current.offsetX;
     const newY =
       event.clientY - boardRect.top + boardEl.scrollTop - dragState.current.offsetY;
-    const clampedX = Math.max(0, Math.min(innerWidth - note.width, newX));
-    const clampedY = Math.max(0, Math.min(innerHeight - note.height, newY));
+    const clampedX = Math.max(0, Math.min(Math.max(0, innerWidth - note.width), newX));
+    const clampedY = Math.max(0, Math.min(Math.max(0, innerHeight - note.height), newY));
     onChange({ x: clampedX, y: clampedY });
     checkTrash(event.clientX, event.clientY);
   };
@@ -150,7 +155,11 @@ export function StickyNoteCard({
   const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!dragState.current || dragState.current.pointerId !== event.pointerId) return;
     const overTrash = checkTrash(event.clientX, event.clientY);
-    elRef.current?.releasePointerCapture(event.pointerId);
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // ignore release failures
+    }
     dragState.current = null;
     setDragging(false);
     onTrashHover(false);
@@ -158,7 +167,7 @@ export function StickyNoteCard({
   };
 
   const handleResizePointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (event.button !== 0) return;
+    if (event.button !== 0 && event.pointerType === 'mouse') return;
     event.stopPropagation();
     resizeState.current = {
       pointerId: event.pointerId,
@@ -167,12 +176,17 @@ export function StickyNoteCard({
       startX: event.clientX,
       startY: event.clientY,
     };
-    (event.target as HTMLElement).setPointerCapture(event.pointerId);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // ignore capture failures
+    }
     setResizing(true);
   };
 
   const handleResizePointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (!resizeState.current || resizeState.current.pointerId !== event.pointerId) return;
+    event.preventDefault();
     const dx = event.clientX - resizeState.current.startX;
     const dy = event.clientY - resizeState.current.startY;
     const w = Math.max(NOTE_MIN_W, Math.min(NOTE_MAX_W, resizeState.current.startW + dx));
@@ -182,7 +196,11 @@ export function StickyNoteCard({
 
   const handleResizePointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (!resizeState.current || resizeState.current.pointerId !== event.pointerId) return;
-    (event.target as HTMLElement).releasePointerCapture(event.pointerId);
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // ignore release failures
+    }
     resizeState.current = null;
     setResizing(false);
   };
@@ -251,7 +269,8 @@ export function StickyNoteCard({
           className={`flex h-full flex-col rounded-xl overflow-hidden bg-gradient-to-br ${tokens.body} text-white shadow-[0_18px_45px_-22px_rgba(0,0,0,0.9)] border border-white/15`}
         >
           <div
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 cursor-grab ${tokens.header}`}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 cursor-grab touch-none ${tokens.header}`}
+            style={{ touchAction: 'none' }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -375,7 +394,8 @@ export function StickyNoteCard({
             onPointerMove={handleResizePointerMove}
             onPointerUp={handleResizePointerUp}
             onPointerCancel={handleResizePointerUp}
-            className={`absolute bottom-1 right-1 h-4 w-4 rounded-bl-md cursor-nwse-resize text-white/70 ${
+            style={{ touchAction: 'none' }}
+            className={`absolute bottom-1 right-1 h-4 w-4 rounded-bl-md cursor-nwse-resize touch-none text-white/70 ${
               resizing ? 'text-white' : ''
             }`}
             aria-label="Resize note"
