@@ -38,10 +38,13 @@ export type StickyNote = {
   updatedAt: string;
 };
 
+export type StickyTheme = 'light' | 'dark';
+
 export type StickySettings = {
   showGrid: boolean;
   defaultCategoryId: string | null;
   glow: boolean;
+  theme: StickyTheme;
 };
 
 export type StickySnapshot = {
@@ -76,7 +79,7 @@ export const CATEGORY_COLOR_TOKENS: Record<StickyCategoryColor, CategoryColorTok
   },
   cyan: {
     body: 'from-miami-cyan to-miami-blue',
-    header: 'bg-miami-cyan-bright/95 text-miami-night-deep',
+    header: 'bg-miami-cyan-bright/95 text-slate-900',
     ring: 'ring-miami-cyan',
     chip: 'bg-miami-cyan/20 text-miami-cyan border-miami-cyan/40',
     dot: 'bg-miami-cyan',
@@ -90,14 +93,14 @@ export const CATEGORY_COLOR_TOKENS: Record<StickyCategoryColor, CategoryColorTok
   },
   sunset: {
     body: 'from-miami-sunset to-miami-pink-light',
-    header: 'bg-miami-sunset/95 text-miami-night-deep',
+    header: 'bg-miami-sunset/95 text-slate-900',
     ring: 'ring-miami-sunset',
     chip: 'bg-miami-sunset/20 text-miami-sunset border-miami-sunset/40',
     dot: 'bg-miami-sunset',
   },
   yellow: {
     body: 'from-miami-yellow to-miami-sunset',
-    header: 'bg-miami-yellow/95 text-miami-night-deep',
+    header: 'bg-miami-yellow/95 text-slate-900',
     ring: 'ring-miami-yellow',
     chip: 'bg-miami-yellow/20 text-miami-yellow border-miami-yellow/40',
     dot: 'bg-miami-yellow',

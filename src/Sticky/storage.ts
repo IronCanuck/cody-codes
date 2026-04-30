@@ -29,6 +29,7 @@ export function defaultSnapshot(): StickySnapshot {
       showGrid: true,
       defaultCategoryId: 'cat-reminders',
       glow: true,
+      theme: 'light',
     },
   };
 }
@@ -46,10 +47,18 @@ export function loadSnapshot(userId: string | undefined): StickySnapshot | null 
     ) {
       return null;
     }
+    const fallbackSettings = defaultSnapshot().settings;
+    const mergedSettings = {
+      ...fallbackSettings,
+      ...(parsed.settings ?? {}),
+    };
+    if (mergedSettings.theme !== 'dark' && mergedSettings.theme !== 'light') {
+      mergedSettings.theme = 'light';
+    }
     return {
       ...parsed,
       nextZ: typeof parsed.nextZ === 'number' ? parsed.nextZ : 1,
-      settings: parsed.settings ?? defaultSnapshot().settings,
+      settings: mergedSettings,
     };
   } catch {
     return null;

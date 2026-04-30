@@ -30,6 +30,7 @@ import {
   type StickyMedia,
   type StickyNote as StickyNoteType,
   type StickySnapshot,
+  type StickyTheme,
 } from './types';
 import { StickyBoard } from './StickyBoard';
 import { StickySettings } from './StickySettings';
@@ -256,6 +257,13 @@ function StickyShell() {
     persist((prev) => ({ ...prev, settings: { ...prev.settings, glow: !prev.settings.glow } }));
   }, [persist]);
 
+  const setTheme = useCallback(
+    (theme: StickyTheme) => {
+      persist((prev) => ({ ...prev, settings: { ...prev.settings, theme } }));
+    },
+    [persist],
+  );
+
   const clearAllNotes = useCallback(() => {
     persist((prev) => ({ ...prev, notes: [], nextZ: 1 }));
   }, [persist]);
@@ -276,6 +284,7 @@ function StickyShell() {
       setDefaultCategory,
       toggleGrid,
       toggleGlow,
+      setTheme,
       clearAllNotes,
     }),
     [
@@ -293,6 +302,7 @@ function StickyShell() {
       setDefaultCategory,
       toggleGrid,
       toggleGlow,
+      setTheme,
       clearAllNotes,
     ],
   );
@@ -337,7 +347,10 @@ function StickyShell() {
 
   return (
     <StickyContext.Provider value={contextValue}>
-      <div className="min-h-screen bg-miami-night-deep text-miami-ink flex flex-col overflow-x-hidden">
+      <div
+        data-sticky-theme={data.settings.theme}
+        className="min-h-screen bg-miami-night-deep text-miami-ink flex flex-col overflow-x-hidden"
+      >
         <header className="sticky top-0 z-30 border-b border-miami-pink/30 bg-gradient-to-r from-miami-night-deep via-miami-surface to-miami-night shadow-[0_8px_30px_-10px_rgba(255,46,147,0.45)]">
           <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between gap-2">
             <Link to="/sticky" className="min-w-0 flex items-center gap-3">
@@ -368,7 +381,7 @@ function StickyShell() {
 
         {menuOpen && (
           <div
-            className="fixed inset-0 z-40 bg-miami-night-deep/70 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-slate-900/55 backdrop-blur-sm"
             aria-hidden
             onClick={() => setMenuOpen(false)}
           />

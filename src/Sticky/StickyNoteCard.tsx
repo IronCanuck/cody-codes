@@ -321,11 +321,11 @@ export function StickyNoteCard({
                 onPointerDown={(event) => event.stopPropagation()}
                 className="w-full rounded-md border border-white/30 bg-black/25 px-2 py-1 text-[11px] font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
-                <option value="" className="text-miami-night-deep">
+                <option value="" className="text-slate-900">
                   No category
                 </option>
                 {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id} className="text-miami-night-deep">
+                  <option key={cat.id} value={cat.id} className="text-slate-900">
                     {cat.name}
                   </option>
                 ))}
@@ -408,7 +408,7 @@ export function StickyNoteCard({
 
       {previewMedia && (
         <div
-          className="fixed inset-0 z-[120] flex items-center justify-center bg-miami-night-deep/85 p-4"
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/85 p-4"
           onClick={() => setPreviewMediaId(null)}
           role="dialog"
           aria-modal="true"
@@ -437,7 +437,7 @@ export function StickyNoteCard({
               <button
                 type="button"
                 onClick={() => setPreviewMediaId(null)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-miami-night-deep/85 text-white border border-miami-pink/45"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-slate-900/85 text-white border border-miami-pink/45"
                 aria-label="Close preview"
               >
                 <X className="h-4 w-4" strokeWidth={2.25} aria-hidden />

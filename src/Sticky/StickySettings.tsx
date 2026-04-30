@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { Moon, Pencil, Plus, Sparkles, Sun, Trash2 } from 'lucide-react';
 import { useSticky } from './StickyContext';
 import {
   CATEGORY_COLOR_OPTIONS,
@@ -17,8 +17,10 @@ export function StickySettings() {
     setDefaultCategory,
     toggleGrid,
     toggleGlow,
+    setTheme,
     clearAllNotes,
   } = useSticky();
+  const isDark = data.settings.theme === 'dark';
   const [name, setName] = useState('');
   const [color, setColor] = useState<StickyCategoryColor>('pink');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -188,7 +190,7 @@ export function StickySettings() {
                         type="button"
                         onClick={saveEdit}
                         disabled={!editingDraft.name.trim()}
-                        className="inline-flex items-center gap-1 rounded-lg bg-miami-cyan-bright px-3 py-1.5 text-xs font-bold text-miami-night-deep hover:opacity-95 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded-lg bg-miami-cyan-bright px-3 py-1.5 text-xs font-bold text-slate-900 hover:opacity-95 disabled:opacity-50"
                       >
                         Save
                       </button>
@@ -263,6 +265,53 @@ export function StickySettings() {
           Board look & feel
         </h3>
         <ul className="grid gap-2 sm:grid-cols-2">
+          <li className="sm:col-span-2 flex items-center justify-between gap-3 rounded-xl border border-miami-pink/20 bg-miami-night-deep/65 px-3 py-2.5">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-miami-ink flex items-center gap-2">
+                {isDark ? (
+                  <Moon className="h-4 w-4 text-miami-cyan" strokeWidth={2.25} aria-hidden />
+                ) : (
+                  <Sun className="h-4 w-4 text-miami-sunset" strokeWidth={2.25} aria-hidden />
+                )}
+                Appearance
+              </p>
+              <p className="text-xs text-miami-mute">
+                {isDark ? 'Dark mode — full neon Miami night.' : 'Light mode — soft daylight palette.'}
+              </p>
+            </div>
+            <div
+              role="group"
+              aria-label="Theme"
+              className="inline-flex rounded-full border border-miami-pink/30 bg-miami-night-deep/70 p-0.5"
+            >
+              <button
+                type="button"
+                onClick={() => setTheme('light')}
+                aria-pressed={!isDark}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+                  !isDark
+                    ? 'bg-gradient-to-r from-miami-yellow to-miami-sunset text-slate-900 shadow'
+                    : 'text-miami-mute hover:text-miami-ink'
+                }`}
+              >
+                <Sun className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+                Light
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme('dark')}
+                aria-pressed={isDark}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+                  isDark
+                    ? 'bg-gradient-to-r from-miami-pink-bright to-miami-cyan text-white shadow'
+                    : 'text-miami-mute hover:text-miami-ink'
+                }`}
+              >
+                <Moon className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+                Dark
+              </button>
+            </div>
+          </li>
           <li className="flex items-center justify-between gap-3 rounded-xl border border-miami-pink/20 bg-miami-night-deep/65 px-3 py-2.5">
             <div>
               <p className="text-sm font-semibold text-miami-ink">Neon dot grid</p>

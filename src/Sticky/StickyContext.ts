@@ -5,6 +5,7 @@ import type {
   StickyMedia,
   StickyNote,
   StickySnapshot,
+  StickyTheme,
 } from './types';
 
 export type StickyContextValue = {
@@ -22,6 +23,7 @@ export type StickyContextValue = {
   setDefaultCategory: (id: string | null) => void;
   toggleGrid: () => void;
   toggleGlow: () => void;
+  setTheme: (theme: StickyTheme) => void;
   clearAllNotes: () => void;
 };
 

@@ -6,6 +6,24 @@
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Sticky Miami palette tokens (default = dark theme). Sticky wrapper
+     swaps these to light values when [data-sticky-theme="light"]. */
+  --miami-night: 10 14 39;
+  --miami-night-deep: 7 10 31;
+  --miami-surface: 13 21 48;
+  --miami-surface-light: 26 31 68;
+  --miami-ink: 241 245 255;
+  --miami-mute: 154 168 214;
+}
+
+[data-sticky-theme='light'] {
+  --miami-night: 255 255 255;
+  --miami-night-deep: 244 246 251;
+  --miami-surface: 248 250 253;
+  --miami-surface-light: 235 240 248;
+  --miami-ink: 15 25 54;
+  --miami-mute: 90 100 128;
 }
 
 body {

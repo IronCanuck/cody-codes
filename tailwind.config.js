@@ -69,12 +69,12 @@ export default {
           purple: '#8E1FFF',
           sunset: '#FF8AC0',
           yellow: '#FFD93D',
-          night: '#0A0E27',
-          'night-deep': '#070A1F',
-          surface: '#0D1530',
-          'surface-light': '#1A1F44',
-          ink: '#F1F5FF',
-          mute: '#9AA8D6',
+          night: 'rgb(var(--miami-night) / <alpha-value>)',
+          'night-deep': 'rgb(var(--miami-night-deep) / <alpha-value>)',
+          surface: 'rgb(var(--miami-surface) / <alpha-value>)',
+          'surface-light': 'rgb(var(--miami-surface-light) / <alpha-value>)',
+          ink: 'rgb(var(--miami-ink) / <alpha-value>)',
+          mute: 'rgb(var(--miami-mute) / <alpha-value>)',
         },
         /** Plant-Based Menu — rich evergreen palette */
         evergreen: {
