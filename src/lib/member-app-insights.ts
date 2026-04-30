@@ -325,12 +325,12 @@ function loadFireWatchSnapshot(userId: string): FireWatchSnapshot | null {
 
 function shiftCrewLabel(firefighters: Firefighter[], shift: ShiftCode): string {
   const crew = firefighters.filter((f) => f.shift === shift);
-  if (crew.length === 0) return `Shift ${shift}`;
+  if (crew.length === 0) return `${shift} Shift`;
   const names = crew
     .map((f) => f.name.trim().split(/\s+/)[0])
     .filter(Boolean)
     .slice(0, 2);
-  if (names.length === 0) return `Shift ${shift}`;
+  if (names.length === 0) return `${shift} Shift`;
   const tail = crew.length > names.length ? ` +${crew.length - names.length}` : '';
   return `${names.join(', ')}${tail}`;
 }
@@ -356,7 +356,7 @@ function fireWatchInsight(userId: string | undefined): AppInsight {
   } else {
     const todayCount = firefighters.filter((f) => f.shift === today.shift).length;
     if (todayCount === 0) {
-      reminder = `No crew saved for shift ${today.shift} yet`;
+      reminder = `No crew saved for ${today.shift} Shift yet`;
     }
   }
   return { lines, reminder };

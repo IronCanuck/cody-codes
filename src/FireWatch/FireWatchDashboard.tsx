@@ -76,7 +76,7 @@ export function FireWatchDashboard() {
               <span
                 className={`mt-1 inline-flex items-center justify-center rounded-lg px-3 py-1 text-base font-black tracking-wide ${todayAccent.badge}`}
               >
-                Shift {today.shift}
+                {today.shift} Shift
               </span>
             </div>
           </div>
@@ -119,13 +119,13 @@ export function FireWatchDashboard() {
                 {crew.length > 0 ? (
                   <p className="mt-2 text-xs text-firewatch-cream/85 leading-snug">
                     <span className="font-semibold text-firewatch-spark-light">
-                      Shift {entry.shift}:
+                      {entry.shift} Shift:
                     </span>{' '}
                     {crew.map((f) => f.name).join(', ')}
                   </p>
                 ) : (
                   <p className="mt-2 text-xs text-firewatch-cream/55 italic leading-snug">
-                    Shift {entry.shift} — add crew in the menu
+                    {entry.shift} Shift — add crew in the menu
                   </p>
                 )}
               </li>
@@ -148,7 +148,7 @@ export function FireWatchDashboard() {
               id="firewatch-today"
               className={`mt-1 text-2xl font-bold tracking-tight ${todayAccent.text}`}
             >
-              Shift {today.shift} on duty
+              {today.shift} Shift on duty
             </h3>
           </div>
           <span
@@ -160,7 +160,7 @@ export function FireWatchDashboard() {
         <div className="mt-4">
           {todayCrew.length === 0 ? (
             <p className="text-sm text-firewatch-smoke/80">
-              No crew names saved yet for shift {today.shift}. Open the menu and add the
+              No crew names saved yet for {today.shift} Shift. Open the menu and add the
               firefighters that ride with this shift to see their names here automatically.
             </p>
           ) : (
@@ -224,7 +224,7 @@ export function FireWatchDashboard() {
                       {code}
                     </span>
                     <div className="min-w-0">
-                      <p className={`text-sm font-bold ${accent.text}`}>Shift {code}</p>
+                      <p className={`text-sm font-bold ${accent.text}`}>{code} Shift</p>
                       <p className="text-xs text-firewatch-smoke/80">
                         {list.length} member{list.length === 1 ? '' : 's'}
                       </p>
@@ -290,7 +290,7 @@ export function FireWatchDashboard() {
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-firewatch-ink truncate">{f.name}</p>
                       <p className="text-xs text-firewatch-smoke/80 truncate">
-                        Shift {f.shift}
+                        {f.shift} Shift
                         {f.role ? ` · ${f.role}` : ''}
                       </p>
                     </div>

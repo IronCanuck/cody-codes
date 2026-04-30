@@ -137,7 +137,7 @@ export function FireWatchSettings() {
               ) : (
                 <>
                   <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-                  Add to shift {shift}
+                  Add to {shift} Shift
                 </>
               )}
             </button>
@@ -179,7 +179,7 @@ export function FireWatchSettings() {
                     {code}
                   </span>
                   <div className="min-w-0">
-                    <p className={`text-sm font-bold ${accent.text}`}>Shift {code}</p>
+                    <p className={`text-sm font-bold ${accent.text}`}>{code} Shift</p>
                     <p className="text-xs text-firewatch-smoke/80">
                       {list.length} member{list.length === 1 ? '' : 's'}
                     </p>
@@ -210,7 +210,7 @@ export function FireWatchSettings() {
                           <button
                             type="button"
                             onClick={() => {
-                              if (window.confirm(`Remove ${f.name} from shift ${code}?`)) {
+                              if (window.confirm(`Remove ${f.name} from ${code} Shift?`)) {
                                 removeFirefighter(f.id);
                                 if (editingId === f.id) resetForm();
                               }
@@ -226,7 +226,7 @@ export function FireWatchSettings() {
                   </ul>
                 ) : (
                   <p className="mt-3 text-xs text-firewatch-smoke/70 italic">
-                    No firefighters added to shift {code} yet.
+                    No firefighters added to {code} Shift yet.
                   </p>
                 )}
               </li>
