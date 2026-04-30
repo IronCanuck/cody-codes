@@ -93,7 +93,7 @@ export function StickyBoard() {
               {pickerOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-miami-cyan/40 bg-miami-night-deep/95 backdrop-blur p-2 z-30 shadow-xl shadow-miami-pink/30"
+                  className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-miami-cyan/40 bg-miami-night-deep/95 backdrop-blur p-2 z-[9999] shadow-xl shadow-miami-pink/30"
                 >
                   <p className="text-[10px] font-bold uppercase tracking-widest text-miami-mute px-2 pt-1 pb-1.5">
                     Add to category
