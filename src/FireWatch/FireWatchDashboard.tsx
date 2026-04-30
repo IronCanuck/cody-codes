@@ -4,17 +4,17 @@ import { ArrowRight, CalendarDays, Calendar, Flame, Settings as SettingsIcon, Us
 import { useFireWatch } from './FireWatchContext';
 import {
   nextShifts,
-  nextShiftsForPlatoon,
-  platoonAccent,
+  nextShiftsForCode,
+  shiftAccent,
   todayTomorrowDayAfter,
   type ShiftEntry,
 } from './schedule';
-import { PLATOONS, type Firefighter, type Platoon } from './types';
+import { SHIFT_CODES, type Firefighter, type ShiftCode } from './types';
 
-function rosterByPlatoon(firefighters: Firefighter[]): Record<Platoon, Firefighter[]> {
-  const out: Record<Platoon, Firefighter[]> = { A: [], B: [], C: [], D: [] };
-  for (const f of firefighters) out[f.platoon].push(f);
-  for (const k of PLATOONS) out[k].sort((a, b) => a.name.localeCompare(b.name));
+function rosterByShift(firefighters: Firefighter[]): Record<ShiftCode, Firefighter[]> {
+  const out: Record<ShiftCode, Firefighter[]> = { A: [], B: [], C: [], D: [] };
+  for (const f of firefighters) out[f.shift].push(f);
+  for (const k of SHIFT_CODES) out[k].sort((a, b) => a.name.localeCompare(b.name));
   return out;
 }
 
@@ -22,15 +22,15 @@ export function FireWatchDashboard() {
   const { data } = useFireWatch();
   const upcoming: ShiftEntry[] = useMemo(() => nextShifts(7), []);
   const { today } = useMemo(() => todayTomorrowDayAfter(), []);
-  const roster = useMemo(() => rosterByPlatoon(data.firefighters), [data.firefighters]);
+  const roster = useMemo(() => rosterByShift(data.firefighters), [data.firefighters]);
 
   const totalFirefighters = data.firefighters.length;
-  const todayAccent = platoonAccent(today.platoon);
-  const todayCrew = roster[today.platoon];
+  const todayAccent = shiftAccent(today.shift);
+  const todayCrew = roster[today.shift];
 
-  const platoonNext8 = useMemo(() => {
-    const out: Record<Platoon, ShiftEntry[]> = { A: [], B: [], C: [], D: [] };
-    for (const p of PLATOONS) out[p] = nextShiftsForPlatoon(p, 8);
+  const shiftNext8 = useMemo(() => {
+    const out: Record<ShiftCode, ShiftEntry[]> = { A: [], B: [], C: [], D: [] };
+    for (const c of SHIFT_CODES) out[c] = nextShiftsForCode(c, 8);
     return out;
   }, []);
   const sortedFirefighters = useMemo(
@@ -66,7 +66,7 @@ export function FireWatchDashboard() {
                 Next 7 shifts
               </h2>
               <p className="mt-1 text-sm text-firewatch-spark-light/85">
-                Calgary Fire Department platoon rotation
+                Calgary Fire Department shift rotation
               </p>
             </div>
             <div className="ml-auto flex shrink-0 flex-col items-end text-right">
@@ -76,20 +76,20 @@ export function FireWatchDashboard() {
               <span
                 className={`mt-1 inline-flex items-center justify-center rounded-lg px-3 py-1 text-base font-black tracking-wide ${todayAccent.badge}`}
               >
-                {today.platoon} · {todayAccent.label}
+                Shift {today.shift}
               </span>
             </div>
           </div>
         </div>
 
         <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 px-5 sm:px-7 py-5">
-          {upcoming.map((shift, idx) => {
-            const accent = platoonAccent(shift.platoon);
-            const crew = roster[shift.platoon];
+          {upcoming.map((entry, idx) => {
+            const accent = shiftAccent(entry.shift);
+            const crew = roster[entry.shift];
             const isToday = idx === 0;
             return (
               <li
-                key={shift.iso}
+                key={entry.iso}
                 className={`relative rounded-2xl border bg-firewatch-coal/55 backdrop-blur-sm px-4 py-3 transition-shadow ${
                   isToday
                     ? 'border-firewatch-spark/55 shadow-md shadow-firewatch-flame/30'
@@ -104,27 +104,28 @@ export function FireWatchDashboard() {
                 <div className="flex items-baseline justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[11px] font-bold uppercase tracking-widest text-firewatch-spark-light/80">
-                      {shift.weekday}
+                      {entry.weekday}
                     </p>
                     <p className="text-lg font-bold text-firewatch-cream truncate">
-                      {shift.monthDay}
+                      {entry.monthDay}
                     </p>
                   </div>
                   <span
                     className={`inline-flex h-9 min-w-[2.5rem] items-center justify-center rounded-lg px-2 text-sm font-black tracking-wide ${accent.badge}`}
-                    title={accent.label}
                   >
-                    {shift.platoon}
+                    {entry.shift}
                   </span>
                 </div>
                 {crew.length > 0 ? (
                   <p className="mt-2 text-xs text-firewatch-cream/85 leading-snug">
-                    <span className="font-semibold text-firewatch-spark-light">{accent.label}:</span>{' '}
+                    <span className="font-semibold text-firewatch-spark-light">
+                      Shift {entry.shift}:
+                    </span>{' '}
                     {crew.map((f) => f.name).join(', ')}
                   </p>
                 ) : (
                   <p className="mt-2 text-xs text-firewatch-cream/55 italic leading-snug">
-                    {accent.label} platoon — add crew in the menu
+                    Shift {entry.shift} — add crew in the menu
                   </p>
                 )}
               </li>
@@ -147,20 +148,20 @@ export function FireWatchDashboard() {
               id="firewatch-today"
               className={`mt-1 text-2xl font-bold tracking-tight ${todayAccent.text}`}
             >
-              {todayAccent.label} platoon on duty
+              Shift {today.shift} on duty
             </h3>
           </div>
           <span
             className={`inline-flex h-12 min-w-[3.5rem] items-center justify-center rounded-xl px-3 text-2xl font-black tracking-tight ring-2 ring-offset-2 ring-offset-firewatch-cream ${todayAccent.badge} ${todayAccent.ring}`}
           >
-            {today.platoon}
+            {today.shift}
           </span>
         </div>
         <div className="mt-4">
           {todayCrew.length === 0 ? (
             <p className="text-sm text-firewatch-smoke/80">
-              No crew names saved yet for {todayAccent.label}. Open the menu and add the
-              firefighters that ride with this platoon to see their names here automatically.
+              No crew names saved yet for shift {today.shift}. Open the menu and add the
+              firefighters that ride with this shift to see their names here automatically.
             </p>
           ) : (
             <ul className="flex flex-wrap gap-2">
@@ -193,8 +194,8 @@ export function FireWatchDashboard() {
             </h3>
             <p className="text-sm text-firewatch-smoke">
               {totalFirefighters > 0
-                ? `${totalFirefighters} firefighter${totalFirefighters === 1 ? '' : 's'} tracked across the four platoons.`
-                : 'Track who rides with each platoon to see crew names beside every upcoming shift.'}
+                ? `${totalFirefighters} firefighter${totalFirefighters === 1 ? '' : 's'} tracked across the four shifts.`
+                : 'Track who rides on each shift to see crew names beside every upcoming shift.'}
             </p>
           </div>
           <Link
@@ -207,12 +208,12 @@ export function FireWatchDashboard() {
         </div>
 
         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {PLATOONS.map((p) => {
-            const accent = platoonAccent(p);
-            const list = roster[p];
+          {SHIFT_CODES.map((code) => {
+            const accent = shiftAccent(code);
+            const list = roster[code];
             return (
               <li
-                key={p}
+                key={code}
                 className={`rounded-2xl border-2 ${accent.borderSoft} bg-white p-4 shadow-sm`}
               >
                 <div className="flex items-center justify-between gap-2">
@@ -220,10 +221,10 @@ export function FireWatchDashboard() {
                     <span
                       className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base font-black ${accent.badge}`}
                     >
-                      {p}
+                      {code}
                     </span>
                     <div className="min-w-0">
-                      <p className={`text-sm font-bold ${accent.text}`}>{accent.label} platoon</p>
+                      <p className={`text-sm font-bold ${accent.text}`}>Shift {code}</p>
                       <p className="text-xs text-firewatch-smoke/80">
                         {list.length} member{list.length === 1 ? '' : 's'}
                       </p>
@@ -273,8 +274,8 @@ export function FireWatchDashboard() {
 
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {sortedFirefighters.map((f) => {
-              const accent = platoonAccent(f.platoon);
-              const dates = platoonNext8[f.platoon];
+              const accent = shiftAccent(f.shift);
+              const dates = shiftNext8[f.shift];
               return (
                 <li
                   key={f.id}
@@ -283,14 +284,14 @@ export function FireWatchDashboard() {
                   <div className="flex items-center gap-3">
                     <span
                       className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base font-black ${accent.badge}`}
-                      title={accent.label}
                     >
-                      {f.platoon}
+                      {f.shift}
                     </span>
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-firewatch-ink truncate">{f.name}</p>
                       <p className="text-xs text-firewatch-smoke/80 truncate">
-                        {accent.label} platoon{f.role ? ` · ${f.role}` : ''}
+                        Shift {f.shift}
+                        {f.role ? ` · ${f.role}` : ''}
                       </p>
                     </div>
                   </div>

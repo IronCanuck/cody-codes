@@ -206,7 +206,7 @@ export const PAYWALLED_APPS: MemberApp[] = [
     id: 'fire-watch',
     title: 'Fire Watch',
     description:
-      'Calgary Fire Department platoon tracker — see the next 7 shifts and which crew is on duty.',
+      'Calgary Fire Department shift tracker — see the next 7 shifts and which crew is on duty.',
     path: '/fire-watch',
     icon: FlameKindling,
     scheme: 'firewatch',

@@ -2,6 +2,7 @@ import {
   FIREWATCH_STORAGE_VERSION,
   type Firefighter,
   type FireWatchSnapshot,
+  type ShiftCode,
 } from './types';
 
 export function newId(prefix = 'fw'): string {
@@ -20,29 +21,35 @@ export function defaultSnapshot(): FireWatchSnapshot {
   };
 }
 
+function isShiftCode(value: unknown): value is ShiftCode {
+  return value === 'A' || value === 'B' || value === 'C' || value === 'D';
+}
+
 export function loadSnapshot(userId: string | undefined): FireWatchSnapshot | null {
   if (!userId) return null;
   try {
     const raw = localStorage.getItem(storageKeyForUser(userId));
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as FireWatchSnapshot;
+    const parsed = JSON.parse(raw) as FireWatchSnapshot & {
+      firefighters?: Array<Firefighter & { platoon?: ShiftCode }>;
+    };
     if (parsed?.version !== FIREWATCH_STORAGE_VERSION || !Array.isArray(parsed.firefighters)) {
       return null;
     }
     const firefighters: Firefighter[] = parsed.firefighters
-      .filter(
-        (f): f is Firefighter =>
-          !!f &&
-          typeof f.id === 'string' &&
-          typeof f.name === 'string' &&
-          (f.platoon === 'A' || f.platoon === 'B' || f.platoon === 'C' || f.platoon === 'D'),
-      )
-      .map((f) => ({
-        id: f.id,
-        name: f.name,
-        role: typeof f.role === 'string' ? f.role : undefined,
-        platoon: f.platoon,
-      }));
+      .map((f) => {
+        if (!f || typeof f.id !== 'string' || typeof f.name !== 'string') return null;
+        const code = isShiftCode(f.shift) ? f.shift : isShiftCode(f.platoon) ? f.platoon : null;
+        if (!code) return null;
+        const out: Firefighter = {
+          id: f.id,
+          name: f.name,
+          shift: code,
+        };
+        if (typeof f.role === 'string') out.role = f.role;
+        return out;
+      })
+      .filter((f): f is Firefighter => f !== null);
     return { version: FIREWATCH_STORAGE_VERSION, firefighters };
   } catch {
     return null;

@@ -1,7 +1,7 @@
-import { type Platoon } from './types';
+import { type ShiftCode } from './types';
 
 /**
- * Calgary Fire Department platoon rotation, derived from the IAFF Local 255
+ * Calgary Fire Department shift rotation, derived from the IAFF Local 255
  * 2026 Shift Calendar. The published calendar follows a continuous 8-day cycle
  * starting Saturday, November 1, 2025 (UTC-anchored to keep DST stable):
  *
@@ -14,10 +14,10 @@ import { type Platoon } from './types';
  *   Nov 7 2025 → B
  *   Nov 8 2025 → D
  *
- * The cycle repeats indefinitely, which lets us derive the on-duty platoon for
+ * The cycle repeats indefinitely, which lets us derive the on-duty shift for
  * any past or future date.
  */
-const CYCLE: readonly Platoon[] = ['C', 'A', 'D', 'B', 'A', 'C', 'B', 'D'];
+const CYCLE: readonly ShiftCode[] = ['C', 'A', 'D', 'B', 'A', 'C', 'B', 'D'];
 
 const REFERENCE_UTC_MS = Date.UTC(2025, 10, 1);
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -32,7 +32,7 @@ function localDayKey(date: Date): number {
   return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-export function platoonForDate(date: Date): Platoon {
+export function shiftForDate(date: Date): ShiftCode {
   const key = localDayKey(date);
   const days = Math.round((key - REFERENCE_UTC_MS) / MS_PER_DAY);
   const idx = ((days % CYCLE.length) + CYCLE.length) % CYCLE.length;
@@ -45,7 +45,7 @@ export type ShiftEntry = {
   weekday: string;
   weekdayShort: string;
   monthDay: string;
-  platoon: Platoon;
+  shift: ShiftCode;
 };
 
 export function nextShifts(count: number, from: Date = new Date()): ShiftEntry[] {
@@ -59,19 +59,19 @@ export function nextShifts(count: number, from: Date = new Date()): ShiftEntry[]
   return out;
 }
 
-export function nextShiftsForPlatoon(
-  platoon: Platoon,
+export function nextShiftsForCode(
+  shift: ShiftCode,
   count: number,
   from: Date = new Date(),
 ): ShiftEntry[] {
   const start = startOfLocalDay(from);
   const out: ShiftEntry[] = [];
-  // Each platoon appears twice in the 8-day cycle, so scan up to count*5 days for safety.
+  // Each shift appears twice in the 8-day cycle, so scan up to count*5 days for safety.
   const maxScan = Math.max(count * 5, 40);
   for (let i = 0; i < maxScan && out.length < count; i += 1) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    if (platoonForDate(d) === platoon) {
+    if (shiftForDate(d) === shift) {
       out.push(formatShift(d));
     }
   }
@@ -79,7 +79,7 @@ export function nextShiftsForPlatoon(
 }
 
 export function formatShift(date: Date): ShiftEntry {
-  const platoon = platoonForDate(date);
+  const shift = shiftForDate(date);
   const weekday = date.toLocaleDateString(undefined, { weekday: 'long' });
   const weekdayShort = date.toLocaleDateString(undefined, { weekday: 'short' });
   const monthDay = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -89,7 +89,7 @@ export function formatShift(date: Date): ShiftEntry {
     weekday,
     weekdayShort,
     monthDay,
-    platoon,
+    shift,
   };
 }
 
@@ -102,15 +102,14 @@ export function todayTomorrowDayAfter(): {
   return { today, tomorrow, dayAfter };
 }
 
-export function platoonAccent(platoon: Platoon): {
+export function shiftAccent(shift: ShiftCode): {
   badge: string;
   ring: string;
   text: string;
   bgSoft: string;
   borderSoft: string;
-  label: string;
 } {
-  switch (platoon) {
+  switch (shift) {
     case 'A':
       return {
         badge: 'bg-firewatch-rust text-white',
@@ -118,7 +117,6 @@ export function platoonAccent(platoon: Platoon): {
         text: 'text-firewatch-rust',
         bgSoft: 'bg-firewatch-rust/10',
         borderSoft: 'border-firewatch-rust/30',
-        label: 'Alpha',
       };
     case 'B':
       return {
@@ -127,7 +125,6 @@ export function platoonAccent(platoon: Platoon): {
         text: 'text-firewatch-flame-deep',
         bgSoft: 'bg-firewatch-flame-deep/10',
         borderSoft: 'border-firewatch-flame-deep/30',
-        label: 'Bravo',
       };
     case 'C':
       return {
@@ -136,7 +133,6 @@ export function platoonAccent(platoon: Platoon): {
         text: 'text-firewatch-ember',
         bgSoft: 'bg-firewatch-ember/10',
         borderSoft: 'border-firewatch-ember/30',
-        label: 'Charlie',
       };
     case 'D':
       return {
@@ -145,7 +141,6 @@ export function platoonAccent(platoon: Platoon): {
         text: 'text-firewatch-smoke',
         bgSoft: 'bg-firewatch-spark/15',
         borderSoft: 'border-firewatch-gold/40',
-        label: 'Delta',
       };
   }
 }

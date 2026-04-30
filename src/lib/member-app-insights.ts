@@ -7,15 +7,8 @@ import {
   todayTomorrowDayAfter,
   type Firefighter,
   type FireWatchSnapshot,
-  type Platoon,
+  type ShiftCode,
 } from '../FireWatch';
-
-const PLATOON_LABELS: Record<Platoon, string> = {
-  A: 'Alpha',
-  B: 'Bravo',
-  C: 'Charlie',
-  D: 'Delta',
-};
 
 const BUDGET_VERSION = 1 as const;
 const FURRIES_VERSION = 1 as const;
@@ -330,14 +323,14 @@ function loadFireWatchSnapshot(userId: string): FireWatchSnapshot | null {
   }
 }
 
-function platoonCrewLabel(firefighters: Firefighter[], platoon: Platoon): string {
-  const crew = firefighters.filter((f) => f.platoon === platoon);
-  if (crew.length === 0) return PLATOON_LABELS[platoon];
+function shiftCrewLabel(firefighters: Firefighter[], shift: ShiftCode): string {
+  const crew = firefighters.filter((f) => f.shift === shift);
+  if (crew.length === 0) return `Shift ${shift}`;
   const names = crew
     .map((f) => f.name.trim().split(/\s+/)[0])
     .filter(Boolean)
     .slice(0, 2);
-  if (names.length === 0) return PLATOON_LABELS[platoon];
+  if (names.length === 0) return `Shift ${shift}`;
   const tail = crew.length > names.length ? ` +${crew.length - names.length}` : '';
   return `${names.join(', ')}${tail}`;
 }
@@ -347,9 +340,9 @@ function fireWatchInsight(userId: string | undefined): AppInsight {
   const snap = userId ? loadFireWatchSnapshot(userId) : null;
   const firefighters = snap?.firefighters ?? [];
 
-  const todayLabel = `${today.platoon} · ${platoonCrewLabel(firefighters, today.platoon)}`;
-  const tmrLabel = `${tomorrow.platoon} · ${platoonCrewLabel(firefighters, tomorrow.platoon)}`;
-  const nextLabel = `${dayAfter.platoon} · ${platoonCrewLabel(firefighters, dayAfter.platoon)}`;
+  const todayLabel = `${today.shift} · ${shiftCrewLabel(firefighters, today.shift)}`;
+  const tmrLabel = `${tomorrow.shift} · ${shiftCrewLabel(firefighters, tomorrow.shift)}`;
+  const nextLabel = `${dayAfter.shift} · ${shiftCrewLabel(firefighters, dayAfter.shift)}`;
 
   const lines = [
     { label: 'Today', value: todayLabel },
@@ -359,11 +352,11 @@ function fireWatchInsight(userId: string | undefined): AppInsight {
 
   let reminder: string | null = null;
   if (firefighters.length === 0) {
-    reminder = 'Add crew names by platoon in Fire Watch';
+    reminder = 'Add crew names by shift in Fire Watch';
   } else {
-    const todayCount = firefighters.filter((f) => f.platoon === today.platoon).length;
+    const todayCount = firefighters.filter((f) => f.shift === today.shift).length;
     if (todayCount === 0) {
-      reminder = `No ${PLATOON_LABELS[today.platoon]} crew saved yet`;
+      reminder = `No crew saved for shift ${today.shift} yet`;
     }
   }
   return { lines, reminder };

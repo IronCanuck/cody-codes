@@ -147,7 +147,7 @@ function FireWatchShell() {
                   Fire Watch
                 </h1>
                 <p className="text-[11px] sm:text-xs text-firewatch-spark-light/85 truncate">
-                  Calgary FD platoon tracker
+                  Calgary FD shift tracker
                 </p>
               </span>
             </Link>
@@ -229,8 +229,8 @@ function FireWatchShell() {
 
             <div className="mt-5 rounded-xl border border-firewatch-flame/25 bg-firewatch-coal/55 p-3 text-xs text-firewatch-cream/85 leading-relaxed">
               <p className="font-bold text-firewatch-spark-light mb-1">Tip</p>
-              Add the firefighters that ride with each platoon (A, B, C, D) and their names will show
-              up next to every upcoming shift.
+              Add the firefighters that ride on each shift (A, B, C, D) and their names will show
+              up next to every upcoming date.
             </div>
           </nav>
 
