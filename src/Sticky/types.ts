@@ -6,7 +6,11 @@ export type StickyCategoryColor =
   | 'purple'
   | 'sunset'
   | 'yellow'
-  | 'blue';
+  | 'blue'
+  | 'mint'
+  | 'orange'
+  | 'red'
+  | 'lavender';
 
 export type StickyCategory = {
   id: string;
@@ -113,6 +117,34 @@ export const CATEGORY_COLOR_TOKENS: Record<StickyCategoryColor, CategoryColorTok
     chip: 'bg-miami-blue/20 text-miami-cyan border-miami-blue/40',
     dot: 'bg-miami-blue',
   },
+  mint: {
+    body: 'from-miami-mint to-miami-mint-deep',
+    header: 'bg-miami-mint/95 text-slate-900',
+    ring: 'ring-miami-mint',
+    chip: 'bg-miami-mint/20 text-miami-mint border-miami-mint/40',
+    dot: 'bg-miami-mint',
+  },
+  orange: {
+    body: 'from-miami-orange-bright to-miami-orange',
+    header: 'bg-miami-orange/95 text-white',
+    ring: 'ring-miami-orange',
+    chip: 'bg-miami-orange/20 text-miami-orange-bright border-miami-orange/40',
+    dot: 'bg-miami-orange',
+  },
+  red: {
+    body: 'from-miami-red to-miami-red-deep',
+    header: 'bg-miami-red/95 text-white',
+    ring: 'ring-miami-red',
+    chip: 'bg-miami-red/20 text-miami-red border-miami-red/40',
+    dot: 'bg-miami-red',
+  },
+  lavender: {
+    body: 'from-miami-lavender to-miami-lavender-bright',
+    header: 'bg-miami-lavender-bright/95 text-white',
+    ring: 'ring-miami-lavender',
+    chip: 'bg-miami-lavender/20 text-miami-lavender border-miami-lavender/40',
+    dot: 'bg-miami-lavender',
+  },
 };
 
 export const CATEGORY_COLOR_OPTIONS: { value: StickyCategoryColor; label: string }[] = [
@@ -122,4 +154,8 @@ export const CATEGORY_COLOR_OPTIONS: { value: StickyCategoryColor; label: string
   { value: 'sunset', label: 'Sunset Coral' },
   { value: 'yellow', label: 'Boulevard Yellow' },
   { value: 'blue', label: 'Ocean Blue' },
+  { value: 'mint', label: 'Neon Mint' },
+  { value: 'orange', label: 'Sunset Orange' },
+  { value: 'red', label: 'Crimson Heat' },
+  { value: 'lavender', label: 'Soft Lavender' },
 ];
