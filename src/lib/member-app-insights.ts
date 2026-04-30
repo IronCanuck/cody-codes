@@ -345,9 +345,9 @@ function fireWatchInsight(userId: string | undefined): AppInsight {
   const nextLabel = `${dayAfter.shift} · ${shiftCrewLabel(firefighters, dayAfter.shift)}`;
 
   const lines = [
-    { label: 'Today', value: todayLabel },
-    { label: 'Tomorrow', value: tmrLabel },
-    { label: dayAfter.weekdayShort, value: nextLabel },
+    { label: `Today · ${today.monthDay}`, value: todayLabel },
+    { label: `Tomorrow · ${tomorrow.monthDay}`, value: tmrLabel },
+    { label: `${dayAfter.weekdayShort} · ${dayAfter.monthDay}`, value: nextLabel },
   ];
 
   let reminder: string | null = null;
