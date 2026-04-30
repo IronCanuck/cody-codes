@@ -59,6 +59,25 @@ export function nextShifts(count: number, from: Date = new Date()): ShiftEntry[]
   return out;
 }
 
+export function nextShiftsForPlatoon(
+  platoon: Platoon,
+  count: number,
+  from: Date = new Date(),
+): ShiftEntry[] {
+  const start = startOfLocalDay(from);
+  const out: ShiftEntry[] = [];
+  // Each platoon appears twice in the 8-day cycle, so scan up to count*5 days for safety.
+  const maxScan = Math.max(count * 5, 40);
+  for (let i = 0; i < maxScan && out.length < count; i += 1) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    if (platoonForDate(d) === platoon) {
+      out.push(formatShift(d));
+    }
+  }
+  return out;
+}
+
 export function formatShift(date: Date): ShiftEntry {
   const platoon = platoonForDate(date);
   const weekday = date.toLocaleDateString(undefined, { weekday: 'long' });

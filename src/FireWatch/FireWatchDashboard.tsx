@@ -1,8 +1,14 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Calendar, Flame, Settings as SettingsIcon, Users } from 'lucide-react';
+import { ArrowRight, CalendarDays, Calendar, Flame, Settings as SettingsIcon, Users } from 'lucide-react';
 import { useFireWatch } from './FireWatchContext';
-import { nextShifts, platoonAccent, todayTomorrowDayAfter, type ShiftEntry } from './schedule';
+import {
+  nextShifts,
+  nextShiftsForPlatoon,
+  platoonAccent,
+  todayTomorrowDayAfter,
+  type ShiftEntry,
+} from './schedule';
 import { PLATOONS, type Firefighter, type Platoon } from './types';
 
 function rosterByPlatoon(firefighters: Firefighter[]): Record<Platoon, Firefighter[]> {
@@ -21,6 +27,16 @@ export function FireWatchDashboard() {
   const totalFirefighters = data.firefighters.length;
   const todayAccent = platoonAccent(today.platoon);
   const todayCrew = roster[today.platoon];
+
+  const platoonNext8 = useMemo(() => {
+    const out: Record<Platoon, ShiftEntry[]> = { A: [], B: [], C: [], D: [] };
+    for (const p of PLATOONS) out[p] = nextShiftsForPlatoon(p, 8);
+    return out;
+  }, []);
+  const sortedFirefighters = useMemo(
+    () => [...data.firefighters].sort((a, b) => a.name.localeCompare(b.name)),
+    [data.firefighters],
+  );
 
   return (
     <div className="px-4 sm:px-6 py-6 sm:py-10 max-w-5xl mx-auto w-full space-y-8">
@@ -238,6 +254,67 @@ export function FireWatchDashboard() {
           })}
         </ul>
       </section>
+
+      {/* Per-firefighter next 8 shifts */}
+      {sortedFirefighters.length > 0 && (
+        <section aria-labelledby="firewatch-ff-next8" className="space-y-3">
+          <div>
+            <h3
+              id="firewatch-ff-next8"
+              className="text-lg font-bold text-firewatch-ink tracking-tight flex items-center gap-2"
+            >
+              <CalendarDays className="h-4 w-4 text-firewatch-flame-deep" strokeWidth={2.25} aria-hidden />
+              Firefighters · next 8 shifts
+            </h3>
+            <p className="text-sm text-firewatch-smoke">
+              Upcoming shift dates for each firefighter on your roster.
+            </p>
+          </div>
+
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {sortedFirefighters.map((f) => {
+              const accent = platoonAccent(f.platoon);
+              const dates = platoonNext8[f.platoon];
+              return (
+                <li
+                  key={f.id}
+                  className={`rounded-2xl border-2 ${accent.borderSoft} bg-white p-4 shadow-sm`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base font-black ${accent.badge}`}
+                      title={accent.label}
+                    >
+                      {f.platoon}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-firewatch-ink truncate">{f.name}</p>
+                      <p className="text-xs text-firewatch-smoke/80 truncate">
+                        {accent.label} platoon{f.role ? ` · ${f.role}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="mt-3 space-y-1 list-disc list-inside marker:text-firewatch-flame-deep">
+                    {dates.map((d) => {
+                      const isToday = d.iso === today.iso;
+                      return (
+                        <li key={d.iso} className="text-sm text-firewatch-ink">
+                          {d.weekday}, {d.monthDay}
+                          {isToday && (
+                            <span className={`ml-2 text-[10px] font-bold uppercase tracking-widest ${accent.text}`}>
+                              today
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <p className="text-[11px] text-firewatch-smoke/65 flex items-center gap-1.5">
         <Calendar className="h-3 w-3" aria-hidden />
