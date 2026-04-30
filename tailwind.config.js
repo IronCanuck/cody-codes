@@ -76,6 +76,25 @@ export default {
           ink: 'rgb(var(--miami-ink) / <alpha-value>)',
           mute: 'rgb(var(--miami-mute) / <alpha-value>)',
         },
+        /** Fire Watch — Calgary Fire Department fire-themed palette */
+        firewatch: {
+          ember: '#FF5722',
+          'ember-bright': '#FF7043',
+          flame: '#F4511E',
+          'flame-deep': '#D84315',
+          rust: '#B71C1C',
+          'rust-dark': '#7F1010',
+          spark: '#FFB300',
+          'spark-light': '#FFD54F',
+          gold: '#FFC107',
+          coal: '#1A0F0A',
+          ash: '#2D1B14',
+          smoke: '#4A3328',
+          'smoke-mute': '#7A5C4A',
+          cream: '#FFF7ED',
+          surface: '#FFEFE0',
+          ink: '#2A1107',
+        },
         /** Plant-Based Menu — rich evergreen palette */
         evergreen: {
           DEFAULT: '#1E5631',

@@ -16,6 +16,7 @@ import { BudgetPalApp } from './BudgetPalApp';
 import { FurriesApp } from './FurriesApp';
 import { PlantBasedMenuApp } from './PlantBasedMenuApp';
 import { StickyApp } from './Sticky';
+import { FireWatchApp } from './FireWatch';
 import { TaskMasterApp } from './TaskMasterApp';
 import { Login } from './pages/Login';
 import { MemberDashboard } from './pages/MemberDashboard';
@@ -85,6 +86,14 @@ function StickyRoute() {
   );
 }
 
+function FireWatchRoute() {
+  return (
+    <ProtectedRoute>
+      <FireWatchApp />
+    </ProtectedRoute>
+  );
+}
+
 export default function App() {
   const native = Capacitor.isNativePlatform();
 
@@ -104,6 +113,7 @@ export default function App() {
           <Route path="/budget-pal/*" element={<BudgetPalRoute />} />
           <Route path="/plant-based-menu" element={<PlantBasedMenuRoute />} />
           <Route path="/sticky/*" element={<StickyRoute />} />
+          <Route path="/fire-watch/*" element={<FireWatchRoute />} />
           <Route path="/consaltyapp" element={<ConsaltyRoute />}>
             <Route index element={<JobTrackerDashboardPage />} />
             <Route path="log" element={<JobTrackerLogPage />} />

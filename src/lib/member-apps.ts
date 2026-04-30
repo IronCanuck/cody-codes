@@ -1,5 +1,6 @@
 import {
   Flame,
+  FlameKindling,
   Kanban,
   Leaf,
   PawPrint,
@@ -106,6 +107,21 @@ export const APP_LIBRARY_SCHEMES = {
     cardTitle: 'text-evergreen-dark',
     cardCta: 'text-evergreen-dark',
   },
+  firewatch: {
+    menuLink:
+      'hover:bg-firewatch-flame-deep/10 hover:border-firewatch-flame-deep/30 focus-visible:ring-firewatch-flame-deep',
+    menuIconWrap:
+      'bg-gradient-to-br from-firewatch-spark via-firewatch-ember to-firewatch-flame-deep',
+    menuIconColor: 'text-firewatch-coal',
+    menuTitle: 'text-firewatch-flame-deep',
+    menuArrow: 'text-firewatch-flame-deep opacity-70',
+    card: 'border-firewatch-flame-deep/30 hover:border-firewatch-flame-deep/55 focus-visible:ring-firewatch-flame-deep',
+    cardIconWrap:
+      'bg-gradient-to-br from-firewatch-spark via-firewatch-ember to-firewatch-flame-deep ring-firewatch-flame-deep/25 group-hover:ring-firewatch-flame-deep/50',
+    cardIcon: 'text-firewatch-coal',
+    cardTitle: 'text-firewatch-flame-deep',
+    cardCta: 'text-firewatch-flame-deep',
+  },
   sticky: {
     menuLink:
       'hover:bg-miami-pink/10 hover:border-miami-pink/30 focus-visible:ring-miami-pink',
@@ -185,6 +201,15 @@ export const PAYWALLED_APPS: MemberApp[] = [
     path: '/budget-pal',
     icon: PiggyBank,
     scheme: 'budget',
+  },
+  {
+    id: 'fire-watch',
+    title: 'Fire Watch',
+    description:
+      'Calgary Fire Department platoon tracker — see the next 7 shifts and which crew is on duty.',
+    path: '/fire-watch',
+    icon: FlameKindling,
+    scheme: 'firewatch',
   },
   {
     id: 'sticky',
