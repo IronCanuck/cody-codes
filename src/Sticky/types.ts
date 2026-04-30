@@ -34,6 +34,7 @@ export type StickyNote = {
   zIndex: number;
   rotation: number;
   media: StickyMedia[];
+  collapsed?: boolean;
   createdAt: string;
   updatedAt: string;
 };

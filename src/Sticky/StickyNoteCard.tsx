@@ -6,7 +6,15 @@ import {
   type ChangeEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
-import { GripHorizontal, Image as ImageIcon, Layers, Trash2, X } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  GripHorizontal,
+  Image as ImageIcon,
+  Layers,
+  Trash2,
+  X,
+} from 'lucide-react';
 import {
   CATEGORY_COLOR_TOKENS,
   type StickyCategory,
@@ -94,6 +102,12 @@ export function StickyNoteCard({
   const colorKey = getCategoryColor(note.categoryId, categories);
   const tokens = CATEGORY_COLOR_TOKENS[colorKey];
   const category = categories.find((c) => c.id === note.categoryId) ?? null;
+  const collapsed = note.collapsed === true;
+  const derivedTitle =
+    note.text
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => line.length > 0) ?? '';
 
   const checkTrash = useCallback(
     (clientX: number, clientY: number) => {
@@ -254,7 +268,7 @@ export function StickyNoteCard({
           left: note.x,
           top: note.y,
           width: note.width,
-          height: note.height,
+          height: collapsed ? 'auto' : note.height,
           zIndex: dragging ? 999 : note.zIndex,
           transform: dragging ? `rotate(${note.rotation}deg) scale(1.02)` : `rotate(${note.rotation}deg)`,
         }}
@@ -269,7 +283,7 @@ export function StickyNoteCard({
           className={`flex h-full flex-col rounded-xl overflow-hidden bg-gradient-to-br ${tokens.body} text-white shadow-[0_18px_45px_-22px_rgba(0,0,0,0.9)] border border-white/15`}
         >
           <div
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 cursor-grab touch-none ${tokens.header}`}
+            className={`flex flex-col cursor-grab touch-none ${tokens.header}`}
             style={{ touchAction: 'none' }}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
@@ -278,104 +292,153 @@ export function StickyNoteCard({
             role="button"
             aria-label="Drag note"
           >
-            <GripHorizontal className="h-4 w-4 opacity-90" strokeWidth={2.25} aria-hidden />
-            <span className="text-[11px] font-bold uppercase tracking-widest truncate">
-              {category?.name ?? 'Unfiled'}
-            </span>
-            <div className="ml-auto flex items-center gap-1">
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  fileInputRef.current?.click();
-                }}
-                className="rounded-md p-1 hover:bg-black/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                aria-label="Attach image"
-                title="Attach image"
-              >
-                <ImageIcon className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
-              </button>
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onDelete();
-                }}
-                className="rounded-md p-1 hover:bg-black/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                aria-label="Delete note"
-                title="Throw away"
-              >
-                <Trash2 className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
-              </button>
-            </div>
-          </div>
-
-          <div className="px-2.5 pt-1.5 pb-1.5">
-            <label className="block">
-              <span className="sr-only">Note category</span>
-              <select
-                value={note.categoryId ?? ''}
-                onChange={(event) =>
-                  onChange({ categoryId: event.target.value || null })
-                }
-                onPointerDown={(event) => event.stopPropagation()}
-                className="w-full rounded-md border border-white/30 bg-black/25 px-2 py-1 text-[11px] font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              >
-                <option value="" className="text-slate-900">
-                  No category
-                </option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id} className="text-slate-900">
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <textarea
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            onBlur={(event) => flushTextIfChanged(event.target.value)}
-            onPointerDown={(event) => event.stopPropagation()}
-            placeholder="Type your reminder…"
-            className="flex-1 w-full resize-none bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/70 focus:outline-none"
-          />
-
-          {note.media.length > 0 && (
-            <div className="px-2 pb-2">
-              <div className="grid grid-cols-3 gap-1.5">
-                {note.media.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setPreviewMediaId(m.id);
-                    }}
-                    onPointerDown={(event) => event.stopPropagation()}
-                    className="group relative aspect-square overflow-hidden rounded-md border border-white/30 bg-black/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                    aria-label={`Open ${m.name}`}
-                  >
-                    <img
-                      src={m.dataUrl}
-                      alt={m.name}
-                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                      draggable={false}
-                    />
-                  </button>
-                ))}
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5">
+              <GripHorizontal className="h-4 w-4 opacity-90" strokeWidth={2.25} aria-hidden />
+              <span className="text-[11px] font-bold uppercase tracking-widest truncate">
+                {category?.name ?? 'Unfiled'}
+              </span>
+              <div className="ml-auto flex items-center gap-1">
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onChange({ collapsed: !collapsed });
+                  }}
+                  className="rounded-md p-1 hover:bg-black/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  aria-label={collapsed ? 'Expand note' : 'Collapse note'}
+                  aria-expanded={!collapsed}
+                  title={collapsed ? 'Expand' : 'Collapse'}
+                >
+                  {collapsed ? (
+                    <ChevronDown className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+                  ) : (
+                    <ChevronUp className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                  className="rounded-md p-1 hover:bg-black/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  aria-label="Attach image"
+                  title="Attach image"
+                >
+                  <ImageIcon className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onDelete();
+                  }}
+                  className="rounded-md p-1 hover:bg-black/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  aria-label="Delete note"
+                  title="Throw away"
+                >
+                  <Trash2 className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+                </button>
               </div>
             </div>
-          )}
+            {(derivedTitle || collapsed) && (
+              <div className="px-2.5 pb-1.5 text-sm font-semibold leading-snug break-words">
+                {derivedTitle || (
+                  <span className="opacity-70 italic font-normal">Untitled note</span>
+                )}
+              </div>
+            )}
+          </div>
 
-          {uploadError && (
-            <p
-              className="mx-2 mb-2 rounded-md bg-black/40 px-2 py-1 text-[11px] text-amber-200"
-              role="alert"
-            >
-              {uploadError}
-            </p>
+          {!collapsed && (
+            <>
+              <div className="px-2.5 pt-1.5 pb-1.5">
+                <label className="block">
+                  <span className="sr-only">Note category</span>
+                  <select
+                    value={note.categoryId ?? ''}
+                    onChange={(event) =>
+                      onChange({ categoryId: event.target.value || null })
+                    }
+                    onPointerDown={(event) => event.stopPropagation()}
+                    className="w-full rounded-md border border-white/30 bg-black/25 px-2 py-1 text-[11px] font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  >
+                    <option value="" className="text-slate-900">
+                      No category
+                    </option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id} className="text-slate-900">
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <textarea
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+                onBlur={(event) => flushTextIfChanged(event.target.value)}
+                onPointerDown={(event) => event.stopPropagation()}
+                placeholder="Type your reminder…"
+                className="flex-1 w-full resize-none bg-transparent px-3 py-2 text-sm text-white placeholder:text-white/70 focus:outline-none"
+              />
+
+              {note.media.length > 0 && (
+                <div className="px-2 pb-2">
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {note.media.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setPreviewMediaId(m.id);
+                        }}
+                        onPointerDown={(event) => event.stopPropagation()}
+                        className="group relative aspect-square overflow-hidden rounded-md border border-white/30 bg-black/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                        aria-label={`Open ${m.name}`}
+                      >
+                        <img
+                          src={m.dataUrl}
+                          alt={m.name}
+                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                          draggable={false}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {uploadError && (
+                <p
+                  className="mx-2 mb-2 rounded-md bg-black/40 px-2 py-1 text-[11px] text-amber-200"
+                  role="alert"
+                >
+                  {uploadError}
+                </p>
+              )}
+
+              <button
+                type="button"
+                onPointerDown={handleResizePointerDown}
+                onPointerMove={handleResizePointerMove}
+                onPointerUp={handleResizePointerUp}
+                onPointerCancel={handleResizePointerUp}
+                style={{ touchAction: 'none' }}
+                className={`absolute bottom-1 right-1 h-4 w-4 rounded-bl-md cursor-nwse-resize touch-none text-white/70 ${
+                  resizing ? 'text-white' : ''
+                }`}
+                aria-label="Resize note"
+                title="Drag to resize"
+              >
+                <Layers className="h-4 w-4 rotate-45" strokeWidth={2.25} aria-hidden />
+              </button>
+            </>
           )}
 
           <input
@@ -387,22 +450,6 @@ export function StickyNoteCard({
             className="hidden"
             aria-hidden
           />
-
-          <button
-            type="button"
-            onPointerDown={handleResizePointerDown}
-            onPointerMove={handleResizePointerMove}
-            onPointerUp={handleResizePointerUp}
-            onPointerCancel={handleResizePointerUp}
-            style={{ touchAction: 'none' }}
-            className={`absolute bottom-1 right-1 h-4 w-4 rounded-bl-md cursor-nwse-resize touch-none text-white/70 ${
-              resizing ? 'text-white' : ''
-            }`}
-            aria-label="Resize note"
-            title="Drag to resize"
-          >
-            <Layers className="h-4 w-4 rotate-45" strokeWidth={2.25} aria-hidden />
-          </button>
         </div>
       </div>
 
