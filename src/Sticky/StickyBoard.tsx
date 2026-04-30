@@ -67,14 +67,21 @@ export function StickyBoard() {
     };
   }, [pickerOpen]);
 
-  const adjustZoom = useCallback(
-    (delta: number, focal?: { clientX: number; clientY: number }) => {
+  // Keep a ref of the latest zoom so native event listeners can read it
+  // without re-binding every change (avoids dropped frames during pinch).
+  const zoomRef = useRef(zoom);
+  useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+
+  const setZoomAt = useCallback(
+    (target: number, focal?: { clientX: number; clientY: number }) => {
       const board = boardRef.current;
       setZoom((prev) => {
-        const next = clampZoom(prev + delta);
+        const next = clampZoom(target);
         if (next === prev) return prev;
         if (board && focal) {
-          // Keep the point under the cursor anchored while zooming.
+          // Keep the focal point anchored on screen while zooming.
           const rect = board.getBoundingClientRect();
           const px = focal.clientX - rect.left + board.scrollLeft;
           const py = focal.clientY - rect.top + board.scrollTop;
@@ -89,6 +96,13 @@ export function StickyBoard() {
       });
     },
     [],
+  );
+
+  const adjustZoom = useCallback(
+    (delta: number, focal?: { clientX: number; clientY: number }) => {
+      setZoomAt(zoomRef.current + delta, focal);
+    },
+    [setZoomAt],
   );
 
   const resetZoom = useCallback(() => setZoom(1), []);
@@ -107,6 +121,55 @@ export function StickyBoard() {
     board.addEventListener('wheel', handleWheel, { passive: false });
     return () => board.removeEventListener('wheel', handleWheel);
   }, [adjustZoom]);
+
+  // Pinch-to-zoom for touch devices. We track raw touch events so we can
+  // preventDefault and avoid the browser's page-level pinch-zoom.
+  useEffect(() => {
+    const board = boardRef.current;
+    if (!board) return;
+    let pinchStart:
+      | { dist: number; zoom: number }
+      | null = null;
+
+    const distance = (a: Touch, b: Touch) =>
+      Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length === 2) {
+        const [t1, t2] = [event.touches[0], event.touches[1]];
+        pinchStart = { dist: distance(t1, t2), zoom: zoomRef.current };
+        event.preventDefault();
+      }
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!pinchStart || event.touches.length < 2) return;
+      event.preventDefault();
+      const [t1, t2] = [event.touches[0], event.touches[1]];
+      const newDist = distance(t1, t2);
+      if (newDist <= 0) return;
+      const ratio = newDist / pinchStart.dist;
+      const target = pinchStart.zoom * ratio;
+      const midX = (t1.clientX + t2.clientX) / 2;
+      const midY = (t1.clientY + t2.clientY) / 2;
+      setZoomAt(target, { clientX: midX, clientY: midY });
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      if (event.touches.length < 2) pinchStart = null;
+    };
+
+    board.addEventListener('touchstart', handleTouchStart, { passive: false });
+    board.addEventListener('touchmove', handleTouchMove, { passive: false });
+    board.addEventListener('touchend', handleTouchEnd);
+    board.addEventListener('touchcancel', handleTouchEnd);
+    return () => {
+      board.removeEventListener('touchstart', handleTouchStart);
+      board.removeEventListener('touchmove', handleTouchMove);
+      board.removeEventListener('touchend', handleTouchEnd);
+      board.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [setZoomAt]);
 
   const zoomPercent = Math.round(zoom * 100);
 
@@ -208,16 +271,16 @@ export function StickyBoard() {
               type="button"
               onClick={() => adjustZoom(-ZOOM_STEP)}
               disabled={zoom <= ZOOM_MIN + 1e-6}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-miami-pink-light hover:bg-miami-pink/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-miami-cyan disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-miami-pink-light hover:bg-miami-pink/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-miami-cyan disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Zoom out"
               title="Zoom out"
             >
-              <ZoomOut className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+              <ZoomOut className="h-4 w-4" strokeWidth={2.5} aria-hidden />
             </button>
             <button
               type="button"
               onClick={resetZoom}
-              className="min-w-[3.25rem] rounded-lg px-2 py-0.5 text-[11px] font-bold uppercase tracking-widest text-white hover:bg-miami-cyan/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-miami-cyan"
+              className="min-w-[3.25rem] rounded-lg px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-white hover:bg-miami-cyan/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-miami-cyan"
               aria-label={`Reset zoom (currently ${zoomPercent}%)`}
               title="Reset to 100%"
             >
@@ -227,21 +290,21 @@ export function StickyBoard() {
               type="button"
               onClick={() => adjustZoom(ZOOM_STEP)}
               disabled={zoom >= ZOOM_MAX - 1e-6}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-miami-cyan hover:bg-miami-cyan/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-miami-cyan disabled:opacity-40 disabled:cursor-not-allowed"
+              className="inline-flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-miami-cyan hover:bg-miami-cyan/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-miami-cyan disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Zoom in"
               title="Zoom in"
             >
-              <ZoomIn className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+              <ZoomIn className="h-4 w-4" strokeWidth={2.5} aria-hidden />
             </button>
             <span className="mx-0.5 h-5 w-px bg-miami-pink/25" aria-hidden />
             <button
               type="button"
               onClick={resetZoom}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-miami-mute hover:bg-miami-cyan/15 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-miami-cyan"
+              className="inline-flex h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-lg text-miami-mute hover:bg-miami-cyan/15 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-miami-cyan"
               aria-label="Fit to 100%"
-              title="Reset zoom (Ctrl/Cmd + wheel to zoom)"
+              title="Reset zoom (pinch on touch · Ctrl/Cmd+wheel on desktop)"
             >
-              <Maximize2 className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+              <Maximize2 className="h-4 w-4" strokeWidth={2.25} aria-hidden />
             </button>
           </div>
         </div>
@@ -258,6 +321,9 @@ export function StickyBoard() {
               : 'auto',
             backgroundPosition: data.settings.showGrid ? '0 0, 16px 16px' : 'auto',
             maxHeight: 'min(70vh, 720px)',
+            // Allow single-finger scroll inside the board, but reserve
+            // multi-touch (pinch) for our custom zoom handler.
+            touchAction: 'pan-x pan-y',
           }}
         >
           <div
