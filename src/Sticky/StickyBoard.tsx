@@ -36,15 +36,29 @@ export function StickyBoard() {
 
   const trashZoneOnHover = (over: boolean) => setTrashHover(over);
 
-  const handleQuickAdd = () => {
-    addNote(data.settings.defaultCategoryId);
-    setPickerOpen(false);
-  };
-
   const handleAddWithCategory = (categoryId: string | null) => {
     addNote(categoryId);
     setPickerOpen(false);
   };
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest('[data-sticky-category-picker]')) {
+        setPickerOpen(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPickerOpen(false);
+    };
+    window.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [pickerOpen]);
 
   return (
     <div className="relative">
@@ -64,25 +78,16 @@ export function StickyBoard() {
               </p>
             </div>
 
-            <div className="relative">
+            <div className="relative" data-sticky-category-picker>
               <button
                 type="button"
-                onClick={handleQuickAdd}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  setPickerOpen((open) => !open);
-                }}
+                onClick={() => setPickerOpen((open) => !open)}
+                aria-haspopup="menu"
+                aria-expanded={pickerOpen}
                 className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-miami-pink-bright to-miami-cyan px-4 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-miami-pink/40 hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <Plus className="h-4 w-4" strokeWidth={2.75} aria-hidden />
                 New note
-              </button>
-              <button
-                type="button"
-                onClick={() => setPickerOpen((open) => !open)}
-                className="absolute -bottom-6 right-0 text-[11px] font-semibold text-miami-cyan hover:text-white"
-              >
-                Pick category…
               </button>
 
               {pickerOpen && (
