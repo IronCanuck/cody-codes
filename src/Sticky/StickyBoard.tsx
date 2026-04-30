@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Maximize2, Plus, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
 import { useSticky } from './StickyContext';
 import { StickyNoteCard } from './StickyNoteCard';
 import { CATEGORY_COLOR_TOKENS } from './types';
@@ -7,6 +7,12 @@ import { CATEGORY_COLOR_TOKENS } from './types';
 const BOARD_PADDING = 24;
 const MIN_BOARD_W = 1200;
 const MIN_BOARD_H = 800;
+const ZOOM_MIN = 0.4;
+const ZOOM_MAX = 2;
+const ZOOM_STEP = 0.1;
+
+const clampZoom = (value: number) =>
+  Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(value * 100) / 100));
 
 export function StickyBoard() {
   const { data, addNote, updateNote, removeNote, bringToFront } = useSticky();
@@ -14,6 +20,7 @@ export function StickyBoard() {
   const trashZoneRef = useRef<HTMLDivElement>(null);
   const [trashHover, setTrashHover] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
   const orderedNotes = useMemo(
     () => [...data.notes].sort((a, b) => a.zIndex - b.zIndex),
@@ -59,6 +66,49 @@ export function StickyBoard() {
       window.removeEventListener('keydown', handleEscape);
     };
   }, [pickerOpen]);
+
+  const adjustZoom = useCallback(
+    (delta: number, focal?: { clientX: number; clientY: number }) => {
+      const board = boardRef.current;
+      setZoom((prev) => {
+        const next = clampZoom(prev + delta);
+        if (next === prev) return prev;
+        if (board && focal) {
+          // Keep the point under the cursor anchored while zooming.
+          const rect = board.getBoundingClientRect();
+          const px = focal.clientX - rect.left + board.scrollLeft;
+          const py = focal.clientY - rect.top + board.scrollTop;
+          const scaleRatio = next / prev;
+          requestAnimationFrame(() => {
+            if (!boardRef.current) return;
+            boardRef.current.scrollLeft = px * scaleRatio - (focal.clientX - rect.left);
+            boardRef.current.scrollTop = py * scaleRatio - (focal.clientY - rect.top);
+          });
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  const resetZoom = useCallback(() => setZoom(1), []);
+
+  // Native wheel listener so we can preventDefault on Ctrl/Cmd+wheel
+  // (React's onWheel is passive in modern browsers).
+  useEffect(() => {
+    const board = boardRef.current;
+    if (!board) return;
+    const handleWheel = (event: WheelEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      event.preventDefault();
+      const delta = event.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+      adjustZoom(delta, { clientX: event.clientX, clientY: event.clientY });
+    };
+    board.addEventListener('wheel', handleWheel, { passive: false });
+    return () => board.removeEventListener('wheel', handleWheel);
+  }, [adjustZoom]);
+
+  const zoomPercent = Math.round(zoom * 100);
 
   return (
     <div className="relative">
@@ -148,50 +198,114 @@ export function StickyBoard() {
       </div>
 
       <div className="max-w-6xl mx-auto px-3 sm:px-6 pt-5 pb-24">
+        <div className="mb-2 flex items-center justify-end gap-1.5">
+          <div
+            className="inline-flex items-center gap-1 rounded-xl border border-miami-cyan/35 bg-miami-night/70 px-1.5 py-1 backdrop-blur"
+            role="group"
+            aria-label="Board zoom"
+          >
+            <button
+              type="button"
+              onClick={() => adjustZoom(-ZOOM_STEP)}
+              disabled={zoom <= ZOOM_MIN + 1e-6}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-miami-pink-light hover:bg-miami-pink/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-miami-cyan disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label="Zoom out"
+              title="Zoom out"
+            >
+              <ZoomOut className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={resetZoom}
+              className="min-w-[3.25rem] rounded-lg px-2 py-0.5 text-[11px] font-bold uppercase tracking-widest text-white hover:bg-miami-cyan/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-miami-cyan"
+              aria-label={`Reset zoom (currently ${zoomPercent}%)`}
+              title="Reset to 100%"
+            >
+              {zoomPercent}%
+            </button>
+            <button
+              type="button"
+              onClick={() => adjustZoom(ZOOM_STEP)}
+              disabled={zoom >= ZOOM_MAX - 1e-6}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-miami-cyan hover:bg-miami-cyan/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-miami-cyan disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label="Zoom in"
+              title="Zoom in"
+            >
+              <ZoomIn className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+            </button>
+            <span className="mx-0.5 h-5 w-px bg-miami-pink/25" aria-hidden />
+            <button
+              type="button"
+              onClick={resetZoom}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-miami-mute hover:bg-miami-cyan/15 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-miami-cyan"
+              aria-label="Fit to 100%"
+              title="Reset zoom (Ctrl/Cmd + wheel to zoom)"
+            >
+              <Maximize2 className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+            </button>
+          </div>
+        </div>
+
         <div
           ref={boardRef}
-          className="relative rounded-2xl border border-miami-pink/25 bg-miami-night-deep overflow-auto"
+          className="relative rounded-2xl border border-miami-pink/25 bg-miami-night-deep overflow-auto overscroll-contain"
           style={{
             backgroundImage: data.settings.showGrid
               ? 'radial-gradient(circle at 1px 1px, rgba(255,46,147,0.12) 1px, transparent 0), radial-gradient(circle at 1px 1px, rgba(0,229,255,0.08) 1px, transparent 0)'
               : 'none',
-            backgroundSize: data.settings.showGrid ? '32px 32px, 64px 64px' : 'auto',
+            backgroundSize: data.settings.showGrid
+              ? `${32 * zoom}px ${32 * zoom}px, ${64 * zoom}px ${64 * zoom}px`
+              : 'auto',
             backgroundPosition: data.settings.showGrid ? '0 0, 16px 16px' : 'auto',
             maxHeight: 'min(70vh, 720px)',
           }}
         >
           <div
-            className="relative"
-            style={{ width: boardSize.width, height: boardSize.height }}
+            style={{
+              width: boardSize.width * zoom,
+              height: boardSize.height * zoom,
+              position: 'relative',
+            }}
           >
-            {totalNotes === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="text-center px-6">
-                  <p className="text-sm font-semibold tracking-widest uppercase text-miami-cyan">
-                    Empty board
-                  </p>
-                  <p className="mt-2 text-base font-bold text-white max-w-sm">
-                    Hit <span className="text-miami-pink-light">New note</span> to drop your first
-                    sticky onto the neon grid.
-                  </p>
+            <div
+              className="relative"
+              style={{
+                width: boardSize.width,
+                height: boardSize.height,
+                transform: `scale(${zoom})`,
+                transformOrigin: 'top left',
+              }}
+            >
+              {totalNotes === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-center px-6">
+                    <p className="text-sm font-semibold tracking-widest uppercase text-miami-cyan">
+                      Empty board
+                    </p>
+                    <p className="mt-2 text-base font-bold text-white max-w-sm">
+                      Hit <span className="text-miami-pink-light">New note</span> to drop your first
+                      sticky onto the neon grid.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {orderedNotes.map((note) => (
-              <StickyNoteCard
-                key={note.id}
-                note={note}
-                categories={data.categories}
-                glow={data.settings.glow}
-                boardEl={boardRef.current}
-                trashEl={trashZoneRef.current}
-                onChange={(patch) => updateNote(note.id, patch)}
-                onDelete={() => removeNote(note.id)}
-                onFocusBringToFront={() => bringToFront(note.id)}
-                onTrashHover={trashZoneOnHover}
-              />
-            ))}
+              {orderedNotes.map((note) => (
+                <StickyNoteCard
+                  key={note.id}
+                  note={note}
+                  categories={data.categories}
+                  glow={data.settings.glow}
+                  boardEl={boardRef.current}
+                  trashEl={trashZoneRef.current}
+                  zoom={zoom}
+                  onChange={(patch) => updateNote(note.id, patch)}
+                  onDelete={() => removeNote(note.id)}
+                  onFocusBringToFront={() => bringToFront(note.id)}
+                  onTrashHover={trashZoneOnHover}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>

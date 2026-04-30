@@ -35,6 +35,7 @@ type Props = {
   glow: boolean;
   boardEl: HTMLElement | null;
   trashEl: HTMLElement | null;
+  zoom?: number;
   onChange: (patch: Partial<StickyNote>) => void;
   onDelete: () => void;
   onFocusBringToFront: () => void;
@@ -60,11 +61,13 @@ export function StickyNoteCard({
   glow,
   boardEl,
   trashEl,
+  zoom = 1,
   onChange,
   onDelete,
   onFocusBringToFront,
   onTrashHover,
 }: Props) {
+  const scale = zoom > 0 ? zoom : 1;
   const { attachMedia, detachMedia } = useSticky();
   const elRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -135,8 +138,9 @@ export function StickyNoteCard({
     const targetRect = elRef.current.getBoundingClientRect();
     dragState.current = {
       pointerId: event.pointerId,
-      offsetX: event.clientX - targetRect.left,
-      offsetY: event.clientY - targetRect.top,
+      // Convert from screen pixels to unscaled board coordinates.
+      offsetX: (event.clientX - targetRect.left) / scale,
+      offsetY: (event.clientY - targetRect.top) / scale,
       startX: note.x,
       startY: note.y,
     };
@@ -154,12 +158,15 @@ export function StickyNoteCard({
     event.preventDefault();
     const boardRect = boardEl.getBoundingClientRect();
     const innerEl = boardEl.firstElementChild as HTMLElement | null;
-    const innerWidth = innerEl?.offsetWidth ?? boardRect.width;
-    const innerHeight = innerEl?.offsetHeight ?? boardRect.height;
-    const newX =
-      event.clientX - boardRect.left + boardEl.scrollLeft - dragState.current.offsetX;
-    const newY =
-      event.clientY - boardRect.top + boardEl.scrollTop - dragState.current.offsetY;
+    // The wrapper child is sized in scaled (screen) pixels; convert back to unscaled.
+    const innerWidth = (innerEl?.offsetWidth ?? boardRect.width) / scale;
+    const innerHeight = (innerEl?.offsetHeight ?? boardRect.height) / scale;
+    const pointerBoardX =
+      (event.clientX - boardRect.left + boardEl.scrollLeft) / scale;
+    const pointerBoardY =
+      (event.clientY - boardRect.top + boardEl.scrollTop) / scale;
+    const newX = pointerBoardX - dragState.current.offsetX;
+    const newY = pointerBoardY - dragState.current.offsetY;
     const clampedX = Math.max(0, Math.min(Math.max(0, innerWidth - note.width), newX));
     const clampedY = Math.max(0, Math.min(Math.max(0, innerHeight - note.height), newY));
     onChange({ x: clampedX, y: clampedY });
@@ -201,8 +208,8 @@ export function StickyNoteCard({
   const handleResizePointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (!resizeState.current || resizeState.current.pointerId !== event.pointerId) return;
     event.preventDefault();
-    const dx = event.clientX - resizeState.current.startX;
-    const dy = event.clientY - resizeState.current.startY;
+    const dx = (event.clientX - resizeState.current.startX) / scale;
+    const dy = (event.clientY - resizeState.current.startY) / scale;
     const w = Math.max(NOTE_MIN_W, Math.min(NOTE_MAX_W, resizeState.current.startW + dx));
     const h = Math.max(NOTE_MIN_H, Math.min(NOTE_MAX_H, resizeState.current.startH + dy));
     onChange({ width: w, height: h });
