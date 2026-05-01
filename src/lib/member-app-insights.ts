@@ -325,12 +325,12 @@ function loadFireWatchSnapshot(userId: string): FireWatchSnapshot | null {
 
 function shiftCrewLabel(firefighters: Firefighter[], shift: ShiftCode): string {
   const crew = firefighters.filter((f) => f.shift === shift);
-  if (crew.length === 0) return `${shift} Shift`;
+  if (crew.length === 0) return 'No crew yet';
   const names = crew
     .map((f) => f.name.trim().split(/\s+/)[0])
     .filter(Boolean)
     .slice(0, 2);
-  if (names.length === 0) return `${shift} Shift`;
+  if (names.length === 0) return 'No crew yet';
   const tail = crew.length > names.length ? ` +${crew.length - names.length}` : '';
   return `${names.join(', ')}${tail}`;
 }
@@ -340,14 +340,19 @@ function fireWatchInsight(userId: string | undefined): AppInsight {
   const snap = userId ? loadFireWatchSnapshot(userId) : null;
   const firefighters = snap?.firefighters ?? [];
 
-  const todayLabel = `${today.shift} · ${shiftCrewLabel(firefighters, today.shift)}`;
-  const tmrLabel = `${tomorrow.shift} · ${shiftCrewLabel(firefighters, tomorrow.shift)}`;
-  const nextLabel = `${dayAfter.shift} · ${shiftCrewLabel(firefighters, dayAfter.shift)}`;
-
   const lines = [
-    { label: `Today · ${today.monthDay}`, value: todayLabel },
-    { label: `Tomorrow · ${tomorrow.monthDay}`, value: tmrLabel },
-    { label: `${dayAfter.weekdayShort} · ${dayAfter.monthDay}`, value: nextLabel },
+    {
+      label: `Today · ${today.monthDay} · ${today.shift}`,
+      value: shiftCrewLabel(firefighters, today.shift),
+    },
+    {
+      label: `Tomorrow · ${tomorrow.monthDay} · ${tomorrow.shift}`,
+      value: shiftCrewLabel(firefighters, tomorrow.shift),
+    },
+    {
+      label: `${dayAfter.weekdayShort} · ${dayAfter.monthDay} · ${dayAfter.shift}`,
+      value: shiftCrewLabel(firefighters, dayAfter.shift),
+    },
   ];
 
   let reminder: string | null = null;
