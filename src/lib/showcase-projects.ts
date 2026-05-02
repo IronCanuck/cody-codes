@@ -121,4 +121,10 @@ export const SHOWCASE_PROJECTS: readonly ShowcaseProject[] = [
     href: 'https://www.rugbytournaments.ca',
     image: '/showcase/rugbytournaments.png',
   },
+  {
+    title: 'The Wrestling Summit',
+    description: 'Wrestling summit event hub.',
+    href: 'https://www.thewrestlingsummit.org',
+    image: '/showcase/wrestlingsummit.png',
+  },
 ];

@@ -30,6 +30,7 @@ const PROJECTS = [
   { key: 'plantbasedathlete', url: 'https://www.plantbasedathlete.co' },
   { key: 'podiumtv', url: 'https://www.podiumtv.co' },
   { key: 'rugbytournaments', url: 'https://www.rugbytournaments.ca' },
+  { key: 'wrestlingsummit', url: 'https://www.thewrestlingsummit.org' },
 ];
 
 const DELAY_MS = 2000;
