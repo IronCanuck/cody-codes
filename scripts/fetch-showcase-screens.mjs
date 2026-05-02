@@ -24,6 +24,12 @@ const PROJECTS = [
   { key: 'canadawrestlinghq', url: 'https://www.wrestlingtournaments.ca' },
   { key: 'firereportpro', url: 'https://www.firereportpro.com' },
   { key: 'digitalpivot', url: 'https://www.thedigitalpivot.ca' },
+  { key: 'beastsofandromeda', url: 'https://www.beastsofandromeda.com' },
+  { key: 'athletemarket', url: 'https://www.athletemarket.org' },
+  { key: 'varsitywrestling', url: 'https://www.varsitywrestling.ca' },
+  { key: 'plantbasedathlete', url: 'https://www.plantbasedathlete.co' },
+  { key: 'podiumtv', url: 'https://www.podiumtv.co' },
+  { key: 'rugbytournaments', url: 'https://www.rugbytournaments.ca' },
 ];
 
 const DELAY_MS = 2000;

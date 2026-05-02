@@ -85,4 +85,40 @@ export const SHOWCASE_PROJECTS: readonly ShowcaseProject[] = [
     href: 'https://www.thedigitalpivot.ca',
     image: '/showcase/digitalpivot.png',
   },
+  {
+    title: 'Beasts of Andromeda',
+    description: 'Brand storytelling and merchandise hub.',
+    href: 'https://www.beastsofandromeda.com',
+    image: '/showcase/beastsofandromeda.png',
+  },
+  {
+    title: 'Athlete Market',
+    description: 'Marketplace connecting athletes and sponsors.',
+    href: 'https://www.athletemarket.org',
+    image: '/showcase/athletemarket.png',
+  },
+  {
+    title: 'Varsity Wrestling',
+    description: 'Canadian varsity wrestling hub.',
+    href: 'https://www.varsitywrestling.ca',
+    image: '/showcase/varsitywrestling.png',
+  },
+  {
+    title: 'Plant Based Athlete',
+    description: 'Nutrition and lifestyle for plant-based athletes.',
+    href: 'https://www.plantbasedathlete.co',
+    image: '/showcase/plantbasedathlete.png',
+  },
+  {
+    title: 'Podium TV',
+    description: 'Streaming platform for sports content.',
+    href: 'https://www.podiumtv.co',
+    image: '/showcase/podiumtv.png',
+  },
+  {
+    title: 'Rugby Tournaments',
+    description: 'Tournament database for Canadian rugby.',
+    href: 'https://www.rugbytournaments.ca',
+    image: '/showcase/rugbytournaments.png',
+  },
 ];
