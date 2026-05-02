@@ -27,17 +27,17 @@ export type AppLibraryScheme = {
 export const APP_LIBRARY_SCHEMES = {
   cody: {
     menuLink:
-      'hover:bg-evergreen-light/40 hover:border-evergreen/25 focus-visible:ring-evergreen',
-    menuIconWrap: 'bg-slate-50 ring-1 ring-evergreen/20',
-    menuIconColor: 'text-evergreen-dark',
-    menuTitle: 'text-evergreen-dark',
-    menuArrow: 'text-evergreen-dark opacity-60',
-    card: 'border-evergreen/20 hover:border-evergreen/45 focus-visible:ring-evergreen',
+      'hover:bg-jd-green-50 hover:border-jd-green-600/30 focus-visible:ring-jd-green-600',
+    menuIconWrap: 'bg-slate-50 ring-1 ring-jd-green-600/25',
+    menuIconColor: 'text-jd-green-700',
+    menuTitle: 'text-jd-green-700',
+    menuArrow: 'text-jd-green-600 opacity-70',
+    card: 'border-jd-green-600/25 hover:border-jd-green-600/55 focus-visible:ring-jd-green-600',
     cardIconWrap:
-      'bg-slate-50 ring-evergreen/30 group-hover:ring-evergreen/55',
-    cardIcon: 'text-evergreen-dark',
-    cardTitle: 'text-evergreen-dark',
-    cardCta: 'text-evergreen-dark',
+      'bg-slate-50 ring-jd-green-600/35 group-hover:ring-jd-green-600/65',
+    cardIcon: 'text-jd-green-700',
+    cardTitle: 'text-jd-green-700',
+    cardCta: 'text-jd-green-700',
   },
   tiffany: {
     menuLink: 'hover:bg-tiffany/8 hover:border-tiffany/20 focus-visible:ring-tiffany',
