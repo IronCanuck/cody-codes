@@ -147,6 +147,7 @@ export type MemberApp = {
   path: string;
   icon: LucideIcon;
   scheme: AppLibrarySchemeKey;
+  iconStrokeWidth?: number;
 };
 
 /** Apps behind auth; extend this list as you ship more products. */
@@ -158,6 +159,7 @@ export const PAYWALLED_APPS: MemberApp[] = [
     path: '/consaltyapp',
     icon: DollarSign,
     scheme: 'cody',
+    iconStrokeWidth: 3,
   },
   {
     id: 'taskmaster',

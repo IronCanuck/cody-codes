@@ -6,6 +6,7 @@ import { JobForm } from './components/JobForm';
 import { JobList } from './components/JobList';
 import { Reports } from './components/Reports';
 import { StatsBar } from './components/StatsBar';
+import { RecentActivity } from './components/RecentActivity';
 import { Earnings } from './components/Earnings';
 import { Settings } from './components/Settings';
 import { Toast, ToastState } from './components/Toast';
@@ -31,8 +32,13 @@ const SETTINGS_ROW_INSERT = {
   extra_tax_per_pay_period: DEFAULT_SETTINGS.extra_tax_per_pay_period,
 } as const;
 export function JobTrackerDashboardPage() {
-  const { jobs, settings, dailyReports } = useJobTrackerOutlet();
-  return <StatsBar jobs={jobs} settings={settings} dailyReports={dailyReports} />;
+  const { jobs, settings, dailyReports, loading } = useJobTrackerOutlet();
+  return (
+    <div className="space-y-6">
+      <StatsBar jobs={jobs} settings={settings} dailyReports={dailyReports} />
+      <RecentActivity jobs={jobs} loading={loading} />
+    </div>
+  );
 }
 
 export function JobTrackerLogPage() {

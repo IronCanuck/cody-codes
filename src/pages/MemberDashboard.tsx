@@ -197,7 +197,7 @@ export function MemberDashboard() {
                       <div
                         className={`flex shrink-0 items-center justify-center rounded-lg p-2.5 ring-2 ${s.cardIconWrap}`}
                       >
-                        <Icon className={s.cardIcon} size={22} strokeWidth={2} aria-hidden />
+                        <Icon className={s.cardIcon} size={22} strokeWidth={app.iconStrokeWidth ?? 2} aria-hidden />
                       </div>
                       <div className="min-w-0 flex-1">
                         <h4 className={`font-bold text-sm ${s.cardTitle}`}>{app.title}</h4>
@@ -264,7 +264,7 @@ export function MemberDashboard() {
                     <div
                       className={`flex shrink-0 items-center justify-center rounded-xl p-3 ring-2 transition-shadow ${s.cardIconWrap}`}
                     >
-                      <Icon className={s.cardIcon} size={26} strokeWidth={2} aria-hidden />
+                      <Icon className={s.cardIcon} size={26} strokeWidth={app.iconStrokeWidth ?? 2} aria-hidden />
                     </div>
                     <div className="min-w-0 flex-1 text-left">
                       <h4 className={`font-bold text-lg ${s.cardTitle}`}>{app.title}</h4>
