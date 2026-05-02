@@ -45,19 +45,19 @@ export function StatsBar({ jobs, settings, dailyReports = [] }: Props) {
     {
       label: 'Today',
       value: `${sumHours(todayJobs).toFixed(1)} hrs`,
-      sub: `${todayJobs.length} ${todayJobs.length === 1 ? 'job' : 'jobs'}`,
+      sub: `${todayJobs.length} ${todayJobs.length === 1 ? 'shift' : 'shifts'}`,
       Icon: Clock,
     },
     {
       label: 'This Week',
       value: `${sumHours(weekJobs).toFixed(1)} hrs`,
-      sub: `${weekJobs.length} ${weekJobs.length === 1 ? 'job' : 'jobs'}`,
+      sub: `${weekJobs.length} ${weekJobs.length === 1 ? 'shift' : 'shifts'}`,
       Icon: CalendarDays,
     },
     {
       label: 'This Month',
       value: `${sumHours(monthJobs).toFixed(1)} hrs`,
-      sub: `${monthJobs.length} ${monthJobs.length === 1 ? 'job' : 'jobs'}`,
+      sub: `${monthJobs.length} ${monthJobs.length === 1 ? 'shift' : 'shifts'}`,
       Icon: CalendarRange,
     },
     {

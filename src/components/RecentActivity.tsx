@@ -28,7 +28,7 @@ export function RecentActivity({ jobs, loading = false, limit = 10 }: Props) {
             Recent activity
           </h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            Latest {Math.min(rows.length, limit)} job{rows.length === 1 ? '' : 's'} logged
+            Latest {Math.min(rows.length, limit)} shift{rows.length === 1 ? '' : 's'} logged
           </p>
         </div>
         <Link
