@@ -1,4 +1,5 @@
 import {
+  DollarSign,
   Flame,
   FlameKindling,
   Kanban,
@@ -6,7 +7,6 @@ import {
   PawPrint,
   PiggyBank,
   StickyNote,
-  Timer,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -27,17 +27,17 @@ export type AppLibraryScheme = {
 export const APP_LIBRARY_SCHEMES = {
   cody: {
     menuLink:
-      'hover:bg-cody-finnish/5 hover:border-cody-finnish/15 focus-visible:ring-cody-finnish',
-    menuIconWrap: 'bg-cody-gold/15',
-    menuIconColor: 'text-cody-finnish',
-    menuTitle: 'text-cody-finnish',
-    menuArrow: 'text-cody-finnish opacity-60',
-    card: 'border-cody-finnish/15 hover:border-cody-finnish/35 focus-visible:ring-cody-finnish',
+      'hover:bg-evergreen-light/40 hover:border-evergreen/25 focus-visible:ring-evergreen',
+    menuIconWrap: 'bg-slate-50 ring-1 ring-evergreen/20',
+    menuIconColor: 'text-evergreen-dark',
+    menuTitle: 'text-evergreen-dark',
+    menuArrow: 'text-evergreen-dark opacity-60',
+    card: 'border-evergreen/20 hover:border-evergreen/45 focus-visible:ring-evergreen',
     cardIconWrap:
-      'bg-gradient-to-br from-cody-gold/90 to-cody-gold ring-cody-finnish/10 group-hover:ring-cody-finnish/25',
-    cardIcon: 'text-cody-finnish',
-    cardTitle: 'text-cody-finnish',
-    cardCta: 'text-cody-finnish',
+      'bg-slate-50 ring-evergreen/30 group-hover:ring-evergreen/55',
+    cardIcon: 'text-evergreen-dark',
+    cardTitle: 'text-evergreen-dark',
+    cardCta: 'text-evergreen-dark',
   },
   tiffany: {
     menuLink: 'hover:bg-tiffany/8 hover:border-tiffany/20 focus-visible:ring-tiffany',
@@ -156,7 +156,7 @@ export const PAYWALLED_APPS: MemberApp[] = [
     title: 'Consalty',
     description: 'Job and hour tracking — log shifts, earnings, and reports.',
     path: '/consaltyapp',
-    icon: Timer,
+    icon: DollarSign,
     scheme: 'cody',
   },
   {
