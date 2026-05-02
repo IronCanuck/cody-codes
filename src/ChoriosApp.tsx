@@ -26,6 +26,7 @@ import {
   BellOff,
   CalendarDays,
   Check,
+  Copy,
   Database,
   Download,
   Flame,
@@ -619,6 +620,24 @@ export function ChoriosApp() {
     }
   };
 
+  const duplicateChore = (chore: Chore) => {
+    const sameCadence = data.chores.filter((c) => c.cadence === chore.cadence);
+    const maxOrder = sameCadence.length > 0 ? Math.max(...sameCadence.map((c) => c.sortOrder)) : -1;
+    const copy: Chore = {
+      ...chore,
+      id: newId(),
+      title: `${chore.title} (copy)`,
+      sortOrder: maxOrder + 1,
+      lastCompletedAt: null,
+      snoozeUntil: null,
+      silencedDueAt: null,
+    };
+    persist((d) => ({ ...d, chores: [...d.chores, copy] }));
+    setMainTab(copy.cadence);
+    setEditingChore(copy);
+    setCreating(false);
+  };
+
   const moveChore = (chore: Chore, dir: -1 | 1) => {
     const list = choresForTab;
     const idx = list.findIndex((c) => c.id === chore.id);
@@ -766,6 +785,11 @@ export function ChoriosApp() {
               setEditingChore(null);
             }}
             onComplete={(c) => completeChore(c.id, null)}
+            onEdit={(c) => {
+              setEditingChore(c);
+              setCreating(false);
+            }}
+            onDuplicate={duplicateChore}
           />
         ) : choresForTab.length === 0 ? (
           <div className="rounded-2xl border-2 border-dashed border-flames-orange/35 bg-white/60 py-12 px-4 text-center">
@@ -785,6 +809,7 @@ export function ChoriosApp() {
             onDelete={setDeleteChoreId}
             onMove={moveChore}
             onComplete={(c) => completeChore(c.id, null)}
+            onDuplicate={duplicateChore}
           />
         )}
             </div>
@@ -990,11 +1015,15 @@ function ChoriosDashboard({
   onGoToCadence,
   onAddChore,
   onComplete,
+  onEdit,
+  onDuplicate,
 }: {
   model: DashboardModel;
   onGoToCadence: (c: Cadence) => void;
   onAddChore: () => void;
   onComplete: (c: Chore) => void;
+  onEdit: (c: Chore) => void;
+  onDuplicate: (c: Chore) => void;
 }) {
   const { now, counts, total, dueNow, upcoming, completedThisWeek, categoryCount } = model;
   const greeting =
@@ -1148,6 +1177,26 @@ function ChoriosDashboard({
                 <span className="text-[11px] font-medium text-flames-orange-dark shrink-0 text-right max-w-[7rem] sm:max-w-none">
                   {formatDueLabel(nextDue)}
                 </span>
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(c)}
+                    className="p-1.5 rounded hover:bg-flames-surface text-flames-orange-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-flames-orange"
+                    aria-label={`Edit ${c.title}`}
+                    title="Edit"
+                  >
+                    <Pencil className="h-4 w-4" strokeWidth={2.25} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDuplicate(c)}
+                    className="p-1.5 rounded hover:bg-flames-surface text-flames-dark/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-flames-orange"
+                    aria-label={`Duplicate ${c.title}`}
+                    title="Duplicate"
+                  >
+                    <Copy className="h-4 w-4" strokeWidth={2.25} />
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -1165,6 +1214,7 @@ function ChoreListGrouped({
   onDelete,
   onMove,
   onComplete,
+  onDuplicate,
 }: {
   chores: Chore[];
   categories: Category[];
@@ -1173,6 +1223,7 @@ function ChoreListGrouped({
   onDelete: (id: string) => void;
   onMove: (c: Chore, dir: -1 | 1) => void;
   onComplete: (c: Chore) => void;
+  onDuplicate: (c: Chore) => void;
 }) {
   const catMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
@@ -1188,6 +1239,7 @@ function ChoreListGrouped({
             onDelete={() => onDelete(c.id)}
             onMove={(dir) => onMove(c, dir)}
             onComplete={() => onComplete(c)}
+            onDuplicate={() => onDuplicate(c)}
           />
         ))}
       </ul>
@@ -1230,6 +1282,7 @@ function ChoreListGrouped({
                   onDelete={() => onDelete(c.id)}
                   onMove={(dir) => onMove(c, dir)}
                   onComplete={() => onComplete(c)}
+                  onDuplicate={() => onDuplicate(c)}
                 />
               ))}
             </ul>
@@ -1247,6 +1300,7 @@ function ChoreRow({
   onDelete,
   onMove,
   onComplete,
+  onDuplicate,
 }: {
   chore: Chore;
   category?: Category;
@@ -1254,6 +1308,7 @@ function ChoreRow({
   onDelete: () => void;
   onMove: (dir: -1 | 1) => void;
   onComplete: () => void;
+  onDuplicate: () => void;
 }) {
   const after = anchorInstantForNextDue(chore);
   const nextDue = getNextDueInstantAfter(chore, after);
@@ -1299,6 +1354,15 @@ function ChoreRow({
                 aria-label="Edit"
               >
                 <Pencil className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={onDuplicate}
+                className="p-1 rounded hover:bg-flames-surface text-flames-dark/60"
+                aria-label="Duplicate"
+                title="Duplicate"
+              >
+                <Copy className="h-4 w-4" />
               </button>
               <button
                 type="button"
