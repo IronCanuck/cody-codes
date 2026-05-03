@@ -21,6 +21,7 @@ export function makeDefaultColumns(): BoardColumn[] {
     id: newId(),
     title,
     order: i,
+    color: DEFAULT_COLUMN_THEME_SEQUENCE[i] ?? DEFAULT_COLUMN_THEME_ID,
   }));
 }
 
@@ -101,6 +102,9 @@ export function parsePersistedSnapshotJson(raw: string): PersistedSnapshot {
     for (const c of p.columns as unknown[]) {
       if (!isObject(c) || typeof c.id !== 'string' || typeof c.title !== 'string' || typeof c.order !== 'number') {
         throw new Error('A column in the file is not valid.');
+      }
+      if (c.color !== undefined && !isColumnThemeId(c.color)) {
+        delete c.color;
       }
     }
     for (const t of p.tasks as unknown[]) {

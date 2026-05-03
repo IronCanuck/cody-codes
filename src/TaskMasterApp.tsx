@@ -24,6 +24,13 @@ import {
 } from './lib/taskmaster-storage';
 import type { BoardColumn, Project, Task, TaskPriority, PersistedSnapshot } from './lib/taskmaster-types';
 import {
+  COLUMN_THEME_LIST,
+  DEFAULT_COLUMN_THEME_ID,
+  DEFAULT_COLUMN_THEME_SEQUENCE,
+  getColumnTheme,
+  type ColumnThemeId,
+} from './lib/taskmaster-themes';
+import {
   TaskMasterSettingsDataPage,
   TaskMasterSettingsGeneralPage,
   TaskMasterSettingsLayout,
@@ -326,11 +333,22 @@ export function TaskMasterApp() {
   const addColumn = () => {
     updateProject((p) => {
       const maxOrder = p.columns.length > 0 ? Math.max(...p.columns.map((c) => c.order)) : -1;
+      const nextIndex = p.columns.length;
+      const color =
+        DEFAULT_COLUMN_THEME_SEQUENCE[nextIndex % DEFAULT_COLUMN_THEME_SEQUENCE.length] ??
+        DEFAULT_COLUMN_THEME_ID;
       return {
         ...p,
-        columns: [...p.columns, { id: newId(), title: 'New stage', order: maxOrder + 1 }],
+        columns: [...p.columns, { id: newId(), title: 'New stage', order: maxOrder + 1, color }],
       };
     });
+  };
+
+  const setColumnColor = (columnId: string, color: ColumnThemeId) => {
+    updateProject((p) => ({
+      ...p,
+      columns: p.columns.map((c) => (c.id === columnId ? { ...c, color } : c)),
+    }));
   };
 
   const removeColumn = (columnId: string) => {
@@ -549,42 +567,55 @@ export function TaskMasterApp() {
           <div className="flex flex-col gap-4 w-full min-w-0 md:flex-row md:items-start md:w-max md:max-w-none md:pb-1 md:gap-3">
             {sortedColumns.map((col) => {
               const colTasks = tasksInColumn(activeProject.tasks, col.id);
+              const theme = getColumnTheme(col.color);
+              const isDropTarget = dragOver?.columnId === col.id && Boolean(draggingTaskId);
               return (
                 <section
                   key={col.id}
-                  className={`w-full min-w-0 flex flex-col md:w-60 md:shrink-0 h-fit bg-white rounded-lg border shadow-sm transition-colors ${
-                    dragOver?.columnId === col.id && draggingTaskId
-                      ? 'border-tiffany ring-2 ring-tiffany/40'
-                      : 'border-tiffany/20'
-                  }`}
+                  className="w-full min-w-0 flex flex-col md:w-60 md:shrink-0 h-fit rounded-lg border shadow-sm transition-colors"
+                  style={{
+                    backgroundColor: theme.soft,
+                    borderColor: isDropTarget ? theme.base : theme.border,
+                    boxShadow: isDropTarget ? `0 0 0 2px ${theme.base}55` : undefined,
+                  }}
                 >
-                  <div className="px-2.5 py-2 border-b border-tiffany/15 flex items-center justify-between gap-2 shrink-0">
-                    <h2 className="font-semibold text-tiffany-darker text-sm truncate">{col.title}</h2>
-                    <span className="text-xs text-slate-400 tabular-nums">{colTasks.length}</span>
+                  <div
+                    className="px-2.5 py-2 border-b flex items-center justify-between gap-2 shrink-0 rounded-t-lg"
+                    style={{ backgroundColor: theme.headerBg, borderColor: theme.border }}
+                  >
+                    <h2 className="font-semibold text-sm truncate" style={{ color: theme.dark }}>
+                      {col.title}
+                    </h2>
+                    <span className="text-xs tabular-nums" style={{ color: theme.dark, opacity: 0.7 }}>
+                      {colTasks.length}
+                    </span>
                   </div>
                   <ul
                     className="min-h-[2.5rem] max-h-52 sm:max-h-64 overflow-y-auto overscroll-y-contain p-1.5 space-y-1.5 [scrollbar-gutter:stable] md:max-h-[min(50vh,20rem)]"
                     onDragOver={(e) => handleColumnDragOver(e, col.id, colTasks.length)}
                     onDrop={(e) => handleColumnDrop(e, col.id, colTasks.length)}
                   >
-                    {colTasks.map((t, idx) => (
+                    {colTasks.map((t, idx) => {
+                      const isInsertHere = dragOver?.columnId === col.id && dragOver.index === idx;
+                      return (
                       <li
                         key={t.id}
                         onDragOver={(e) => handleCardDragOver(e, col.id, idx)}
                         onDrop={(e) => handleColumnDrop(e, col.id, idx)}
-                        className={
-                          dragOver?.columnId === col.id && dragOver.index === idx
-                            ? 'border-t-2 border-tiffany pt-1 -mt-1'
-                            : ''
-                        }
+                        className={isInsertHere ? 'border-t-2 pt-1 -mt-1' : ''}
+                        style={isInsertHere ? { borderColor: theme.base } : undefined}
                       >
                         <article
                           draggable
                           onDragStart={(e) => handleCardDragStart(e, t.id)}
                           onDragEnd={handleCardDragEnd}
-                          className={`rounded-lg border border-tiffany/20 bg-tiffany-light/40 p-2.5 shadow-sm hover:border-tiffany/50 hover:bg-tiffany-light/70 transition-colors cursor-grab active:cursor-grabbing ${
+                          className={`rounded-lg border p-2.5 shadow-sm transition-colors cursor-grab active:cursor-grabbing ${
                             draggingTaskId === t.id ? 'opacity-40' : ''
                           }`}
+                          style={{
+                            backgroundColor: theme.cardBg,
+                            borderColor: theme.cardBorder,
+                          }}
                         >
                           <div className="flex justify-between gap-1 items-start">
                             <button
@@ -647,14 +678,15 @@ export function TaskMasterApp() {
                           </div>
                         </article>
                       </li>
-                    ))}
+                      );
+                    })}
                     {draggingTaskId &&
                       dragOver?.columnId === col.id &&
                       dragOver.index >= colTasks.length && (
-                        <li className="h-0 border-t-2 border-tiffany" aria-hidden />
+                        <li className="h-0 border-t-2" style={{ borderColor: theme.base }} aria-hidden />
                       )}
                   </ul>
-                  <div className="p-1.5 border-t border-tiffany/15 shrink-0">
+                  <div className="p-1.5 border-t shrink-0" style={{ borderColor: theme.border }}>
                     <div className="flex gap-1 min-w-0">
                       <input
                         type="text"
@@ -664,12 +696,14 @@ export function TaskMasterApp() {
                         }
                         onKeyDown={(e) => e.key === 'Enter' && addTask(col.id)}
                         placeholder="New task…"
-                        className="flex-1 min-w-0 rounded-lg border border-tiffany/25 bg-white px-2 py-1.5 text-sm"
+                        className="flex-1 min-w-0 rounded-lg border bg-white px-2 py-1.5 text-sm"
+                        style={{ borderColor: theme.border }}
                       />
                       <button
                         type="button"
                         onClick={() => addTask(col.id)}
-                        className="shrink-0 rounded-lg bg-tiffany/15 text-tiffany-darker p-1.5 hover:bg-tiffany/25"
+                        className="shrink-0 rounded-lg p-1.5 transition-colors"
+                        style={{ backgroundColor: theme.headerBg, color: theme.dark }}
                         aria-label="Add task"
                       >
                         <Plus className="h-4 w-4" />
@@ -817,48 +851,83 @@ export function TaskMasterApp() {
               </button>
             </div>
             <div className="p-4 overflow-y-auto space-y-2">
-              {sortColumns(activeProject.columns).map((c, idx, arr) => (
+              {sortColumns(activeProject.columns).map((c, idx, arr) => {
+                const colTheme = getColumnTheme(c.color);
+                return (
                 <div
                   key={c.id}
-                  className="flex items-center gap-2 rounded-lg border border-slate-200 p-2 bg-slate-50/50"
+                  className="rounded-lg border p-2 space-y-2"
+                  style={{ borderColor: colTheme.border, backgroundColor: colTheme.soft }}
                 >
-                  <div className="flex flex-col gap-0.5">
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        disabled={idx === 0}
+                        onClick={() => moveColumn(c.id, -1)}
+                        className="p-0.5 disabled:opacity-30 text-slate-600"
+                        aria-label="Move up"
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={idx === arr.length - 1}
+                        onClick={() => moveColumn(c.id, 1)}
+                        className="p-0.5 disabled:opacity-30 text-slate-600"
+                        aria-label="Move down"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      value={c.title}
+                      onChange={(e) => renameColumn(c.id, e.target.value)}
+                      className="flex-1 min-w-0 rounded border bg-white px-2 py-1 text-sm"
+                      style={{ borderColor: colTheme.border }}
+                    />
                     <button
                       type="button"
-                      disabled={idx === 0}
-                      onClick={() => moveColumn(c.id, -1)}
-                      className="p-0.5 disabled:opacity-30 text-slate-600"
-                      aria-label="Move up"
+                      onClick={() => removeColumn(c.id)}
+                      disabled={arr.length <= 1}
+                      className="p-1.5 text-rose-600 disabled:opacity-30"
+                      aria-label="Remove column"
                     >
-                      <ArrowUp className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={idx === arr.length - 1}
-                      onClick={() => moveColumn(c.id, 1)}
-                      className="p-0.5 disabled:opacity-30 text-slate-600"
-                      aria-label="Move down"
-                    >
-                      <ArrowDown className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                  <input
-                    type="text"
-                    value={c.title}
-                    onChange={(e) => renameColumn(c.id, e.target.value)}
-                    className="flex-1 min-w-0 rounded border border-slate-200 px-2 py-1 text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeColumn(c.id)}
-                    disabled={arr.length <= 1}
-                    className="p-1.5 text-rose-600 disabled:opacity-30"
-                    aria-label="Remove column"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1.5 flex-wrap pl-7">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mr-0.5">
+                      Color
+                    </span>
+                    {COLUMN_THEME_LIST.map((t) => {
+                      const selected = (c.color ?? DEFAULT_COLUMN_THEME_ID) === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setColumnColor(c.id, t.id)}
+                          aria-label={`Set ${t.label} color`}
+                          aria-pressed={selected}
+                          title={t.label}
+                          className={`h-6 w-6 rounded-full border transition-transform ${
+                            selected
+                              ? 'ring-2 ring-offset-2 ring-offset-white scale-110'
+                              : 'hover:scale-110'
+                          }`}
+                          style={{
+                            backgroundColor: t.base,
+                            borderColor: t.dark,
+                            ...(selected ? { boxShadow: `0 0 0 2px ${t.base}` } : {}),
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
             <div className="border-t border-slate-100 p-4 flex flex-col sm:flex-row gap-2 sm:justify-between">
               <button
