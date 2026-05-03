@@ -4,6 +4,11 @@ import {
   DEFAULT_COLUMN_TITLES,
   STORAGE_VERSION,
 } from './taskmaster-types';
+import {
+  DEFAULT_COLUMN_THEME_ID,
+  DEFAULT_COLUMN_THEME_SEQUENCE,
+  isColumnThemeId,
+} from './taskmaster-themes';
 
 export function newId() {
   return typeof crypto !== 'undefined' && crypto.randomUUID

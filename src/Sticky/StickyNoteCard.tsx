@@ -277,7 +277,7 @@ export function StickyNoteCard({
           width: note.width,
           height: collapsed ? 'auto' : note.height,
           zIndex: dragging ? 999 : note.zIndex,
-          transform: dragging ? `rotate(${note.rotation}deg) scale(1.02)` : `rotate(${note.rotation}deg)`,
+          transform: dragging ? 'scale(1.02)' : undefined,
         }}
         onPointerDownCapture={onFocusBringToFront}
         onDragOver={(event) => {

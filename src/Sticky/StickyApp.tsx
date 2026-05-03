@@ -127,7 +127,7 @@ function StickyShell() {
           width: 240,
           height: 220,
           zIndex: z,
-          rotation: (Math.random() - 0.5) * 4,
+          rotation: 0,
           media: [],
           createdAt: now,
           updatedAt: now,

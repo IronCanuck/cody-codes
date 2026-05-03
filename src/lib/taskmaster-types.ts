@@ -1,3 +1,5 @@
+import type { ColumnThemeId } from './taskmaster-themes';
+
 export const STORAGE_VERSION = 1 as const;
 export const DEFAULT_COLUMN_TITLES = ['Backlog', 'In progress', 'Review', 'Done'] as const;
 
@@ -18,6 +20,7 @@ export type BoardColumn = {
   id: string;
   title: string;
   order: number;
+  color?: ColumnThemeId;
 };
 
 export type Project = {
