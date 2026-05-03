@@ -109,10 +109,6 @@ export function InventoryProductPage({ mode }: Props) {
     }
   }, [isNew, existing]);
 
-  if (mode === 'edit' && !existing) {
-    return <Navigate to="/inventory" replace />;
-  }
-
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
@@ -226,6 +222,10 @@ export function InventoryProductPage({ mode }: Props) {
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lightboxIndex, photos.length]);
+
+  if (mode === 'edit' && !existing) {
+    return <Navigate to="/inventory" replace />;
+  }
 
   return (
     <section className="max-w-4xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
