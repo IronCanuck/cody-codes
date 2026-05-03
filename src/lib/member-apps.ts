@@ -1,4 +1,5 @@
 import {
+  Boxes,
   DollarSign,
   Flame,
   FlameKindling,
@@ -136,6 +137,20 @@ export const APP_LIBRARY_SCHEMES = {
     cardTitle: 'text-miami-pink-bright',
     cardCta: 'text-miami-blue-deep',
   },
+  inventory: {
+    menuLink:
+      'hover:bg-slate-100 hover:border-slate-300 focus-visible:ring-slate-900',
+    menuIconWrap: 'bg-slate-900 ring-1 ring-slate-900/15',
+    menuIconColor: 'text-white',
+    menuTitle: 'text-slate-900',
+    menuArrow: 'text-slate-700 opacity-70',
+    card: 'border-slate-300 hover:border-slate-500 focus-visible:ring-slate-900',
+    cardIconWrap:
+      'bg-slate-900 ring-slate-900/20 group-hover:ring-slate-900/40',
+    cardIcon: 'text-white',
+    cardTitle: 'text-slate-900',
+    cardCta: 'text-slate-900',
+  },
 } as const satisfies Record<string, AppLibraryScheme>;
 
 export type AppLibrarySchemeKey = keyof typeof APP_LIBRARY_SCHEMES;
@@ -221,5 +236,14 @@ export const PAYWALLED_APPS: MemberApp[] = [
     path: '/sticky',
     icon: StickyNote,
     scheme: 'sticky',
+  },
+  {
+    id: 'inventory-database',
+    title: 'Inventory Database',
+    description:
+      'Spreadsheet of every product — photos, serial numbers, storage location, and company filters for theft, disaster, or estate planning.',
+    path: '/inventory',
+    icon: Boxes,
+    scheme: 'inventory',
   },
 ];

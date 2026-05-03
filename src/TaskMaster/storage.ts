@@ -3,12 +3,12 @@ import {
   type PersistedSnapshot,
   DEFAULT_COLUMN_TITLES,
   STORAGE_VERSION,
-} from './taskmaster-types';
+} from './types';
 import {
   DEFAULT_COLUMN_THEME_ID,
   DEFAULT_COLUMN_THEME_SEQUENCE,
   isColumnThemeId,
-} from './taskmaster-themes';
+} from './themes';
 
 export function newId() {
   return typeof crypto !== 'undefined' && crypto.randomUUID

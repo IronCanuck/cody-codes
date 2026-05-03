@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import type { PersistedSnapshot } from './taskmaster-types';
+import type { PersistedSnapshot } from './types';
 
 export type TaskMasterActions = {
   exportSnapshot: () => void;

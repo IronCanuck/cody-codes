@@ -1,8 +1,8 @@
 import { useId, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { ArrowLeft, Database, FileDown, FileUp, Info } from 'lucide-react';
-import { useTaskMasterActions } from '../lib/taskmaster-actions-context';
-import { STORAGE_VERSION } from '../lib/taskmaster-types';
+import { useTaskMasterActions } from './actions-context';
+import { STORAGE_VERSION } from './types';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${

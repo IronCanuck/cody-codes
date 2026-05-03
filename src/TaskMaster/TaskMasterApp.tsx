@@ -12,8 +12,8 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { useAuth } from './contexts/AuthContext';
-import { TaskMasterActionsProvider, type TaskMasterActions } from './lib/taskmaster-actions-context';
+import { useAuth } from '../contexts/AuthContext';
+import { TaskMasterActionsProvider, type TaskMasterActions } from './actions-context';
 import {
   defaultSnapshot,
   loadSnapshot,
@@ -21,20 +21,20 @@ import {
   newId,
   parsePersistedSnapshotJson,
   saveSnapshot,
-} from './lib/taskmaster-storage';
-import type { BoardColumn, Project, Task, TaskPriority, PersistedSnapshot } from './lib/taskmaster-types';
+} from './storage';
+import type { BoardColumn, Project, Task, TaskPriority, PersistedSnapshot } from './types';
 import {
   COLUMN_THEME_LIST,
   DEFAULT_COLUMN_THEME_ID,
   DEFAULT_COLUMN_THEME_SEQUENCE,
   getColumnTheme,
   type ColumnThemeId,
-} from './lib/taskmaster-themes';
+} from './themes';
 import {
   TaskMasterSettingsDataPage,
   TaskMasterSettingsGeneralPage,
   TaskMasterSettingsLayout,
-} from './pages/TaskMasterSettingsPages';
+} from './TaskMasterSettingsPages';
 
 function sortColumns(cols: BoardColumn[]) {
   return [...cols].sort((a, b) => a.order - b.order);

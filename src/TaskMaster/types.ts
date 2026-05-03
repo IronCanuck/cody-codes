@@ -1,4 +1,4 @@
-import type { ColumnThemeId } from './taskmaster-themes';
+import type { ColumnThemeId } from './themes';
 
 export const STORAGE_VERSION = 1 as const;
 export const DEFAULT_COLUMN_TITLES = ['Backlog', 'In progress', 'Review', 'Done'] as const;

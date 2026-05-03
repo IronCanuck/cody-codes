@@ -17,7 +17,8 @@ import { FurriesApp } from './FurriesApp';
 import { PlantBasedMenuApp } from './PlantBasedMenuApp';
 import { StickyApp } from './Sticky';
 import { FireWatchApp } from './FireWatch';
-import { TaskMasterApp } from './TaskMasterApp';
+import { InventoryDatabaseApp } from './InventoryDatabase';
+import { TaskMasterApp } from './TaskMaster';
 import { Login } from './pages/Login';
 import { MemberDashboard } from './pages/MemberDashboard';
 import { ShellHome } from './pages/ShellHome';
@@ -94,6 +95,14 @@ function FireWatchRoute() {
   );
 }
 
+function InventoryDatabaseRoute() {
+  return (
+    <ProtectedRoute>
+      <InventoryDatabaseApp />
+    </ProtectedRoute>
+  );
+}
+
 export default function App() {
   const native = Capacitor.isNativePlatform();
 
@@ -114,6 +123,7 @@ export default function App() {
           <Route path="/plant-based-menu" element={<PlantBasedMenuRoute />} />
           <Route path="/sticky/*" element={<StickyRoute />} />
           <Route path="/fire-watch/*" element={<FireWatchRoute />} />
+          <Route path="/inventory/*" element={<InventoryDatabaseRoute />} />
           <Route path="/consaltyapp" element={<ConsaltyRoute />}>
             <Route index element={<JobTrackerDashboardPage />} />
             <Route path="log" element={<JobTrackerLogPage />} />

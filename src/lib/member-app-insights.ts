@@ -1,7 +1,6 @@
 import { getChoriosGlanceFromLocalStorage, type ChoriosGlance } from './chorios-due-peek';
 import { supabase, type Job } from './supabase';
-import { loadSnapshot as loadTaskmasterSnapshot } from './taskmaster-storage';
-import type { PersistedSnapshot as TaskmasterSnapshot } from './taskmaster-types';
+import { loadTaskMasterSnapshot as loadTaskmasterSnapshot, type TaskMasterSnapshot as TaskmasterSnapshot } from '../TaskMaster';
 import {
   fireWatchStorageKeyForUser,
   todayTomorrowDayAfter,
@@ -12,6 +11,7 @@ import {
 
 const BUDGET_VERSION = 1 as const;
 const FURRIES_VERSION = 1 as const;
+const INVENTORY_VERSION = 1 as const;
 
 export type AppInsight = {
   lines: { label: string; value: string }[];
@@ -306,6 +306,64 @@ function stickyInsight(userId: string | undefined): AppInsight {
   };
 }
 
+type InventorySnap = {
+  version: number;
+  products: { id: string; company: string; photos: unknown[]; serials: unknown[] }[];
+};
+
+function inventoryDatabaseInsight(userId: string | undefined): AppInsight {
+  if (!userId) return { lines: [{ label: '', value: 'Sign in to load inventory' }], reminder: null };
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(`inventorydb:${userId}`);
+  } catch {
+    return { lines: [{ label: 'Status', value: "Couldn't read data" }], reminder: null };
+  }
+  if (!raw) {
+    return {
+      lines: [{ label: 'Products', value: 'Not set up' }],
+      reminder: 'Open Inventory Database to add your first item',
+    };
+  }
+  let parsed: InventorySnap;
+  try {
+    parsed = JSON.parse(raw) as InventorySnap;
+  } catch {
+    return { lines: [{ label: 'Products', value: '—' }], reminder: null };
+  }
+  if (parsed?.version !== INVENTORY_VERSION || !Array.isArray(parsed.products)) {
+    return { lines: [{ label: 'Inventory', value: '—' }], reminder: 'Open Inventory Database' };
+  }
+  const total = parsed.products.length;
+  if (total === 0) {
+    return {
+      lines: [{ label: 'Products', value: '0' }],
+      reminder: 'Add your first product',
+    };
+  }
+  const byCompany: Record<string, number> = {};
+  let withPhotos = 0;
+  for (const p of parsed.products) {
+    const key = typeof p.company === 'string' ? p.company : 'Personal';
+    byCompany[key] = (byCompany[key] ?? 0) + 1;
+    if (Array.isArray(p.photos) && p.photos.length > 0) withPhotos += 1;
+  }
+  const topCompany = Object.entries(byCompany).sort((a, b) => b[1] - a[1])[0];
+  return {
+    lines: [
+      { label: 'Products', value: String(total) },
+      {
+        label: 'Top company',
+        value: topCompany ? `${topCompany[0]} · ${topCompany[1]}` : '—',
+      },
+    ],
+    reminder:
+      withPhotos < total
+        ? `${total - withPhotos} product${total - withPhotos === 1 ? '' : 's'} missing photos`
+        : 'All products have photos',
+  };
+}
+
 function loadFireWatchSnapshot(userId: string): FireWatchSnapshot | null {
   let raw: string | null = null;
   try {
@@ -380,5 +438,6 @@ export async function loadMemberAppInsights(userId: string | undefined): Promise
     'budget-pal': budgetPalInsight(userId),
     'fire-watch': fireWatchInsight(userId),
     sticky: stickyInsight(userId),
+    'inventory-database': inventoryDatabaseInsight(userId),
   };
 }
