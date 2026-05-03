@@ -28,6 +28,7 @@ export type Project = {
   name: string;
   columns: BoardColumn[];
   tasks: Task[];
+  color?: ColumnThemeId;
 };
 
 export type PersistedSnapshot = {

@@ -7,6 +7,7 @@ import {
 import {
   DEFAULT_COLUMN_THEME_ID,
   DEFAULT_COLUMN_THEME_SEQUENCE,
+  DEFAULT_PROJECT_THEME_SEQUENCE,
   isColumnThemeId,
 } from './themes';
 
@@ -25,6 +26,11 @@ export function makeDefaultColumns(): BoardColumn[] {
   }));
 }
 
+export function nextProjectThemeId(existingCount: number) {
+  const seq = DEFAULT_PROJECT_THEME_SEQUENCE;
+  return seq[existingCount % seq.length] ?? DEFAULT_COLUMN_THEME_ID;
+}
+
 export function defaultSnapshot(): PersistedSnapshot {
   const pId = newId();
   return {
@@ -36,6 +42,7 @@ export function defaultSnapshot(): PersistedSnapshot {
         name: 'My first project',
         columns: makeDefaultColumns(),
         tasks: [],
+        color: nextProjectThemeId(0),
       },
     ],
   };
@@ -98,6 +105,9 @@ export function parsePersistedSnapshotJson(raw: string): PersistedSnapshot {
     }
     if (!Array.isArray(p.columns) || !Array.isArray(p.tasks)) {
       throw new Error('A project in the file is not valid.');
+    }
+    if (p.color !== undefined && !isColumnThemeId(p.color)) {
+      delete p.color;
     }
     for (const c of p.columns as unknown[]) {
       if (!isObject(c) || typeof c.id !== 'string' || typeof c.title !== 'string' || typeof c.order !== 'number') {

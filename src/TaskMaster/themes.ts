@@ -165,6 +165,20 @@ export const DEFAULT_COLUMN_THEME_SEQUENCE: ColumnThemeId[] = [
   'green',
 ];
 
+/** Default theme rotation for newly created projects. */
+export const DEFAULT_PROJECT_THEME_SEQUENCE: ColumnThemeId[] = [
+  'tiffany',
+  'blue',
+  'violet',
+  'amber',
+  'rose',
+  'green',
+  'indigo',
+  'teal',
+  'pink',
+  'slate',
+];
+
 export function getColumnTheme(id: ColumnThemeId | undefined | null): ColumnTheme {
   if (id && id in COLUMN_THEMES) return COLUMN_THEMES[id];
   return COLUMN_THEMES[DEFAULT_COLUMN_THEME_ID];

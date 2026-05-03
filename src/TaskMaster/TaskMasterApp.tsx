@@ -19,6 +19,7 @@ import {
   loadSnapshot,
   makeDefaultColumns,
   newId,
+  nextProjectThemeId,
   parsePersistedSnapshotJson,
   saveSnapshot,
 } from './storage';
@@ -69,6 +70,7 @@ export function TaskMasterApp() {
   const [columnModalOpen, setColumnModalOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [showNewProject, setShowNewProject] = useState(false);
+  const [projectColorPickerOpen, setProjectColorPickerOpen] = useState(false);
   const [deleteProjectConfirm, setDeleteProjectConfirm] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -163,6 +165,11 @@ export function TaskMasterApp() {
     [activeProject],
   );
 
+  const projectTheme = useMemo(
+    () => getColumnTheme(activeProject?.color),
+    [activeProject?.color],
+  );
+
   const setActiveProjectId = (id: string) => {
     persist((d) => ({ ...d, activeProjectId: id }));
   };
@@ -175,11 +182,21 @@ export function TaskMasterApp() {
       activeProjectId: id,
       projects: [
         ...d.projects,
-        { id, name, columns: makeDefaultColumns(), tasks: [] },
+        {
+          id,
+          name,
+          columns: makeDefaultColumns(),
+          tasks: [],
+          color: nextProjectThemeId(d.projects.length),
+        },
       ],
     }));
     setNewProjectName('');
     setShowNewProject(false);
+  };
+
+  const setProjectColor = (color: ColumnThemeId) => {
+    updateProject((p) => ({ ...p, color }));
   };
 
   const deleteProject = () => {
@@ -493,24 +510,44 @@ export function TaskMasterApp() {
           path=""
           element={
       <>
-      <div className="border-b border-tiffany/20 bg-white/95 px-3 sm:px-6 py-3 flex flex-col gap-3 min-w-0">
+      <div
+        className="border-b px-3 sm:px-6 py-3 flex flex-col gap-3 min-w-0"
+        style={{
+          backgroundColor: projectTheme.soft,
+          borderColor: projectTheme.border,
+          borderTop: `4px solid ${projectTheme.base}`,
+        }}
+      >
         <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-3 min-w-0">
           <div className="flex flex-col gap-1.5 min-w-0 flex-1 sm:max-w-md">
             <label htmlFor="project-select" className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
               Project
             </label>
-            <select
-              id="project-select"
-              value={data.activeProjectId}
-              onChange={(e) => setActiveProjectId(e.target.value)}
-              className="w-full min-w-0 max-w-full rounded-lg border border-tiffany/25 bg-white px-2 py-1.5 text-sm font-medium text-tiffany-darker focus:outline-none focus-visible:ring-2 focus-visible:ring-tiffany/50"
-            >
-              {data.projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center gap-2 min-w-0">
+              <span
+                className="shrink-0 h-7 w-7 rounded-lg border"
+                style={{ backgroundColor: projectTheme.base, borderColor: projectTheme.dark }}
+                aria-hidden
+              />
+              <select
+                id="project-select"
+                value={data.activeProjectId}
+                onChange={(e) => setActiveProjectId(e.target.value)}
+                className="flex-1 min-w-0 max-w-full rounded-lg border bg-white px-2 py-1.5 text-sm font-medium focus:outline-none focus-visible:ring-2"
+                style={{
+                  borderColor: projectTheme.border,
+                  color: projectTheme.dark,
+                  // @ts-expect-error CSS custom property for ring color
+                  '--tw-ring-color': `${projectTheme.base}80`,
+                }}
+              >
+                {data.projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 min-w-0">
             <button
@@ -519,7 +556,12 @@ export function TaskMasterApp() {
                 setShowNewProject((v) => !v);
                 setNewProjectName('');
               }}
-              className="inline-flex items-center gap-1 rounded-lg border border-tiffany/35 bg-tiffany/10 px-2.5 py-1.5 text-sm font-medium text-tiffany-darker hover:bg-tiffany/15"
+              className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-sm font-medium transition-colors"
+              style={{
+                backgroundColor: projectTheme.headerBg,
+                borderColor: projectTheme.border,
+                color: projectTheme.dark,
+              }}
             >
               <Plus className="h-4 w-4" aria-hidden />
               New
@@ -534,6 +576,19 @@ export function TaskMasterApp() {
             </button>
             <button
               type="button"
+              onClick={() => setProjectColorPickerOpen((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              aria-expanded={projectColorPickerOpen}
+            >
+              <span
+                className="h-3.5 w-3.5 rounded-full border"
+                style={{ backgroundColor: projectTheme.base, borderColor: projectTheme.dark }}
+                aria-hidden
+              />
+              <span className="whitespace-nowrap">Project color</span>
+            </button>
+            <button
+              type="button"
               onClick={() => setDeleteProjectConfirm(true)}
               className="text-xs text-rose-600 hover:underline sm:ml-1"
             >
@@ -541,6 +596,39 @@ export function TaskMasterApp() {
             </button>
           </div>
         </div>
+        {projectColorPickerOpen && (
+          <div
+            className="flex flex-wrap items-center gap-1.5 rounded-lg border bg-white/70 px-3 py-2"
+            style={{ borderColor: projectTheme.border }}
+          >
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mr-1">
+              Project color
+            </span>
+            {COLUMN_THEME_LIST.map((t) => {
+              const selected = (activeProject.color ?? DEFAULT_COLUMN_THEME_ID) === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setProjectColor(t.id)}
+                  aria-label={`Set project color to ${t.label}`}
+                  aria-pressed={selected}
+                  title={t.label}
+                  className={`h-6 w-6 rounded-full border transition-transform ${
+                    selected
+                      ? 'ring-2 ring-offset-2 ring-offset-white scale-110'
+                      : 'hover:scale-110'
+                  }`}
+                  style={{
+                    backgroundColor: t.base,
+                    borderColor: t.dark,
+                    ...(selected ? { boxShadow: `0 0 0 2px ${t.base}` } : {}),
+                  }}
+                />
+              );
+            })}
+          </div>
+        )}
         {showNewProject && (
           <div className="flex flex-wrap items-center gap-2 w-full">
             <input
@@ -549,12 +637,14 @@ export function TaskMasterApp() {
               onChange={(e) => setNewProjectName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addProject()}
               placeholder="Project name"
-              className="flex-1 min-w-0 basis-[10rem] rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+              className="flex-1 min-w-0 basis-[10rem] rounded-lg border bg-white px-2 py-1.5 text-sm"
+              style={{ borderColor: projectTheme.border }}
             />
             <button
               type="button"
               onClick={addProject}
-              className="rounded-lg bg-tiffany text-white px-3 py-1.5 text-sm font-medium hover:bg-tiffany-darker"
+              className="rounded-lg text-white px-3 py-1.5 text-sm font-medium transition-colors"
+              style={{ backgroundColor: projectTheme.base }}
             >
               Create
             </button>
