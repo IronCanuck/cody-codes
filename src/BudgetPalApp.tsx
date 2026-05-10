@@ -2228,6 +2228,8 @@ function GoalModal(props: {
   );
 }
 
+const OTHER_OPTION = '__other__';
+
 function TransactionModal(props: {
   profileId: string;
   accounts: BankAccount[];
@@ -2242,7 +2244,12 @@ function TransactionModal(props: {
   const [note, setNote] = useState('');
   const [accountId, setAccountId] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
+  const [otherCategoryLabel, setOtherCategoryLabel] = useState('');
   const [incomeStreamId, setIncomeStreamId] = useState<string>('');
+  const [otherStreamLabel, setOtherStreamLabel] = useState('');
+
+  const isOtherCategory = kind === 'expense' && categoryId === OTHER_OPTION;
+  const isOtherStream = kind === 'income' && incomeStreamId === OTHER_OPTION;
 
   return (
     <ModalShell title="Add transaction" onClose={props.onClose}>
@@ -2251,14 +2258,31 @@ function TransactionModal(props: {
           e.preventDefault();
           const a = parseFloat(amount);
           if (!Number.isFinite(a) || a <= 0) return;
+          const trimmedNote = note.trim();
+          const customLabel =
+            kind === 'expense' && isOtherCategory
+              ? otherCategoryLabel.trim()
+              : kind === 'income' && isOtherStream
+                ? otherStreamLabel.trim()
+                : '';
+          if ((isOtherCategory || isOtherStream) && !customLabel) return;
+          const finalNote = customLabel
+            ? trimmedNote
+              ? `${customLabel} — ${trimmedNote}`
+              : customLabel
+            : trimmedNote;
           props.onSave({
             profileId: props.profileId,
             accountId: accountId || null,
-            categoryId: kind === 'expense' ? categoryId || null : null,
-            incomeStreamId: kind === 'income' ? incomeStreamId || null : null,
+            categoryId:
+              kind === 'expense' && categoryId && categoryId !== OTHER_OPTION ? categoryId : null,
+            incomeStreamId:
+              kind === 'income' && incomeStreamId && incomeStreamId !== OTHER_OPTION
+                ? incomeStreamId
+                : null,
             amount: a,
             date,
-            note: note.trim(),
+            note: finalNote,
             kind,
           });
         }}
@@ -2270,6 +2294,7 @@ function TransactionModal(props: {
             onClick={() => {
               setKind('expense');
               setIncomeStreamId('');
+              setOtherStreamLabel('');
             }}
             className={`flex-1 rounded-lg py-2 text-sm font-bold ${
               kind === 'expense' ? 'bg-sabres-blue text-white' : 'bg-sabres-surface'
@@ -2282,6 +2307,7 @@ function TransactionModal(props: {
             onClick={() => {
               setKind('income');
               setCategoryId('');
+              setOtherCategoryLabel('');
             }}
             className={`flex-1 rounded-lg py-2 text-sm font-bold ${
               kind === 'income' ? 'bg-sabres-blue text-white' : 'bg-sabres-surface'
@@ -2333,7 +2359,10 @@ function TransactionModal(props: {
             <select
               className="mt-1 w-full rounded-lg border border-sabres-blue/20 px-3 py-2"
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
+              onChange={(e) => {
+                setCategoryId(e.target.value);
+                if (e.target.value !== OTHER_OPTION) setOtherCategoryLabel('');
+              }}
             >
               <option value="">—</option>
               {props.categories.map((c) => (
@@ -2341,7 +2370,25 @@ function TransactionModal(props: {
                   {c.name}
                 </option>
               ))}
+              <option value={OTHER_OPTION}>Other (not in list)</option>
             </select>
+            {isOtherCategory && (
+              <div className="mt-2">
+                <label className="text-sm font-medium">Describe this expense</label>
+                <input
+                  className="mt-1 w-full rounded-lg border border-sabres-blue/20 px-3 py-2"
+                  value={otherCategoryLabel}
+                  onChange={(e) => setOtherCategoryLabel(e.target.value)}
+                  required
+                  autoFocus
+                  maxLength={60}
+                  placeholder="e.g. Vet bill, Birthday gift"
+                />
+                <p className="mt-1 text-xs text-sabres-ink/60">
+                  Saved with this transaction&apos;s description so you can spot it later.
+                </p>
+              </div>
+            )}
           </div>
         )}
         {kind === 'income' && (
@@ -2350,7 +2397,10 @@ function TransactionModal(props: {
             <select
               className="mt-1 w-full rounded-lg border border-sabres-blue/20 px-3 py-2"
               value={incomeStreamId}
-              onChange={(e) => setIncomeStreamId(e.target.value)}
+              onChange={(e) => {
+                setIncomeStreamId(e.target.value);
+                if (e.target.value !== OTHER_OPTION) setOtherStreamLabel('');
+              }}
             >
               <option value="">—</option>
               {props.incomeStreams.map((s) => (
@@ -2358,7 +2408,25 @@ function TransactionModal(props: {
                   {s.name}
                 </option>
               ))}
+              <option value={OTHER_OPTION}>Other (not in list)</option>
             </select>
+            {isOtherStream && (
+              <div className="mt-2">
+                <label className="text-sm font-medium">Describe this income</label>
+                <input
+                  className="mt-1 w-full rounded-lg border border-sabres-blue/20 px-3 py-2"
+                  value={otherStreamLabel}
+                  onChange={(e) => setOtherStreamLabel(e.target.value)}
+                  required
+                  autoFocus
+                  maxLength={60}
+                  placeholder="e.g. Tax refund, Gift"
+                />
+                <p className="mt-1 text-xs text-sabres-ink/60">
+                  Saved with this transaction&apos;s description so you can spot it later.
+                </p>
+              </div>
+            )}
           </div>
         )}
         <div>

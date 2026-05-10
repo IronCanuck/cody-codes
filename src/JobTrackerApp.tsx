@@ -6,6 +6,7 @@ import { JobForm } from './components/JobForm';
 import { JobList } from './components/JobList';
 import { Reports } from './components/Reports';
 import { StatsBar } from './components/StatsBar';
+import { NetTakeHomeCard } from './components/NetTakeHomeCard';
 import { RecentActivity } from './components/RecentActivity';
 import { Earnings } from './components/Earnings';
 import { Settings } from './components/Settings';
@@ -35,6 +36,9 @@ export function JobTrackerDashboardPage() {
   const { jobs, settings, dailyReports, loading } = useJobTrackerOutlet();
   return (
     <div className="space-y-6">
+      {settings ? (
+        <NetTakeHomeCard jobs={jobs} settings={settings} dailyReports={dailyReports} />
+      ) : null}
       <StatsBar jobs={jobs} settings={settings} dailyReports={dailyReports} />
       <RecentActivity jobs={jobs} loading={loading} />
     </div>
