@@ -1,4 +1,4 @@
-export const STICKY_STORAGE_VERSION = 1 as const;
+export const STICKY_STORAGE_VERSION = 2 as const;
 
 export type StickyCategoryColor =
   | 'pink'
@@ -18,6 +18,13 @@ export type StickyCategory = {
   color: StickyCategoryColor;
 };
 
+export type StickyBoardItem = {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type StickyMedia = {
   id: string;
   dataUrl: string;
@@ -30,6 +37,7 @@ export type StickyMedia = {
 export type StickyNote = {
   id: string;
   text: string;
+  boardId: string;
   categoryId: string | null;
   x: number;
   y: number;
@@ -54,6 +62,8 @@ export type StickySettings = {
 
 export type StickySnapshot = {
   version: typeof STICKY_STORAGE_VERSION;
+  boards: StickyBoardItem[];
+  activeBoardId: string;
   categories: StickyCategory[];
   notes: StickyNote[];
   nextZ: number;

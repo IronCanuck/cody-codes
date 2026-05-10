@@ -25,6 +25,10 @@ export type StickyContextValue = {
   toggleGlow: () => void;
   setTheme: (theme: StickyTheme) => void;
   clearAllNotes: () => void;
+  addBoard: (name: string) => string;
+  renameBoard: (id: string, name: string) => void;
+  removeBoard: (id: string) => void;
+  setActiveBoard: (id: string) => void;
 };
 
 export const StickyContext = createContext<StickyContextValue | null>(null);

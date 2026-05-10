@@ -10,6 +10,7 @@ import {
   Plus,
   Trash2,
   Receipt,
+  Landmark,
 } from 'lucide-react';
 import { Settings as SettingsType } from '../lib/supabase';
 import {
@@ -19,6 +20,15 @@ import {
   removeTaskPresetActivity,
   subscribeTaskPresets,
 } from '../lib/task-presets';
+import {
+  BankAccountSplit,
+  BankAccountSplitMode,
+  addBankAccountSplit,
+  getBankAccountSplits,
+  removeBankAccountSplit,
+  subscribeBankAccountSplits,
+  updateBankAccountSplit,
+} from '../lib/bank-account-splits';
 
 type Props = {
   settings: SettingsType;
@@ -32,6 +42,10 @@ export function Settings({ settings, onSave }: Props) {
   const [presetActivities, setPresetActivities] = useState(() => getTaskPresets().activities);
   const [newLocation, setNewLocation] = useState('');
   const [newActivity, setNewActivity] = useState('');
+  const [bankSplits, setBankSplits] = useState<BankAccountSplit[]>(() => getBankAccountSplits());
+  const [newBankName, setNewBankName] = useState('');
+  const [newBankMode, setNewBankMode] = useState<BankAccountSplitMode>('percent');
+  const [newBankValue, setNewBankValue] = useState('');
 
   useEffect(() => {
     setForm({ ...settings, full_name: settings.full_name ?? '' });
@@ -46,6 +60,11 @@ export function Settings({ settings, onSave }: Props) {
       setPresetLocations(next.locations);
       setPresetActivities(next.activities);
     });
+  }, []);
+
+  useEffect(() => {
+    setBankSplits(getBankAccountSplits());
+    return subscribeBankAccountSplits(() => setBankSplits(getBankAccountSplits()));
   }, []);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -89,6 +108,36 @@ export function Settings({ settings, onSave }: Props) {
     const next = removeTaskPresetActivity(value);
     setPresetActivities(next.activities);
   };
+
+  const addBankSplit = () => {
+    const name = newBankName.trim();
+    const value = parseFloat(newBankValue);
+    if (!name) return;
+    if (!Number.isFinite(value) || value <= 0) return;
+    const next = addBankAccountSplit({ name, mode: newBankMode, value });
+    setBankSplits(next);
+    setNewBankName('');
+    setNewBankValue('');
+  };
+
+  const handleSplitChange = (
+    id: string,
+    patch: Partial<{ name: string; mode: BankAccountSplitMode; value: number }>,
+  ) => {
+    setBankSplits(updateBankAccountSplit(id, patch));
+  };
+
+  const deleteSplit = (id: string) => {
+    setBankSplits(removeBankAccountSplit(id));
+  };
+
+  const totalPercentConfigured = bankSplits
+    .filter((s) => s.mode === 'percent')
+    .reduce((sum, s) => sum + s.value, 0);
+  const totalAmountConfigured = bankSplits
+    .filter((s) => s.mode === 'amount')
+    .reduce((sum, s) => sum + s.value, 0);
+  const currency = form.currency_symbol || '$';
 
   return (
     <div className="max-w-3xl">
@@ -291,6 +340,163 @@ export function Settings({ settings, onSave }: Props) {
           </button>
         </div>
       </form>
+
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mt-6">
+        <section>
+          <h3 className="font-bold text-gray-900 mb-1 flex items-center gap-2">
+            <Landmark size={18} className="text-jd-green-600" /> Bank account splits
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Plan how your next paycheque is divided between bank accounts. Use a percentage of net
+            (e.g. 70% TD) or a fixed dollar amount (e.g. $200 to a savings account). The Dashboard
+            shows the dollar breakdown using the current pay period&apos;s estimated take-home.
+            Saved on this device only.
+          </p>
+
+          <div className="grid gap-2 sm:grid-cols-[1fr_120px_140px_auto] mb-3">
+            <input
+              type="text"
+              value={newBankName}
+              onChange={(e) => setNewBankName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addBankSplit();
+                }
+              }}
+              placeholder="Account name (e.g., TD)"
+              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
+            />
+            <select
+              value={newBankMode}
+              onChange={(e) => setNewBankMode(e.target.value as BankAccountSplitMode)}
+              className="px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none bg-white"
+              aria-label="Split mode"
+            >
+              <option value="percent">% of net</option>
+              <option value="amount">Fixed {currency}</option>
+            </select>
+            <div className="relative">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={newBankValue}
+                onChange={(e) => setNewBankValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addBankSplit();
+                  }
+                }}
+                placeholder={newBankMode === 'percent' ? '70' : '200.00'}
+                className="w-full pr-8 pl-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none"
+              />
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm font-semibold text-gray-400">
+                {newBankMode === 'percent' ? '%' : currency}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={addBankSplit}
+              className="shrink-0 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-jd-green-600 hover:bg-jd-green-700 text-white font-semibold rounded-lg"
+            >
+              <Plus size={18} />
+              Add
+            </button>
+          </div>
+
+          {bankSplits.length === 0 ? (
+            <p className="text-sm text-gray-400">
+              No bank accounts configured yet. Add one above to start splitting your pay.
+            </p>
+          ) : (
+            <ul className="space-y-2 border border-gray-100 rounded-lg p-2 bg-gray-50/80">
+              {bankSplits.map((s) => (
+                <li
+                  key={s.id}
+                  className="grid gap-2 sm:grid-cols-[1fr_120px_140px_auto] items-center bg-white border border-gray-200 rounded-md px-3 py-2"
+                >
+                  <input
+                    type="text"
+                    value={s.name}
+                    onChange={(e) => handleSplitChange(s.id, { name: e.target.value })}
+                    className="px-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none text-sm"
+                    aria-label="Account name"
+                  />
+                  <select
+                    value={s.mode}
+                    onChange={(e) =>
+                      handleSplitChange(s.id, { mode: e.target.value as BankAccountSplitMode })
+                    }
+                    className="px-2 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none bg-white text-sm"
+                    aria-label="Split mode"
+                  >
+                    <option value="percent">% of net</option>
+                    <option value="amount">Fixed {currency}</option>
+                  </select>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={Number.isFinite(s.value) ? s.value : 0}
+                      onChange={(e) =>
+                        handleSplitChange(s.id, {
+                          value: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      className="w-full pr-7 pl-3 py-2 border border-gray-200 rounded-md focus:ring-2 focus:ring-jd-green-500 focus:border-jd-green-500 outline-none text-sm"
+                      aria-label="Amount"
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs font-semibold text-gray-400">
+                      {s.mode === 'percent' ? '%' : currency}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => deleteSplit(s.id)}
+                    className="justify-self-end text-red-600 hover:text-red-800 p-2 rounded hover:bg-red-50"
+                    title="Remove account"
+                    aria-label={`Remove ${s.name}`}
+                  >
+                    <Trash2 size={16} aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {bankSplits.length > 0 ? (
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
+              <span>
+                Total percentage:{' '}
+                <span
+                  className={`font-bold ${
+                    totalPercentConfigured > 100 ? 'text-red-600' : 'text-gray-800'
+                  }`}
+                >
+                  {totalPercentConfigured.toFixed(2)}%
+                </span>
+              </span>
+              {totalAmountConfigured > 0 ? (
+                <span>
+                  Total fixed:{' '}
+                  <span className="font-bold text-gray-800">
+                    {currency}
+                    {totalAmountConfigured.toFixed(2)}
+                  </span>
+                </span>
+              ) : null}
+              {totalPercentConfigured > 100 ? (
+                <span className="text-red-600 font-semibold">
+                  Percentages exceed 100% — reduce one of the rows.
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+      </div>
 
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 space-y-6 mt-6">
         <section>

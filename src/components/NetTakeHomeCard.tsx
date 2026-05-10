@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Landmark } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Landmark, PiggyBank } from 'lucide-react';
 import { Job, Settings, SavedDailyReport } from '../lib/supabase';
 import {
   estimateAlbertaEmploymentNet,
@@ -11,6 +11,12 @@ import {
   formatMoney,
   getPayPeriodForDate,
 } from '../lib/earnings';
+import {
+  BankAccountSplit,
+  allocateNetAcrossSplits,
+  getBankAccountSplits,
+  subscribeBankAccountSplits,
+} from '../lib/bank-account-splits';
 
 type Props = {
   jobs: Job[];
@@ -37,6 +43,16 @@ export function NetTakeHomeCard({ jobs, settings, dailyReports = [] }: Props) {
   const projectedNet = useMemo(
     () => netAfterExtraPayPeriodTax(abNet.periodNet, settings.extra_tax_per_pay_period),
     [abNet.periodNet, settings.extra_tax_per_pay_period],
+  );
+
+  const [splits, setSplits] = useState<BankAccountSplit[]>(() => getBankAccountSplits());
+  useEffect(() => {
+    setSplits(getBankAccountSplits());
+    return subscribeBankAccountSplits(() => setSplits(getBankAccountSplits()));
+  }, []);
+  const splitSummary = useMemo(
+    () => allocateNetAcrossSplits(projectedNet, splits),
+    [projectedNet, splits],
   );
 
   return (
@@ -115,6 +131,54 @@ export function NetTakeHomeCard({ jobs, settings, dailyReports = [] }: Props) {
               </div>
             </div>
           </div>
+          {splits.length > 0 ? (
+            <div className="rounded-lg border border-slate-200 bg-white">
+              <div className="px-3 py-2 border-b border-slate-200 flex items-center gap-2">
+                <PiggyBank size={16} className="text-jd-green-700" />
+                <h4 className="text-sm font-bold text-slate-800">
+                  Where this paycheque goes
+                </h4>
+              </div>
+              <ul className="divide-y divide-slate-100">
+                {splitSummary.allocations.map(({ split, amount }) => (
+                  <li
+                    key={split.id}
+                    className="px-3 py-2 flex items-center justify-between gap-3 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-semibold text-slate-800 truncate">{split.name}</div>
+                      <div className="text-xs text-slate-500">
+                        {split.mode === 'percent'
+                          ? `${split.value}% of net`
+                          : `Fixed ${formatMoney(split.value, currency)}`}
+                      </div>
+                    </div>
+                    <div className="font-bold tabular-nums text-jd-green-700">
+                      {formatMoney(amount, currency)}
+                    </div>
+                  </li>
+                ))}
+                <li className="px-3 py-2 flex items-center justify-between gap-3 text-sm bg-slate-50">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {splitSummary.remainder >= -0.005 ? 'Unallocated' : 'Over-allocated'}
+                  </div>
+                  <div
+                    className={`font-bold tabular-nums ${
+                      splitSummary.overAllocated ? 'text-red-600' : 'text-slate-700'
+                    }`}
+                  >
+                    {formatMoney(splitSummary.remainder, currency)}
+                  </div>
+                </li>
+              </ul>
+              {splitSummary.overAllocated ? (
+                <p className="px-3 py-2 text-[11px] text-red-600 border-t border-slate-200 leading-snug">
+                  Your splits add up to more than this paycheque&apos;s estimated net. Adjust them
+                  in Settings → Bank account splits.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <p className="text-[11px] text-slate-500 leading-relaxed border-t border-slate-200 pt-3">
             {ALBERTA_NET_DISCLAIMER} Varies with RRSP, dependents, other income, and actual payroll
             settings.

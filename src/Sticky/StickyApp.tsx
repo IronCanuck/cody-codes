@@ -116,11 +116,14 @@ function StickyShell() {
       const id = newId('note');
       const now = new Date().toISOString();
       persist((prev) => {
-        const pos = pickStartingPosition(prev.notes);
+        const boardId = prev.activeBoardId;
+        const boardNotes = prev.notes.filter((n) => n.boardId === boardId);
+        const pos = pickStartingPosition(boardNotes);
         const z = prev.nextZ + 1;
         const note: StickyNoteType = {
           id,
           text: '',
+          boardId,
           categoryId: categoryId ?? prev.settings.defaultCategoryId ?? prev.categories[0]?.id ?? null,
           x: pos.x,
           y: pos.y,
@@ -265,8 +268,69 @@ function StickyShell() {
   );
 
   const clearAllNotes = useCallback(() => {
-    persist((prev) => ({ ...prev, notes: [], nextZ: 1 }));
+    persist((prev) => ({
+      ...prev,
+      notes: prev.notes.filter((n) => n.boardId !== prev.activeBoardId),
+    }));
   }, [persist]);
+
+  const addBoard = useCallback(
+    (name: string): string => {
+      const trimmed = name.trim() || 'New Board';
+      const id = newId('board');
+      const now = new Date().toISOString();
+      persist((prev) => ({
+        ...prev,
+        boards: [...prev.boards, { id, name: trimmed, createdAt: now, updatedAt: now }],
+        activeBoardId: id,
+      }));
+      return id;
+    },
+    [persist],
+  );
+
+  const renameBoard = useCallback(
+    (id: string, name: string) => {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      const now = new Date().toISOString();
+      persist((prev) => ({
+        ...prev,
+        boards: prev.boards.map((b) =>
+          b.id === id ? { ...b, name: trimmed, updatedAt: now } : b,
+        ),
+      }));
+    },
+    [persist],
+  );
+
+  const removeBoard = useCallback(
+    (id: string) => {
+      persist((prev) => {
+        if (prev.boards.length <= 1) return prev;
+        const remaining = prev.boards.filter((b) => b.id !== id);
+        const nextActive =
+          prev.activeBoardId === id ? remaining[0]?.id ?? '' : prev.activeBoardId;
+        return {
+          ...prev,
+          boards: remaining,
+          activeBoardId: nextActive,
+          notes: prev.notes.filter((n) => n.boardId !== id),
+        };
+      });
+    },
+    [persist],
+  );
+
+  const setActiveBoard = useCallback(
+    (id: string) => {
+      persist((prev) => {
+        if (!prev.boards.some((b) => b.id === id) || prev.activeBoardId === id) return prev;
+        return { ...prev, activeBoardId: id };
+      });
+    },
+    [persist],
+  );
 
   const contextValue = useMemo<StickyContextValue>(
     () => ({
@@ -286,6 +350,10 @@ function StickyShell() {
       toggleGlow,
       setTheme,
       clearAllNotes,
+      addBoard,
+      renameBoard,
+      removeBoard,
+      setActiveBoard,
     }),
     [
       data,
@@ -304,6 +372,10 @@ function StickyShell() {
       toggleGlow,
       setTheme,
       clearAllNotes,
+      addBoard,
+      renameBoard,
+      removeBoard,
+      setActiveBoard,
     ],
   );
 
@@ -320,14 +392,32 @@ function StickyShell() {
     setNewCategoryName('');
   };
 
+  const [newBoardName, setNewBoardName] = useState('');
+
+  const handleAddBoardFromMenu = () => {
+    const name = newBoardName.trim();
+    if (!name) return;
+    addBoard(name);
+    setNewBoardName('');
+  };
+
+  const boardNoteCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const note of data.notes) {
+      counts[note.boardId] = (counts[note.boardId] ?? 0) + 1;
+    }
+    return counts;
+  }, [data.notes]);
+
   const noteCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const note of data.notes) {
+      if (note.boardId !== data.activeBoardId) continue;
       const key = note.categoryId ?? '__unfiled';
       counts[key] = (counts[key] ?? 0) + 1;
     }
     return counts;
-  }, [data.notes]);
+  }, [data.notes, data.activeBoardId]);
 
   if (!userId) {
     return (
@@ -443,6 +533,80 @@ function StickyShell() {
                 Settings
               </NavLink>
             </nav>
+
+            <section aria-labelledby="sticky-menu-boards" className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h2
+                  id="sticky-menu-boards"
+                  className="text-[11px] font-bold tracking-widest uppercase text-miami-pink-light"
+                >
+                  Boards
+                </h2>
+                <span className="text-[11px] text-miami-mute">{data.boards.length}</span>
+              </div>
+              <ul className="space-y-1.5">
+                {data.boards.map((board) => {
+                  const isActive = board.id === data.activeBoardId;
+                  const count = boardNoteCounts[board.id] ?? 0;
+                  return (
+                    <li key={board.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveBoard(board.id);
+                          setMenuOpen(false);
+                        }}
+                        className={`flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left transition-colors ${
+                          isActive
+                            ? 'border-miami-pink/60 bg-miami-pink/15 text-white shadow-[0_0_18px_rgba(255,46,147,0.25)]'
+                            : 'border-miami-pink/15 bg-miami-night/40 text-miami-ink hover:bg-miami-pink/10'
+                        }`}
+                        aria-pressed={isActive}
+                      >
+                        <span className="min-w-0 flex items-center gap-2">
+                          <span
+                            className={`h-2.5 w-2.5 rounded-full ${
+                              isActive ? 'bg-miami-pink-bright shadow-[0_0_10px_currentColor]' : 'bg-miami-mute'
+                            }`}
+                            aria-hidden
+                          />
+                          <span className="text-sm truncate">{board.name}</span>
+                        </span>
+                        <span className="text-[11px] text-miami-mute">{count}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <div className="rounded-xl border border-miami-pink/25 bg-miami-night/55 p-3 space-y-2">
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-miami-pink-light">
+                  New board
+                  <input
+                    type="text"
+                    value={newBoardName}
+                    onChange={(event) => setNewBoardName(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleAddBoardFromMenu();
+                      }
+                    }}
+                    placeholder="Work, Home, Trip..."
+                    className="mt-1 w-full rounded-lg border border-miami-pink/30 bg-miami-night-deep px-2.5 py-1.5 text-sm text-miami-ink placeholder:text-miami-mute focus:outline-none focus:ring-2 focus:ring-miami-pink"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={handleAddBoardFromMenu}
+                  disabled={!newBoardName.trim()}
+                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-miami-pink-bright to-miami-cyan px-3 py-2 text-sm font-bold text-white shadow-md shadow-miami-pink/30 hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+                  Add board
+                </button>
+              </div>
+            </section>
 
             <section aria-labelledby="sticky-menu-categories" className="space-y-2">
               <div className="flex items-center justify-between">

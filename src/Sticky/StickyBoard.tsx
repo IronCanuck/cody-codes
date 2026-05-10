@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Maximize2, Plus, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
+import { Layers, Maximize2, Plus, Trash2, ZoomIn, ZoomOut } from 'lucide-react';
 import { useSticky } from './StickyContext';
 import { StickyNoteCard } from './StickyNoteCard';
 import { CATEGORY_COLOR_TOKENS } from './types';
@@ -15,16 +15,28 @@ const clampZoom = (value: number) =>
   Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(value * 100) / 100));
 
 export function StickyBoard() {
-  const { data, addNote, updateNote, removeNote, bringToFront } = useSticky();
+  const { data, addNote, updateNote, removeNote, bringToFront, addBoard, setActiveBoard } =
+    useSticky();
   const boardRef = useRef<HTMLDivElement>(null);
   const trashZoneRef = useRef<HTMLDivElement>(null);
   const [trashHover, setTrashHover] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
 
+  const activeBoardId = data.activeBoardId;
+  const activeBoard = useMemo(
+    () => data.boards.find((b) => b.id === activeBoardId) ?? null,
+    [data.boards, activeBoardId],
+  );
+
+  const boardNotes = useMemo(
+    () => data.notes.filter((n) => n.boardId === activeBoardId),
+    [data.notes, activeBoardId],
+  );
+
   const orderedNotes = useMemo(
-    () => [...data.notes].sort((a, b) => a.zIndex - b.zIndex),
-    [data.notes],
+    () => [...boardNotes].sort((a, b) => a.zIndex - b.zIndex),
+    [boardNotes],
   );
 
   const [boardSize, setBoardSize] = useState({ width: MIN_BOARD_W, height: MIN_BOARD_H });
@@ -32,14 +44,23 @@ export function StickyBoard() {
   useEffect(() => {
     let maxX = MIN_BOARD_W;
     let maxY = MIN_BOARD_H;
-    for (const note of data.notes) {
+    for (const note of boardNotes) {
       maxX = Math.max(maxX, note.x + note.width + BOARD_PADDING * 2);
       maxY = Math.max(maxY, note.y + note.height + BOARD_PADDING * 2);
     }
     setBoardSize({ width: maxX, height: maxY });
-  }, [data.notes]);
+  }, [boardNotes]);
 
-  const totalNotes = data.notes.length;
+  const totalNotes = boardNotes.length;
+
+  const handleAddBoardPrompt = () => {
+    if (typeof window === 'undefined') return;
+    const name = window.prompt('Name your new board');
+    if (!name) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    addBoard(trimmed);
+  };
 
   const trashZoneOnHover = (over: boolean) => setTrashHover(over);
 
