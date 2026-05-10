@@ -197,11 +197,51 @@ export function StickyBoard() {
   return (
     <div className="relative">
       <div className="max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6">
+        <div
+          className="mb-3 flex items-center gap-2 overflow-x-auto rounded-2xl border border-miami-pink/25 bg-miami-night-deep/70 px-2 py-2"
+          role="tablist"
+          aria-label="Sticky boards"
+        >
+          <Layers
+            className="ml-1 h-4 w-4 shrink-0 text-miami-cyan"
+            strokeWidth={2.25}
+            aria-hidden
+          />
+          {data.boards.map((board) => {
+            const isActive = board.id === activeBoardId;
+            return (
+              <button
+                key={board.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                onClick={() => setActiveBoard(board.id)}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
+                  isActive
+                    ? 'border-miami-pink/60 bg-gradient-to-r from-miami-pink-bright to-miami-cyan text-white shadow-md shadow-miami-pink/30'
+                    : 'border-miami-pink/25 bg-miami-night/40 text-miami-ink hover:bg-miami-pink/10'
+                }`}
+              >
+                {board.name}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={handleAddBoardPrompt}
+            className="shrink-0 inline-flex items-center gap-1 rounded-full border border-miami-cyan/45 bg-miami-cyan/10 px-3 py-1.5 text-xs font-bold text-miami-cyan hover:bg-miami-cyan/20"
+            aria-label="Add board"
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+            New board
+          </button>
+        </div>
+
         <div className="rounded-2xl border border-miami-pink/30 bg-gradient-to-br from-miami-night via-miami-surface to-miami-night-deep p-4 sm:p-5 shadow-[0_10px_40px_-15px_rgba(0,229,255,0.4)]">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-[0.25em] bg-gradient-to-r from-miami-pink-light to-miami-cyan bg-clip-text text-transparent">
-                Sticky board
+                {activeBoard ? activeBoard.name : 'Sticky board'}
               </p>
               <h2 className="mt-1 text-xl sm:text-2xl font-extrabold text-white tracking-tight">
                 Reminders, ideas & to-dos under neon

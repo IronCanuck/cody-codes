@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   Link,
   NavLink,
@@ -20,7 +20,16 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { defaultSnapshot, loadSnapshot, newId, saveSnapshot } from './storage';
+import {
+  defaultSnapshot,
+  fetchStickyCloud,
+  hasMeaningfulStickyData,
+  loadSnapshot,
+  newId,
+  parseSnapshotIsoMs,
+  saveSnapshot,
+  upsertStickyCloud,
+} from './storage';
 import { StickyContext, type StickyContextValue } from './StickyContext';
 import {
   CATEGORY_COLOR_OPTIONS,
@@ -71,15 +80,87 @@ function StickyShell() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryColor, setNewCategoryColor] = useState<StickyCategoryColor>('cyan');
 
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
+  const cloudSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleCloudSave = useCallback((uid: string | undefined, snapshot: StickySnapshot) => {
+    if (!uid) return;
+    if (cloudSaveTimerRef.current) clearTimeout(cloudSaveTimerRef.current);
+    cloudSaveTimerRef.current = setTimeout(() => {
+      cloudSaveTimerRef.current = null;
+      void upsertStickyCloud(uid, snapshot);
+    }, 450);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      const hadPending = cloudSaveTimerRef.current != null;
+      if (cloudSaveTimerRef.current) {
+        clearTimeout(cloudSaveTimerRef.current);
+        cloudSaveTimerRef.current = null;
+      }
+      const uid = userIdRef.current;
+      if (uid && hadPending) {
+        void upsertStickyCloud(uid, dataRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     document.title = 'Sticky · Cody James Fairburn';
   }, []);
 
   useEffect(() => {
     if (!userId) return;
-    const stored = loadSnapshot(userId);
-    setData(stored ?? defaultSnapshot());
-    setHydrated(true);
+    let cancelled = false;
+
+    (async () => {
+      let stored = loadSnapshot(userId);
+      if (stored && !stored.savedAt) {
+        stored = { ...stored, savedAt: new Date().toISOString() };
+        saveSnapshot(userId, stored);
+      }
+
+      const { snapshot: remoteSnap, updatedAt: remoteUpdatedAt, errorMessage } =
+        await fetchStickyCloud(userId);
+
+      if (cancelled) return;
+
+      if (errorMessage) {
+        setData(stored ?? defaultSnapshot());
+        setHydrated(true);
+        return;
+      }
+
+      const remoteMs = parseSnapshotIsoMs(remoteUpdatedAt);
+      const localMs = parseSnapshotIsoMs(stored?.savedAt);
+
+      if (remoteSnap && remoteUpdatedAt && (!stored || remoteMs >= localMs)) {
+        const stampedRemote: StickySnapshot = { ...remoteSnap, savedAt: remoteUpdatedAt };
+        setData(stampedRemote);
+        saveSnapshot(userId, stampedRemote);
+        setHydrated(true);
+        return;
+      }
+
+      const initial = stored ?? defaultSnapshot();
+      setData(initial);
+      saveSnapshot(userId, initial);
+      setHydrated(true);
+
+      const shouldInitialUpsert =
+        hasMeaningfulStickyData(initial) && (!remoteSnap || localMs > remoteMs);
+      if (shouldInitialUpsert) {
+        void upsertStickyCloud(userId, initial);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   useEffect(() => {
@@ -103,12 +184,14 @@ function StickyShell() {
   const persist = useCallback(
     (next: StickySnapshot | ((prev: StickySnapshot) => StickySnapshot)) => {
       setData((prev) => {
-        const resolved = typeof next === 'function' ? next(prev) : next;
+        const resolvedRaw = typeof next === 'function' ? next(prev) : next;
+        const resolved: StickySnapshot = { ...resolvedRaw, savedAt: new Date().toISOString() };
         saveSnapshot(userId, resolved);
+        scheduleCloudSave(userId, resolved);
         return resolved;
       });
     },
-    [userId],
+    [userId, scheduleCloudSave],
   );
 
   const addNote = useCallback(

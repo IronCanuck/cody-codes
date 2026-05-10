@@ -62,6 +62,8 @@ export type StickySettings = {
 
 export type StickySnapshot = {
   version: typeof STICKY_STORAGE_VERSION;
+  /** ISO time of last write — compared with server `updated_at` for cross-device sync */
+  savedAt?: string;
   boards: StickyBoardItem[];
   activeBoardId: string;
   categories: StickyCategory[];

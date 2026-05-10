@@ -258,6 +258,7 @@ type StickySnap = {
   version: number;
   notes: { id: string; categoryId: string | null; updatedAt: string; media: unknown[] }[];
   categories: { id: string }[];
+  boards?: { id: string; name: string }[];
 };
 
 function stickyInsight(userId: string | undefined): AppInsight {
@@ -280,18 +281,18 @@ function stickyInsight(userId: string | undefined): AppInsight {
   } catch {
     return { lines: [{ label: 'Notes', value: '—' }], reminder: null };
   }
-  if (parsed?.version !== 1) {
+  if (parsed?.version !== 1 && parsed?.version !== 2) {
     return { lines: [{ label: 'Sticky', value: '—' }], reminder: 'Open Sticky' };
   }
   const noteCount = Array.isArray(parsed.notes) ? parsed.notes.length : 0;
-  const catCount = Array.isArray(parsed.categories) ? parsed.categories.length : 0;
+  const boardCount = Array.isArray(parsed.boards) ? parsed.boards.length : 1;
   const withMedia = Array.isArray(parsed.notes)
     ? parsed.notes.filter((n) => Array.isArray(n.media) && n.media.length > 0).length
     : 0;
   if (noteCount === 0) {
     return {
       lines: [
-        { label: 'Categories', value: String(catCount) },
+        { label: 'Boards', value: String(boardCount) },
         { label: 'Notes', value: '0' },
       ],
       reminder: 'Drop a sticky onto the neon board',
@@ -300,7 +301,7 @@ function stickyInsight(userId: string | undefined): AppInsight {
   return {
     lines: [
       { label: 'Notes', value: String(noteCount) },
-      { label: 'Categories', value: String(catCount) },
+      { label: 'Boards', value: String(boardCount) },
     ],
     reminder: withMedia > 0 ? `${withMedia} note${withMedia === 1 ? '' : 's'} with images` : null,
   };

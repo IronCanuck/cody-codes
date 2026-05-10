@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react';
-import { Moon, Pencil, Plus, Sparkles, Sun, Trash2 } from 'lucide-react';
+import { Check, Layers, Moon, Pencil, Plus, Sparkles, Sun, Trash2, X } from 'lucide-react';
 import { useSticky } from './StickyContext';
 import {
   CATEGORY_COLOR_OPTIONS,
   CATEGORY_COLOR_TOKENS,
+  type StickyBoardItem,
   type StickyCategory,
   type StickyCategoryColor,
 } from './types';
@@ -19,6 +20,10 @@ export function StickySettings() {
     toggleGlow,
     setTheme,
     clearAllNotes,
+    addBoard,
+    renameBoard,
+    removeBoard,
+    setActiveBoard,
   } = useSticky();
   const isDark = data.settings.theme === 'dark';
   const [name, setName] = useState('');
@@ -28,6 +33,31 @@ export function StickySettings() {
     { name: '', color: 'pink' },
   );
   const [confirmClear, setConfirmClear] = useState(false);
+  const [boardName, setBoardName] = useState('');
+  const [editingBoardId, setEditingBoardId] = useState<string | null>(null);
+  const [editingBoardName, setEditingBoardName] = useState('');
+  const [confirmRemoveBoardId, setConfirmRemoveBoardId] = useState<string | null>(null);
+
+  const handleAddBoard = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = boardName.trim();
+    if (!trimmed) return;
+    addBoard(trimmed);
+    setBoardName('');
+  };
+
+  const startEditBoard = (board: StickyBoardItem) => {
+    setEditingBoardId(board.id);
+    setEditingBoardName(board.name);
+  };
+
+  const saveEditBoard = () => {
+    if (!editingBoardId) return;
+    const trimmed = editingBoardName.trim();
+    if (!trimmed) return;
+    renameBoard(editingBoardId, trimmed);
+    setEditingBoardId(null);
+  };
 
   const handleAdd = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -51,7 +81,13 @@ export function StickySettings() {
     setEditingId(null);
   };
 
-  const totalNotes = data.notes.length;
+  const totalNotes = data.notes.filter((n) => n.boardId === data.activeBoardId).length;
+  const activeBoard = data.boards.find((b) => b.id === data.activeBoardId);
+  const activeBoardName = activeBoard?.name ?? 'this board';
+  const boardCounts = data.notes.reduce<Record<string, number>>((acc, note) => {
+    acc[note.boardId] = (acc[note.boardId] ?? 0) + 1;
+    return acc;
+  }, {});
 
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-6 py-6 space-y-6">
@@ -67,6 +103,191 @@ export function StickySettings() {
           for a fresh start.
         </p>
       </header>
+
+      <section
+        aria-labelledby="sticky-boards-heading"
+        className="rounded-2xl border border-miami-cyan/30 bg-miami-night/70 p-5 space-y-4"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <h3
+            id="sticky-boards-heading"
+            className="text-lg font-bold text-miami-cyan flex items-center gap-2"
+          >
+            <Layers className="h-5 w-5 text-miami-pink-light" strokeWidth={2.25} aria-hidden />
+            Boards
+          </h3>
+          <span className="text-xs text-miami-mute">{data.boards.length} total</span>
+        </div>
+        <p className="text-sm text-miami-mute">
+          Boards keep separate piles of notes (e.g. Work, Home, Trip Planning). Categories and
+          theme settings are shared across all boards.
+        </p>
+
+        <form
+          onSubmit={handleAddBoard}
+          className="grid gap-2 sm:grid-cols-[1fr_auto] items-end rounded-xl border border-miami-pink/30 bg-miami-night-deep/70 p-3"
+        >
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-miami-pink-light">
+            Board name
+            <input
+              type="text"
+              value={boardName}
+              onChange={(event) => setBoardName(event.target.value)}
+              placeholder="Trip planning"
+              className="mt-1 w-full rounded-lg border border-miami-pink/30 bg-miami-surface px-2.5 py-1.5 text-sm text-miami-ink placeholder:text-miami-mute focus:outline-none focus:ring-2 focus:ring-miami-pink"
+              required
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={!boardName.trim()}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-miami-pink-bright to-miami-cyan px-3 py-2 text-sm font-bold text-white shadow-md shadow-miami-pink/30 hover:opacity-95 disabled:opacity-50"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+            Add board
+          </button>
+        </form>
+
+        <ul className="space-y-2">
+          {data.boards.map((board) => {
+            const isEditing = editingBoardId === board.id;
+            const isActive = data.activeBoardId === board.id;
+            const isOnly = data.boards.length <= 1;
+            const isConfirming = confirmRemoveBoardId === board.id;
+            const count = boardCounts[board.id] ?? 0;
+            return (
+              <li
+                key={board.id}
+                className="rounded-xl border border-miami-pink/20 bg-miami-night-deep/65 p-3"
+              >
+                {isEditing ? (
+                  <div className="grid gap-2 sm:grid-cols-[1fr_auto] items-end">
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-miami-pink-light">
+                      Name
+                      <input
+                        type="text"
+                        value={editingBoardName}
+                        onChange={(event) => setEditingBoardName(event.target.value)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            saveEditBoard();
+                          }
+                          if (event.key === 'Escape') setEditingBoardId(null);
+                        }}
+                        className="mt-1 w-full rounded-lg border border-miami-pink/30 bg-miami-surface px-2.5 py-1.5 text-sm text-miami-ink focus:outline-none focus:ring-2 focus:ring-miami-pink"
+                        autoFocus
+                      />
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={saveEditBoard}
+                        disabled={!editingBoardName.trim()}
+                        className="inline-flex items-center gap-1 rounded-lg bg-miami-cyan-bright px-3 py-1.5 text-xs font-bold text-slate-900 hover:opacity-95 disabled:opacity-50"
+                      >
+                        <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingBoardId(null)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-miami-pink/40 px-3 py-1.5 text-xs font-semibold text-miami-pink-light hover:bg-miami-pink/15"
+                      >
+                        <X className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          className={`h-3.5 w-3.5 rounded-full ${
+                            isActive
+                              ? 'bg-miami-pink-bright shadow-[0_0_10px_currentColor]'
+                              : 'bg-miami-mute'
+                          }`}
+                          aria-hidden
+                        />
+                        <span className="text-sm font-bold text-miami-ink truncate">
+                          {board.name}
+                        </span>
+                        {isActive && (
+                          <span className="ml-1 rounded-full border border-miami-cyan/40 bg-miami-cyan/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-miami-cyan">
+                            Active
+                          </span>
+                        )}
+                        <span className="text-[11px] text-miami-mute">
+                          {count} note{count === 1 ? '' : 's'}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {!isActive && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveBoard(board.id)}
+                            className="rounded-md border border-miami-cyan/35 bg-miami-cyan/10 px-2 py-1 text-[11px] font-semibold text-miami-cyan hover:bg-miami-cyan/20"
+                          >
+                            Open
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => startEditBoard(board)}
+                          className="rounded-md border border-miami-pink/35 bg-miami-pink/10 p-1.5 text-miami-pink-light hover:bg-miami-pink/20"
+                          aria-label={`Rename ${board.name}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmRemoveBoardId(board.id)}
+                          disabled={isOnly}
+                          title={isOnly ? "Can't delete the only board" : `Delete ${board.name}`}
+                          className="rounded-md border border-rose-400/50 bg-rose-500/10 p-1.5 text-rose-200 hover:bg-rose-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                          aria-label={`Delete ${board.name}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+                        </button>
+                      </div>
+                    </div>
+
+                    {isConfirming && !isOnly && (
+                      <div className="rounded-lg border border-rose-400/40 bg-rose-500/10 p-2.5 text-xs text-rose-100 flex flex-wrap items-center justify-between gap-2">
+                        <span>
+                          Delete <strong>{board.name}</strong> and its {count} note
+                          {count === 1 ? '' : 's'}? This can&apos;t be undone.
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              removeBoard(board.id);
+                              setConfirmRemoveBoardId(null);
+                            }}
+                            className="rounded-md bg-rose-500 px-2.5 py-1 text-xs font-bold text-white hover:bg-rose-600"
+                          >
+                            Delete board
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmRemoveBoardId(null)}
+                            className="rounded-md border border-rose-300/40 px-2.5 py-1 text-xs font-semibold text-rose-100 hover:bg-rose-500/15"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
 
       <section
         aria-labelledby="sticky-categories-heading"
@@ -361,8 +582,9 @@ export function StickySettings() {
           Danger zone
         </h3>
         <p className="text-sm text-rose-100/80">
-          You currently have <strong>{totalNotes}</strong> note{totalNotes === 1 ? '' : 's'} on the
-          board. Removing them all can&apos;t be undone.
+          You currently have <strong>{totalNotes}</strong> note{totalNotes === 1 ? '' : 's'} on{' '}
+          <strong>{activeBoardName}</strong>. Removing them all can&apos;t be undone. Notes on
+          other boards are unaffected.
         </p>
         {confirmClear ? (
           <div className="flex flex-wrap gap-2">
@@ -374,7 +596,7 @@ export function StickySettings() {
               }}
               className="rounded-lg bg-rose-500 px-3 py-2 text-sm font-bold text-white hover:bg-rose-600"
             >
-              Yes, throw away all notes
+              Yes, throw away all notes on this board
             </button>
             <button
               type="button"
@@ -392,7 +614,7 @@ export function StickySettings() {
             className="inline-flex items-center gap-1.5 rounded-lg border border-rose-300/50 bg-rose-500/15 px-3 py-2 text-sm font-bold text-rose-100 hover:bg-rose-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Trash2 className="h-4 w-4" strokeWidth={2.25} aria-hidden />
-            Clear all notes
+            Clear notes on this board
           </button>
         )}
       </section>
