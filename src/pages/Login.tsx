@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Leaf, LogIn } from 'lucide-react';
+import { Eye, EyeOff, Leaf, LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { resolveAuthEmail } from '../lib/auth-identities';
 import { setAuthPersistSession, supabase } from '../lib/supabase';
@@ -18,6 +18,7 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
 
   const returnTo = searchParams.get('return') || defaultAfterLoginPath();
 
@@ -116,17 +117,33 @@ export function Login() {
               >
                 Password
               </label>
-              <input
-                id="login-password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cody-finnish focus:border-transparent"
-                disabled={submitting}
-                required
-              />
+              <div className="relative">
+                <input
+                  id="login-password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2.5 pr-11 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cody-finnish focus:border-transparent"
+                  disabled={submitting}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  disabled={submitting}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 hover:text-slate-700 focus:outline-none focus:text-cody-finnish disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {showPassword ? (
+                    <EyeOff size={18} strokeWidth={2} aria-hidden />
+                  ) : (
+                    <Eye size={18} strokeWidth={2} aria-hidden />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
