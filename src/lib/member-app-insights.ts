@@ -12,6 +12,7 @@ import {
 const BUDGET_VERSION = 1 as const;
 const FURRIES_VERSION = 1 as const;
 const INVENTORY_VERSION = 1 as const;
+const VEHICLE_HISTORY_VERSION = 1 as const;
 const FAMILY_TREE_VERSION = 1 as const;
 
 export type AppInsight = {
@@ -427,6 +428,139 @@ function familyTreeInsight(userId: string | undefined): AppInsight {
   };
 }
 
+type VehicleHistorySnap = {
+  version: number;
+  vehicles: {
+    id: string;
+    nickname?: string;
+    year?: string;
+    make?: string;
+    model?: string;
+    odometer?: string;
+    odometerUnit?: string;
+    records?: { id: string; date?: string; serviceType?: string; odometer?: string }[];
+    schedules?: {
+      id: string;
+      serviceType?: string;
+      everyDistance?: number | null;
+      everyMonths?: number | null;
+    }[];
+  }[];
+  settings?: { dueSoonDays?: number; dueSoonDistance?: number };
+};
+
+function parseOdoNum(value: string | undefined): number | null {
+  if (!value) return null;
+  const cleaned = value.replace(/[^0-9.\-]/g, '');
+  if (!cleaned) return null;
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : null;
+}
+
+function vehicleHistoryInsight(userId: string | undefined): AppInsight {
+  if (!userId) {
+    return { lines: [{ label: '', value: 'Sign in to load vehicles' }], reminder: null };
+  }
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(`vehiclehistory:${userId}`);
+  } catch {
+    return { lines: [{ label: 'Status', value: "Couldn't read data" }], reminder: null };
+  }
+  if (!raw) {
+    return {
+      lines: [{ label: 'Vehicles', value: 'Not set up' }],
+      reminder: 'Open Vehicle History to add your first vehicle',
+    };
+  }
+  let parsed: VehicleHistorySnap;
+  try {
+    parsed = JSON.parse(raw) as VehicleHistorySnap;
+  } catch {
+    return { lines: [{ label: 'Vehicles', value: '—' }], reminder: null };
+  }
+  if (parsed?.version !== VEHICLE_HISTORY_VERSION || !Array.isArray(parsed.vehicles)) {
+    return { lines: [{ label: 'Vehicles', value: '—' }], reminder: 'Open Vehicle History' };
+  }
+  const total = parsed.vehicles.length;
+  if (total === 0) {
+    return { lines: [{ label: 'Vehicles', value: '0' }], reminder: 'Add your first vehicle' };
+  }
+
+  const dueSoonDays = parsed.settings?.dueSoonDays ?? 30;
+  const dueSoonDistance = parsed.settings?.dueSoonDistance ?? 500;
+  const todayMs = Date.now();
+  const MS_DAY = 86_400_000;
+
+  let overdue = 0;
+  let dueSoon = 0;
+  let recordCount = 0;
+
+  for (const v of parsed.vehicles) {
+    const records = Array.isArray(v.records) ? v.records : [];
+    const schedules = Array.isArray(v.schedules) ? v.schedules : [];
+    recordCount += records.length;
+    const currentOdo = parseOdoNum(v.odometer);
+
+    for (const s of schedules) {
+      const wanted = (s.serviceType || '').trim().toLowerCase();
+      if (!wanted) continue;
+      const matches = records
+        .filter((r) => (r.serviceType || '').trim().toLowerCase() === wanted)
+        .filter((r) => Boolean(r.date))
+        .sort((a, b) => ((a.date || '') < (b.date || '') ? 1 : -1));
+      const last = matches[0];
+      if (!last) continue;
+
+      let isOverdue = false;
+      let isDueSoon = false;
+
+      if (s.everyMonths && last.date) {
+        const d = new Date(last.date);
+        if (!Number.isNaN(d.getTime())) {
+          d.setMonth(d.getMonth() + s.everyMonths);
+          const daysUntil = Math.round((d.getTime() - todayMs) / MS_DAY);
+          if (daysUntil < 0) isOverdue = true;
+          else if (daysUntil <= dueSoonDays) isDueSoon = true;
+        }
+      }
+      if (s.everyDistance) {
+        const lastOdo = parseOdoNum(last.odometer);
+        if (lastOdo !== null && currentOdo !== null) {
+          const distRemaining = lastOdo + s.everyDistance - currentOdo;
+          if (distRemaining < 0) isOverdue = true;
+          else if (distRemaining <= dueSoonDistance) isDueSoon = true;
+        }
+      }
+
+      if (isOverdue) overdue += 1;
+      else if (isDueSoon) dueSoon += 1;
+    }
+  }
+
+  const lines: { label: string; value: string }[] = [
+    { label: 'Vehicles', value: String(total) },
+  ];
+  if (overdue > 0) {
+    lines.push({ label: 'Overdue', value: String(overdue) });
+  } else if (dueSoon > 0) {
+    lines.push({ label: 'Due soon', value: String(dueSoon) });
+  } else {
+    lines.push({ label: 'Records', value: String(recordCount) });
+  }
+
+  let reminder: string | null = null;
+  if (overdue > 0) {
+    reminder = `${overdue} overdue service${overdue === 1 ? '' : 's'} — schedule them soon`;
+  } else if (dueSoon > 0) {
+    reminder = `${dueSoon} service${dueSoon === 1 ? '' : 's'} coming up`;
+  } else if (recordCount === 0) {
+    reminder = 'Log your first service record';
+  }
+
+  return { lines, reminder };
+}
+
 function loadFireWatchSnapshot(userId: string): FireWatchSnapshot | null {
   let raw: string | null = null;
   try {
@@ -503,5 +637,6 @@ export async function loadMemberAppInsights(userId: string | undefined): Promise
     sticky: stickyInsight(userId),
     'inventory-database': inventoryDatabaseInsight(userId),
     'family-tree': familyTreeInsight(userId),
+    'vehicle-history': vehicleHistoryInsight(userId),
   };
 }

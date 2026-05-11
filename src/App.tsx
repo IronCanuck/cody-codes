@@ -20,6 +20,7 @@ import { FireWatchApp } from './FireWatch';
 import { InventoryDatabaseApp } from './InventoryDatabase';
 import { FamilyTreeApp } from './FamilyTree';
 import { TaskMasterApp } from './TaskMaster';
+import { VehicleHistoryApp } from './VehicleHistory';
 import { Login } from './pages/Login';
 import { MemberDashboard } from './pages/MemberDashboard';
 import { ShellHome } from './pages/ShellHome';
@@ -112,6 +113,14 @@ function FamilyTreeRoute() {
   );
 }
 
+function VehicleHistoryRoute() {
+  return (
+    <ProtectedRoute>
+      <VehicleHistoryApp />
+    </ProtectedRoute>
+  );
+}
+
 export default function App() {
   const native = Capacitor.isNativePlatform();
 
@@ -134,6 +143,7 @@ export default function App() {
           <Route path="/fire-watch/*" element={<FireWatchRoute />} />
           <Route path="/inventory/*" element={<InventoryDatabaseRoute />} />
           <Route path="/family-tree/*" element={<FamilyTreeRoute />} />
+          <Route path="/vehicle-history/*" element={<VehicleHistoryRoute />} />
           <Route path="/consaltyapp" element={<ConsaltyRoute />}>
             <Route index element={<JobTrackerDashboardPage />} />
             <Route path="log" element={<JobTrackerLogPage />} />

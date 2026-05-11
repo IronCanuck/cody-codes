@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
+  Car,
   ExternalLink,
   Flame,
   Kanban,
@@ -258,6 +259,27 @@ export function ShellHome() {
                       in every memory and keep the stories that matter close.
                     </p>
                     <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-evergreen-dark group-hover:gap-2 transition-all">
+                      Open app
+                      <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                    </p>
+                  </div>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/vehicle-history"
+                  className="group flex gap-5 rounded-2xl border-2 border-zinc-300 bg-white p-6 shadow-sm hover:border-amber-500/65 hover:shadow-md transition-all h-full"
+                >
+                  <div className="shrink-0 rounded-xl bg-zinc-900 p-3.5 ring-2 ring-amber-500/45 group-hover:ring-amber-500/70 transition-shadow">
+                    <Car className="text-amber-400" size={28} strokeWidth={2} aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <h3 className="font-bold text-zinc-900 text-xl">Vehicle History</h3>
+                    <p className="text-slate-600 text-sm mt-2 leading-relaxed">
+                      Track every vehicle—info, photos, full maintenance history, and custom
+                      service schedules with due-soon and overdue alerts.
+                    </p>
+                    <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-amber-700 group-hover:gap-2 transition-all">
                       Open app
                       <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
                     </p>

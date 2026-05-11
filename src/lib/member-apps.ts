@@ -1,5 +1,6 @@
 import {
   Boxes,
+  Car,
   DollarSign,
   Flame,
   FlameKindling,
@@ -166,6 +167,20 @@ export const APP_LIBRARY_SCHEMES = {
     cardTitle: 'text-evergreen-ink',
     cardCta: 'text-evergreen-dark',
   },
+  vehicleHistory: {
+    menuLink:
+      'hover:bg-zinc-100 hover:border-amber-400/40 focus-visible:ring-amber-500',
+    menuIconWrap: 'bg-zinc-900 ring-1 ring-amber-500/40',
+    menuIconColor: 'text-amber-400',
+    menuTitle: 'text-zinc-900',
+    menuArrow: 'text-amber-600 opacity-80',
+    card: 'border-zinc-300 hover:border-amber-500/65 focus-visible:ring-amber-500',
+    cardIconWrap:
+      'bg-zinc-900 ring-amber-500/45 group-hover:ring-amber-500/70',
+    cardIcon: 'text-amber-400',
+    cardTitle: 'text-zinc-900',
+    cardCta: 'text-amber-700',
+  },
 } as const satisfies Record<string, AppLibraryScheme>;
 
 export type AppLibrarySchemeKey = keyof typeof APP_LIBRARY_SCHEMES;
@@ -269,5 +284,14 @@ export const PAYWALLED_APPS: MemberApp[] = [
     path: '/family-tree',
     icon: TreePine,
     scheme: 'familyTree',
+  },
+  {
+    id: 'vehicle-history',
+    title: 'Vehicle History',
+    description:
+      'Track every vehicle you own — info, photos, full maintenance history, and custom service schedules with due-soon and overdue alerts.',
+    path: '/vehicle-history',
+    icon: Car,
+    scheme: 'vehicleHistory',
   },
 ];
