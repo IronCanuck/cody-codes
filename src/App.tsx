@@ -18,6 +18,7 @@ import { PlantBasedMenuApp } from './PlantBasedMenuApp';
 import { StickyApp } from './Sticky';
 import { FireWatchApp } from './FireWatch';
 import { InventoryDatabaseApp } from './InventoryDatabase';
+import { FamilyTreeApp } from './FamilyTree';
 import { TaskMasterApp } from './TaskMaster';
 import { Login } from './pages/Login';
 import { MemberDashboard } from './pages/MemberDashboard';
@@ -103,6 +104,14 @@ function InventoryDatabaseRoute() {
   );
 }
 
+function FamilyTreeRoute() {
+  return (
+    <ProtectedRoute>
+      <FamilyTreeApp />
+    </ProtectedRoute>
+  );
+}
+
 export default function App() {
   const native = Capacitor.isNativePlatform();
 
@@ -124,6 +133,7 @@ export default function App() {
           <Route path="/sticky/*" element={<StickyRoute />} />
           <Route path="/fire-watch/*" element={<FireWatchRoute />} />
           <Route path="/inventory/*" element={<InventoryDatabaseRoute />} />
+          <Route path="/family-tree/*" element={<FamilyTreeRoute />} />
           <Route path="/consaltyapp" element={<ConsaltyRoute />}>
             <Route index element={<JobTrackerDashboardPage />} />
             <Route path="log" element={<JobTrackerLogPage />} />

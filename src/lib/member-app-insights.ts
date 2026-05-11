@@ -12,6 +12,7 @@ import {
 const BUDGET_VERSION = 1 as const;
 const FURRIES_VERSION = 1 as const;
 const INVENTORY_VERSION = 1 as const;
+const FAMILY_TREE_VERSION = 1 as const;
 
 export type AppInsight = {
   lines: { label: string; value: string }[];
@@ -365,6 +366,67 @@ function inventoryDatabaseInsight(userId: string | undefined): AppInsight {
   };
 }
 
+type FamilyTreeSnap = {
+  version: number;
+  members: { id: string; deathDate?: string }[];
+  albums: { id: string }[];
+  media: { id: string; kind: 'photo' | 'video'; taggedMemberIds?: string[] }[];
+};
+
+function familyTreeInsight(userId: string | undefined): AppInsight {
+  if (!userId) return { lines: [{ label: '', value: 'Sign in to load your tree' }], reminder: null };
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(`familytree:${userId}`);
+  } catch {
+    return { lines: [{ label: 'Status', value: "Couldn't read data" }], reminder: null };
+  }
+  if (!raw) {
+    return {
+      lines: [{ label: 'Family tree', value: 'Not set up' }],
+      reminder: 'Open Family Tree to add your first member',
+    };
+  }
+  let parsed: FamilyTreeSnap;
+  try {
+    parsed = JSON.parse(raw) as FamilyTreeSnap;
+  } catch {
+    return { lines: [{ label: 'Family tree', value: '—' }], reminder: null };
+  }
+  if (parsed?.version !== FAMILY_TREE_VERSION) {
+    return { lines: [{ label: 'Family tree', value: '—' }], reminder: 'Open Family Tree' };
+  }
+  const memberCount = Array.isArray(parsed.members) ? parsed.members.length : 0;
+  const albumCount = Array.isArray(parsed.albums) ? parsed.albums.length : 0;
+  const photoCount = Array.isArray(parsed.media)
+    ? parsed.media.filter((m) => m.kind === 'photo').length
+    : 0;
+  const videoCount = Array.isArray(parsed.media)
+    ? parsed.media.filter((m) => m.kind === 'video').length
+    : 0;
+  if (memberCount === 0 && albumCount === 0) {
+    return {
+      lines: [{ label: 'Family tree', value: 'Empty' }],
+      reminder: 'Open Family Tree to add your first member',
+    };
+  }
+  const untaggedMedia = Array.isArray(parsed.media)
+    ? parsed.media.filter((m) => !Array.isArray(m.taggedMemberIds) || m.taggedMemberIds.length === 0).length
+    : 0;
+  return {
+    lines: [
+      { label: 'Members', value: String(memberCount) },
+      { label: 'Albums', value: `${albumCount} · ${photoCount + videoCount} memories` },
+    ],
+    reminder:
+      memberCount > 0 && untaggedMedia > 0
+        ? `${untaggedMedia} ${untaggedMedia === 1 ? 'memory' : 'memories'} still need tagging`
+        : albumCount === 0
+        ? 'Create an album to start curating memories'
+        : null,
+  };
+}
+
 function loadFireWatchSnapshot(userId: string): FireWatchSnapshot | null {
   let raw: string | null = null;
   try {
@@ -440,5 +502,6 @@ export async function loadMemberAppInsights(userId: string | undefined): Promise
     'fire-watch': fireWatchInsight(userId),
     sticky: stickyInsight(userId),
     'inventory-database': inventoryDatabaseInsight(userId),
+    'family-tree': familyTreeInsight(userId),
   };
 }

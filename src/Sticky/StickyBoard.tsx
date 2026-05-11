@@ -22,6 +22,7 @@ export function StickyBoard() {
   const [trashHover, setTrashHover] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [pendingFocusNoteId, setPendingFocusNoteId] = useState<string | null>(null);
 
   const activeBoardId = data.activeBoardId;
   const activeBoard = useMemo(
@@ -51,6 +52,28 @@ export function StickyBoard() {
     setBoardSize({ width: maxX, height: maxY });
   }, [boardNotes]);
 
+  useEffect(() => {
+    if (!pendingFocusNoteId) return;
+    const note = boardNotes.find((n) => n.id === pendingFocusNoteId);
+    if (!note) return;
+    const board = boardRef.current;
+    if (!board) {
+      setPendingFocusNoteId(null);
+      return;
+    }
+    const noteCenterX = (note.x + note.width / 2) * zoom;
+    const noteCenterY = (note.y + note.height / 2) * zoom;
+    const targetLeft = Math.max(0, noteCenterX - board.clientWidth / 2);
+    const targetTop = Math.max(0, noteCenterY - board.clientHeight / 2);
+    const raf = requestAnimationFrame(() => {
+      const el = boardRef.current;
+      if (!el) return;
+      el.scrollTo({ left: targetLeft, top: targetTop, behavior: 'smooth' });
+    });
+    setPendingFocusNoteId(null);
+    return () => cancelAnimationFrame(raf);
+  }, [pendingFocusNoteId, boardNotes, boardSize, zoom]);
+
   const totalNotes = boardNotes.length;
 
   const handleAddBoardPrompt = () => {
@@ -65,7 +88,8 @@ export function StickyBoard() {
   const trashZoneOnHover = (over: boolean) => setTrashHover(over);
 
   const handleAddWithCategory = (categoryId: string | null) => {
-    addNote(categoryId);
+    const newNoteId = addNote(categoryId);
+    setPendingFocusNoteId(newNoteId);
     setPickerOpen(false);
   };
 

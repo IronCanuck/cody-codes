@@ -10,6 +10,7 @@ import {
   Sparkles,
   StickyNote,
   Timer,
+  TreePine,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { SHOWCASE_PROJECTS } from '../lib/showcase-projects';
@@ -236,6 +237,27 @@ export function ShellHome() {
                       reminders by category.
                     </p>
                     <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-miami-blue-deep group-hover:gap-2 transition-all">
+                      Open app
+                      <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                    </p>
+                  </div>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/family-tree"
+                  className="group flex gap-5 rounded-2xl border-2 border-evergreen/30 bg-white p-6 shadow-sm hover:border-evergreen-dark/55 hover:shadow-md transition-all h-full"
+                >
+                  <div className="shrink-0 rounded-xl bg-gradient-to-br from-evergreen-dark via-evergreen to-cody-gold p-3.5 ring-2 ring-evergreen/25 group-hover:ring-evergreen-dark/45 transition-shadow">
+                    <TreePine className="text-white" size={28} strokeWidth={2} aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <h3 className="font-bold text-evergreen-ink text-xl">Family Tree</h3>
+                    <p className="text-slate-600 text-sm mt-2 leading-relaxed">
+                      Build your family tree and curate photo &amp; video albums—tag who appears
+                      in every memory and keep the stories that matter close.
+                    </p>
+                    <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-evergreen-dark group-hover:gap-2 transition-all">
                       Open app
                       <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
                     </p>

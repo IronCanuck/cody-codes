@@ -8,6 +8,7 @@ import {
   PawPrint,
   PiggyBank,
   StickyNote,
+  TreePine,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -151,6 +152,20 @@ export const APP_LIBRARY_SCHEMES = {
     cardTitle: 'text-slate-900',
     cardCta: 'text-slate-900',
   },
+  familyTree: {
+    menuLink:
+      'hover:bg-evergreen-light/55 hover:border-evergreen/35 focus-visible:ring-evergreen-dark',
+    menuIconWrap: 'bg-gradient-to-br from-evergreen-dark via-evergreen to-cody-gold',
+    menuIconColor: 'text-white',
+    menuTitle: 'text-evergreen-ink',
+    menuArrow: 'text-evergreen-dark opacity-70',
+    card: 'border-evergreen/30 hover:border-evergreen-dark/55 focus-visible:ring-evergreen-dark',
+    cardIconWrap:
+      'bg-gradient-to-br from-evergreen-dark via-evergreen to-cody-gold ring-evergreen/25 group-hover:ring-evergreen-dark/45',
+    cardIcon: 'text-white',
+    cardTitle: 'text-evergreen-ink',
+    cardCta: 'text-evergreen-dark',
+  },
 } as const satisfies Record<string, AppLibraryScheme>;
 
 export type AppLibrarySchemeKey = keyof typeof APP_LIBRARY_SCHEMES;
@@ -245,5 +260,14 @@ export const PAYWALLED_APPS: MemberApp[] = [
     path: '/inventory',
     icon: Boxes,
     scheme: 'inventory',
+  },
+  {
+    id: 'family-tree',
+    title: 'Family Tree',
+    description:
+      'Build your family tree with photo and video albums — tag members in every memory and curate the stories that matter.',
+    path: '/family-tree',
+    icon: TreePine,
+    scheme: 'familyTree',
   },
 ];
