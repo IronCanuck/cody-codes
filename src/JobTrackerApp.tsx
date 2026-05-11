@@ -52,7 +52,7 @@ export function JobTrackerDashboardPage() {
 }
 
 export function JobTrackerLogPage() {
-  const { editing, setEditing, onSaved, onError } = useJobTrackerOutlet();
+  const { editing, setEditing, flhas, onOpenFlha, onSaved, onError } = useJobTrackerOutlet();
   const [searchParams] = useSearchParams();
   const dateParam = searchParams.get('date');
   const initialWorkDate =
@@ -64,6 +64,8 @@ export function JobTrackerLogPage() {
         <JobForm
           editing={editing}
           initialWorkDate={initialWorkDate}
+          flhas={flhas}
+          onOpenFlha={onOpenFlha}
           onSaved={onSaved}
           onError={onError}
           onCancelEdit={() => setEditing(null)}

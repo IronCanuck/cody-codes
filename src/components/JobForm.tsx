@@ -10,6 +10,8 @@ import {
   Trash2,
   Send,
   BookmarkPlus,
+  ShieldAlert,
+  ShieldCheck,
 } from 'lucide-react';
 import { supabase, Job, Flha, FlhaTarget } from '../lib/supabase';
 import { useCompanies } from '../contexts/CompanyContext';
@@ -314,12 +316,29 @@ function SingleJobForm({
       onSubmit={handleSubmit}
       className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
     >
-      <div className="bg-gradient-to-r from-jd-green-600 to-jd-green-700 px-6 py-4">
-        <h2 className="text-white text-xl font-bold flex items-center gap-2">
-          <ClipboardList size={20} />
-          Edit Job Entry
-        </h2>
-        <p className="text-jd-green-100 text-sm mt-1">Update the details below</p>
+      <div className="bg-gradient-to-r from-jd-green-600 to-jd-green-700 px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="text-white text-xl font-bold flex items-center gap-2">
+            <ClipboardList size={20} />
+            Edit Job Entry
+          </h2>
+          <p className="text-jd-green-100 text-sm mt-1">Update the details below</p>
+        </div>
+        {onOpenFlha ? (
+          <button
+            type="button"
+            onClick={() => onOpenFlha({ kind: 'job', job })}
+            title={jobFlha ? 'View or edit FLHA for this task' : 'Create FLHA for this task'}
+            className={`flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg border shadow-sm ${
+              jobFlha
+                ? 'bg-jd-green-50 text-jd-green-800 border-jd-green-300 hover:bg-jd-green-100'
+                : 'bg-jd-yellow-400 text-jd-green-900 border-jd-yellow-500 hover:bg-jd-yellow-500'
+            }`}
+          >
+            {jobFlha ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
+            {jobFlha ? 'FLHA on file' : 'Add FLHA'}
+          </button>
+        ) : null}
       </div>
 
       <div className="p-6 space-y-5">
@@ -616,6 +635,8 @@ function DailyJobTrackerForm({
       site: string;
       notes: string;
     }[] = [];
+    /** Parallel to `taskRows`: the source TaskBlock.id used as `client_task_key` for FLHAs. */
+    const taskRowBlockIds: string[] = [];
     for (let i = 0; i < form.blocks.length; i++) {
       const b = form.blocks[i];
       if (isTaskBlockEmpty(b)) continue;
@@ -648,6 +669,7 @@ function DailyJobTrackerForm({
         site: b.site.trim(),
         notes: b.notes.trim(),
       });
+      taskRowBlockIds.push(b.id);
     }
 
     const rows =
@@ -675,6 +697,24 @@ function DailyJobTrackerForm({
         .select('*');
       if (insertError) throw insertError;
       if (!inserted?.length) throw new Error('No jobs returned after insert');
+
+      // Link any draft FLHAs (created from task blocks on the Log page) to their
+      // newly persisted jobs. We rely on insert order being preserved by Supabase,
+      // which it is for a single-batch insert.
+      if (taskRows.length > 0 && inserted.length === taskRows.length) {
+        for (let i = 0; i < taskRowBlockIds.length; i++) {
+          const blockId = taskRowBlockIds[i];
+          const draftFlha = (flhas || []).find(
+            (f) => f.client_task_key === blockId && !f.job_id,
+          );
+          if (!draftFlha) continue;
+          const newJob = inserted[i] as Job;
+          await supabase
+            .from('flhas')
+            .update({ job_id: newJob.id, updated_at: new Date().toISOString() })
+            .eq('id', draftFlha.id);
+        }
+      }
 
       const pdfBlob = dailyWorkReportPdfBlob(
         form.workDate,
@@ -893,20 +933,37 @@ function DailyJobTrackerForm({
             Optional. Leave blank to record only the overall hours above for your paycheque.
           </p>
           <div className="space-y-4">
-            {form.blocks.map((block, index) => (
-              <TaskBlockCard
-                key={block.id}
-                index={index}
-                block={block}
-                workDate={form.workDate}
-                presets={presets}
-                onPresetsUpdated={() => setPresets(getTaskPresets())}
-                onChange={(p) => updateBlock(block.id, p)}
-                onSaveDraft={saveTaskDraft}
-                onRemove={() => removeBlock(block.id)}
-                canDelete={form.blocks.length > 1}
-              />
-            ))}
+            {form.blocks.map((block, index) => {
+              const blockFlha =
+                (flhas || []).find((f) => f.client_task_key === block.id) || null;
+              return (
+                <TaskBlockCard
+                  key={block.id}
+                  index={index}
+                  block={block}
+                  workDate={form.workDate}
+                  presets={presets}
+                  hasFlha={!!blockFlha}
+                  onOpenFlha={
+                    onOpenFlha
+                      ? () =>
+                          onOpenFlha({
+                            kind: 'task',
+                            clientTaskKey: block.id,
+                            workDate: form.workDate,
+                            activity: block.activity,
+                            site: block.site,
+                          })
+                      : undefined
+                  }
+                  onPresetsUpdated={() => setPresets(getTaskPresets())}
+                  onChange={(p) => updateBlock(block.id, p)}
+                  onSaveDraft={saveTaskDraft}
+                  onRemove={() => removeBlock(block.id)}
+                  canDelete={form.blocks.length > 1}
+                />
+              );
+            })}
           </div>
           <button
             type="button"
@@ -942,6 +999,8 @@ function TaskBlockCard({
   block,
   workDate,
   presets,
+  hasFlha,
+  onOpenFlha,
   onPresetsUpdated,
   onChange,
   onSaveDraft,
@@ -952,6 +1011,8 @@ function TaskBlockCard({
   block: TaskBlock;
   workDate: string;
   presets: TaskPresets;
+  hasFlha: boolean;
+  onOpenFlha?: () => void;
   onPresetsUpdated: () => void;
   onChange: (p: Partial<TaskBlock>) => void;
   onSaveDraft: () => void;
@@ -971,6 +1032,22 @@ function TaskBlockCard({
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <span className="text-sm font-bold text-jd-green-800">Task {index + 1}</span>
         <div className="flex items-center gap-2 shrink-0">
+          {onOpenFlha ? (
+            <button
+              type="button"
+              onClick={onOpenFlha}
+              title={hasFlha ? 'View or edit FLHA for this task' : 'Create FLHA for this task'}
+              aria-label={hasFlha ? 'View or edit FLHA for this task' : 'Create FLHA for this task'}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-sm border ${
+                hasFlha
+                  ? 'text-jd-green-800 bg-jd-green-50 border-jd-green-300 hover:bg-jd-green-100'
+                  : 'text-amber-800 bg-amber-50 border-amber-300 hover:bg-amber-100'
+              }`}
+            >
+              {hasFlha ? <ShieldCheck size={14} aria-hidden /> : <ShieldAlert size={14} aria-hidden />}
+              {hasFlha ? 'FLHA' : 'FLHA'}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onSaveDraft}
