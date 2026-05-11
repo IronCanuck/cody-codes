@@ -103,6 +103,32 @@ export default {
           surface: '#FFEFE0',
           ink: '#2A1107',
         },
+        /** Notepad — pastel legal-pad yellow */
+        legalpad: {
+          /** Page background — soft pastel legal-pad yellow */
+          page: '#FFF8C7',
+          'page-soft': '#FFFBE0',
+          'page-deep': '#F6EBA0',
+          /** Faint horizontal rule lines on the pad */
+          rule: '#E6D86B',
+          'rule-soft': '#F1E795',
+          /** Iconic vertical red margin line */
+          margin: '#E25A5A',
+          'margin-soft': '#F2A1A1',
+          /** Ink colour for handwritten-feel body text */
+          ink: '#2A2410',
+          'ink-soft': '#5A4F2C',
+          mute: '#8B7E4A',
+          /** Folder/sidebar surfaces — warm cardboard tones */
+          folder: '#F4E08A',
+          'folder-deep': '#E2C95B',
+          surface: '#FFFDED',
+          'surface-deep': '#FBF0B5',
+          /** Accent — warm amber for active states and CTAs */
+          accent: '#D89B1E',
+          'accent-soft': '#F0C45A',
+          'accent-dark': '#A77100',
+        },
         /** Plant-Based Menu — rich evergreen palette */
         evergreen: {
           DEFAULT: '#1E5631',

@@ -561,6 +561,67 @@ function vehicleHistoryInsight(userId: string | undefined): AppInsight {
   return { lines, reminder };
 }
 
+type NotepadSnap = {
+  version: number;
+  folders: { id: string }[];
+  notes: { id: string; updatedAt?: string }[];
+};
+
+function notepadInsight(userId: string | undefined): AppInsight {
+  if (!userId) return { lines: [{ label: '', value: 'Sign in to load notes' }], reminder: null };
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(`notepad:${userId}`);
+  } catch {
+    return { lines: [{ label: 'Status', value: "Couldn't read data" }], reminder: null };
+  }
+  if (!raw) {
+    return {
+      lines: [{ label: 'Notes', value: 'Not set up' }],
+      reminder: 'Open Notepad to write your first note',
+    };
+  }
+  let parsed: NotepadSnap;
+  try {
+    parsed = JSON.parse(raw) as NotepadSnap;
+  } catch {
+    return { lines: [{ label: 'Notes', value: '—' }], reminder: null };
+  }
+  if (parsed?.version !== 1) {
+    return { lines: [{ label: 'Notepad', value: '—' }], reminder: 'Open Notepad' };
+  }
+  const noteCount = Array.isArray(parsed.notes) ? parsed.notes.length : 0;
+  const folderCount = Array.isArray(parsed.folders) ? parsed.folders.length : 0;
+  if (noteCount === 0) {
+    return {
+      lines: [
+        { label: 'Folders', value: String(folderCount) },
+        { label: 'Notes', value: '0' },
+      ],
+      reminder: 'Tap “New note” to start writing',
+    };
+  }
+  let mostRecentMs = 0;
+  for (const n of parsed.notes) {
+    const ms = Date.parse(n.updatedAt || '');
+    if (Number.isFinite(ms) && ms > mostRecentMs) mostRecentMs = ms;
+  }
+  const reminder =
+    mostRecentMs > 0
+      ? `Last edited ${new Date(mostRecentMs).toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+        })}`
+      : null;
+  return {
+    lines: [
+      { label: 'Notes', value: String(noteCount) },
+      { label: 'Folders', value: String(folderCount) },
+    ],
+    reminder,
+  };
+}
+
 function loadFireWatchSnapshot(userId: string): FireWatchSnapshot | null {
   let raw: string | null = null;
   try {
@@ -638,5 +699,6 @@ export async function loadMemberAppInsights(userId: string | undefined): Promise
     'inventory-database': inventoryDatabaseInsight(userId),
     'family-tree': familyTreeInsight(userId),
     'vehicle-history': vehicleHistoryInsight(userId),
+    notepad: notepadInsight(userId),
   };
 }

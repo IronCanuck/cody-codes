@@ -7,6 +7,7 @@ import {
   Flame,
   Kanban,
   Leaf,
+  Notebook,
   PiggyBank,
   Sparkles,
   StickyNote,
@@ -280,6 +281,27 @@ export function ShellHome() {
                       service schedules with due-soon and overdue alerts.
                     </p>
                     <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-amber-700 group-hover:gap-2 transition-all">
+                      Open app
+                      <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                    </p>
+                  </div>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/notepad"
+                  className="group flex gap-5 rounded-2xl border-2 border-legalpad-folder-deep/45 bg-white p-6 shadow-sm hover:border-legalpad-accent/65 hover:shadow-md transition-all h-full"
+                >
+                  <div className="shrink-0 rounded-xl bg-gradient-to-br from-legalpad-page to-legalpad-folder p-3.5 ring-2 ring-legalpad-folder-deep/40 group-hover:ring-legalpad-accent/55 transition-shadow">
+                    <Notebook className="text-legalpad-ink" size={28} strokeWidth={2} aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <h3 className="font-bold text-legalpad-ink text-xl">Notepad</h3>
+                    <p className="text-slate-600 text-sm mt-2 leading-relaxed">
+                      Legal-pad style notes with folders, headings, lists, and quick formatting—keep
+                      every thought organized.
+                    </p>
+                    <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-legalpad-accent-dark group-hover:gap-2 transition-all">
                       Open app
                       <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
                     </p>

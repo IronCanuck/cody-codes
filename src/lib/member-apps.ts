@@ -6,6 +6,7 @@ import {
   FlameKindling,
   Kanban,
   Leaf,
+  Notebook,
   PawPrint,
   PiggyBank,
   StickyNote,
@@ -181,6 +182,21 @@ export const APP_LIBRARY_SCHEMES = {
     cardTitle: 'text-zinc-900',
     cardCta: 'text-amber-700',
   },
+  notepad: {
+    menuLink:
+      'hover:bg-legalpad-folder/55 hover:border-legalpad-folder-deep/55 focus-visible:ring-legalpad-accent-dark',
+    menuIconWrap:
+      'bg-gradient-to-br from-legalpad-page to-legalpad-folder ring-1 ring-legalpad-folder-deep/45',
+    menuIconColor: 'text-legalpad-ink',
+    menuTitle: 'text-legalpad-ink',
+    menuArrow: 'text-legalpad-accent-dark opacity-80',
+    card: 'border-legalpad-folder-deep/45 hover:border-legalpad-accent/65 focus-visible:ring-legalpad-accent-dark',
+    cardIconWrap:
+      'bg-gradient-to-br from-legalpad-page to-legalpad-folder ring-legalpad-folder-deep/40 group-hover:ring-legalpad-accent/55',
+    cardIcon: 'text-legalpad-ink',
+    cardTitle: 'text-legalpad-ink',
+    cardCta: 'text-legalpad-accent-dark',
+  },
 } as const satisfies Record<string, AppLibraryScheme>;
 
 export type AppLibrarySchemeKey = keyof typeof APP_LIBRARY_SCHEMES;
@@ -293,5 +309,14 @@ export const PAYWALLED_APPS: MemberApp[] = [
     path: '/vehicle-history',
     icon: Car,
     scheme: 'vehicleHistory',
+  },
+  {
+    id: 'notepad',
+    title: 'Notepad',
+    description:
+      'Legal-pad style notes with folders, headings, lists, and quick formatting — keep every thought organized.',
+    path: '/notepad',
+    icon: Notebook,
+    scheme: 'notepad',
   },
 ];
