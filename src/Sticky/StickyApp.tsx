@@ -88,7 +88,11 @@ function StickyShell() {
 
   const scheduleCloudSave = useCallback((uid: string | undefined, snapshot: StickySnapshot) => {
     if (!uid) return;
+    const wasPending = cloudSaveTimerRef.current != null;
     if (cloudSaveTimerRef.current) clearTimeout(cloudSaveTimerRef.current);
+    // #region agent log
+    fetch('http://127.0.0.1:7445/ingest/5e19c494-fc30-4130-b2cb-46e3c2efaadb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'335e5b'},body:JSON.stringify({sessionId:'335e5b',hypothesisId:'A',location:'StickyApp.tsx:scheduleCloudSave',message:'debounce scheduled',data:{wasPending,delayMs:450,savedAt:snapshot.savedAt,notes:snapshot.notes.length},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     cloudSaveTimerRef.current = setTimeout(() => {
       cloudSaveTimerRef.current = null;
       void upsertStickyCloud(uid, snapshot);
@@ -119,6 +123,7 @@ function StickyShell() {
 
     (async () => {
       let stored = loadSnapshot(userId);
+      const originalStoredSavedAt = stored?.savedAt ?? null;
       if (stored && !stored.savedAt) {
         stored = { ...stored, savedAt: new Date().toISOString() };
         saveSnapshot(userId, stored);
@@ -130,6 +135,9 @@ function StickyShell() {
       if (cancelled) return;
 
       if (errorMessage) {
+        // #region agent log
+        fetch('http://127.0.0.1:7445/ingest/5e19c494-fc30-4130-b2cb-46e3c2efaadb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'335e5b'},body:JSON.stringify({sessionId:'335e5b',hypothesisId:'B/C/D',location:'StickyApp.tsx:hydrate:error',message:'cloud error → use local',data:{errorMessage,localNotes:stored?.notes.length ?? 0},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         setData(stored ?? defaultSnapshot());
         setHydrated(true);
         return;
@@ -138,7 +146,14 @@ function StickyShell() {
       const remoteMs = parseSnapshotIsoMs(remoteUpdatedAt);
       const localMs = parseSnapshotIsoMs(stored?.savedAt);
 
+      // #region agent log
+      fetch('http://127.0.0.1:7445/ingest/5e19c494-fc30-4130-b2cb-46e3c2efaadb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'335e5b'},body:JSON.stringify({sessionId:'335e5b',hypothesisId:'B/C/D',location:'StickyApp.tsx:hydrate:compare',message:'compare local vs remote',data:{originalStoredSavedAt,stampedLocalSavedAt:stored?.savedAt ?? null,remoteUpdatedAt,localMs,remoteMs,clientNowMs:Date.now(),clientNowIso:new Date().toISOString(),localNotes:stored?.notes.length ?? 0,remoteNotes:remoteSnap?.notes.length ?? 0,hasStored:!!stored,hasRemote:!!remoteSnap},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+
       if (remoteSnap && remoteUpdatedAt && (!stored || remoteMs >= localMs)) {
+        // #region agent log
+        fetch('http://127.0.0.1:7445/ingest/5e19c494-fc30-4130-b2cb-46e3c2efaadb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'335e5b'},body:JSON.stringify({sessionId:'335e5b',hypothesisId:'B/C/D',location:'StickyApp.tsx:hydrate:remoteWins',message:'remote wins',data:{remoteUpdatedAt,remoteNotes:remoteSnap.notes.length},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         const stampedRemote: StickySnapshot = { ...remoteSnap, savedAt: remoteUpdatedAt };
         setData(stampedRemote);
         saveSnapshot(userId, stampedRemote);
@@ -153,6 +168,9 @@ function StickyShell() {
 
       const shouldInitialUpsert =
         hasMeaningfulStickyData(initial) && (!remoteSnap || localMs > remoteMs);
+      // #region agent log
+      fetch('http://127.0.0.1:7445/ingest/5e19c494-fc30-4130-b2cb-46e3c2efaadb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'335e5b'},body:JSON.stringify({sessionId:'335e5b',hypothesisId:'D/E',location:'StickyApp.tsx:hydrate:localWins',message:'local wins; maybe upsert',data:{shouldInitialUpsert,localNotes:initial.notes.length,hadRemote:!!remoteSnap,localMs,remoteMs,usedDefault:!stored,originalStoredSavedAt},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       if (shouldInitialUpsert) {
         void upsertStickyCloud(userId, initial);
       }

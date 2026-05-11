@@ -69,6 +69,9 @@ export function loadSnapshot(userId: string | undefined): StickySnapshot | null 
   if (!userId) return null;
   try {
     const raw = localStorage.getItem(storageKeyForUser(userId));
+    // #region agent log
+    fetch('http://127.0.0.1:7445/ingest/5e19c494-fc30-4130-b2cb-46e3c2efaadb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'335e5b'},body:JSON.stringify({sessionId:'335e5b',hypothesisId:'D/E',location:'storage.ts:loadSnapshot',message:'load from localStorage',data:{userId:userId.slice(0,8),hasRaw:!!raw,rawLen:raw?.length ?? 0},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Record<string, unknown> & {
       categories?: unknown;
@@ -144,6 +147,9 @@ export function saveSnapshot(userId: string | undefined, data: StickySnapshot): 
   if (!userId) return;
   try {
     localStorage.setItem(storageKeyForUser(userId), JSON.stringify(data));
+    // #region agent log
+    fetch('http://127.0.0.1:7445/ingest/5e19c494-fc30-4130-b2cb-46e3c2efaadb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'335e5b'},body:JSON.stringify({sessionId:'335e5b',hypothesisId:'B',location:'storage.ts:saveSnapshot',message:'wrote local',data:{savedAt:data.savedAt,notes:data.notes.length,categories:data.categories.length,boards:data.boards.length},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
   } catch {
     // Silently ignore storage quota errors; user can free space via settings.
   }
@@ -264,6 +270,9 @@ export async function upsertStickyCloud(
   snapshot: StickySnapshot,
 ): Promise<{ errorMessage: string | null }> {
   const updatedAt = snapshot.savedAt ?? new Date().toISOString();
+  // #region agent log
+  fetch('http://127.0.0.1:7445/ingest/5e19c494-fc30-4130-b2cb-46e3c2efaadb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'335e5b'},body:JSON.stringify({sessionId:'335e5b',hypothesisId:'A/B/C',location:'storage.ts:upsertStickyCloud:start',message:'cloud upsert begin',data:{userId:userId.slice(0,8),updatedAt,notes:snapshot.notes.length,boards:snapshot.boards.length,activeBoardId:snapshot.activeBoardId},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   const { error } = await supabase.from('sticky_snapshots').upsert(
     {
       user_id: userId,
@@ -272,6 +281,9 @@ export async function upsertStickyCloud(
     },
     { onConflict: 'user_id' },
   );
+  // #region agent log
+  fetch('http://127.0.0.1:7445/ingest/5e19c494-fc30-4130-b2cb-46e3c2efaadb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'335e5b'},body:JSON.stringify({sessionId:'335e5b',hypothesisId:'A/B/C',location:'storage.ts:upsertStickyCloud:end',message:'cloud upsert done',data:{ok:!error,err:error?.message ?? null,updatedAt,notes:snapshot.notes.length},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   if (error) {
     console.warn('Sticky cloud sync failed', error);
     return { errorMessage: error.message || 'Account sync failed' };
@@ -292,5 +304,8 @@ export async function fetchStickyCloud(
     return { snapshot: null, updatedAt: null, errorMessage: error.message || 'Account load failed' };
   }
   const snap = row?.snapshot != null ? coalesceRemoteSnapshot(row.snapshot) : null;
+  // #region agent log
+  fetch('http://127.0.0.1:7445/ingest/5e19c494-fc30-4130-b2cb-46e3c2efaadb',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'335e5b'},body:JSON.stringify({sessionId:'335e5b',hypothesisId:'B/C/D',location:'storage.ts:fetchStickyCloud',message:'fetched cloud',data:{hasRow:!!row,updatedAt:row?.updated_at ?? null,notes:snap?.notes.length ?? null,boards:snap?.boards.length ?? null,savedAtInBlob:snap?.savedAt ?? null},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   return { snapshot: snap, updatedAt: row?.updated_at ?? null, errorMessage: null };
 }
