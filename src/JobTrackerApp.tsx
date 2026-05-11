@@ -24,6 +24,7 @@ import {
   DEFAULT_SETTINGS,
   SavedDailyReport,
   Flha,
+  FlhaTarget,
 } from './lib/supabase';
 import { canonicalizeClockPairForWorkDay, getWorkDayHoursWithLunch } from './lib/time';
 
@@ -192,7 +193,7 @@ function JobTrackerAppShell() {
   } = useCompanies();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [flhas, setFlhas] = useState<Flha[]>([]);
-  const [flhaJob, setFlhaJob] = useState<Job | null>(null);
+  const [flhaTarget, setFlhaTarget] = useState<FlhaTarget | null>(null);
   const [dailyReports, setDailyReports] = useState<SavedDailyReport[]>([]);
   const [dailyReportsLoading, setDailyReportsLoading] = useState(true);
   const [dailyReportsError, setDailyReportsError] = useState<string | null>(null);
@@ -289,14 +290,14 @@ function JobTrackerAppShell() {
   const loadFlhas = async (companyId: string) => {
     const { data, error } = await supabase
       .from('flhas')
-      .select('*, jobs!inner(company_id)')
-      .eq('jobs.company_id', companyId)
+      .select('*')
+      .eq('company_id', companyId)
       .order('updated_at', { ascending: false });
     if (error) {
-      if (/42P01|relation|does not exist|schema cache|PGRST205/i.test(error.message || '')) {
+      if (/42P01|relation|does not exist|schema cache|PGRST205|company_id/i.test(error.message || '')) {
         setToast({
           message:
-            'FLHA archive unavailable: the flhas table is missing. Apply Supabase migrations (supabase/migrations).',
+            'FLHA archive unavailable: the flhas table or its company_id column is missing. Apply Supabase migrations (supabase/migrations).',
           type: 'error',
         });
       }
@@ -466,11 +467,15 @@ function JobTrackerAppShell() {
     return true;
   };
 
-  const handleOpenFlha = (j: Job) => setFlhaJob(j);
+  const handleOpenFlha = (target: FlhaTarget) => setFlhaTarget(target);
 
-  const existingFlhaForJob = flhaJob
-    ? flhas.find((f) => f.job_id === flhaJob.id) || null
-    : null;
+  const existingFlhaForTarget = (() => {
+    if (!flhaTarget) return null;
+    if (flhaTarget.kind === 'job') {
+      return flhas.find((f) => f.job_id === flhaTarget.job.id) || null;
+    }
+    return flhas.find((f) => f.client_task_key === flhaTarget.clientTaskKey) || null;
+  })();
 
   const outletContext: JobTrackerOutletContext = {
     jobs,
@@ -538,26 +543,27 @@ function JobTrackerAppShell() {
         )}
       </main>
 
-      {flhaJob ? (
+      {flhaTarget ? (
         <FlhaModal
-          job={flhaJob}
-          existing={existingFlhaForJob}
+          target={flhaTarget}
+          existing={existingFlhaForTarget}
           defaultWorkerName={settings?.full_name || ''}
+          companyId={activeCompanyId}
           onSaved={(msg, saved) => {
             setFlhas((prev) => {
-              const others = prev.filter((f) => f.job_id !== saved.job_id);
+              const others = prev.filter((f) => f.id !== saved.id);
               return [saved, ...others];
             });
             setToast({ message: msg, type: 'success' });
-            setFlhaJob(null);
+            setFlhaTarget(null);
           }}
-          onDeleted={(msg, jobId) => {
-            setFlhas((prev) => prev.filter((f) => f.job_id !== jobId));
+          onDeleted={(msg, removed) => {
+            setFlhas((prev) => prev.filter((f) => f.id !== removed.id));
             setToast({ message: msg, type: 'success' });
-            setFlhaJob(null);
+            setFlhaTarget(null);
           }}
           onError={(msg) => setToast({ message: msg, type: 'error' })}
-          onClose={() => setFlhaJob(null)}
+          onClose={() => setFlhaTarget(null)}
         />
       ) : null}
 

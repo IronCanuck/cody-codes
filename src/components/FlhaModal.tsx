@@ -2,24 +2,33 @@ import { useEffect, useMemo, useState } from 'react';
 import { X, Plus, Trash2, ShieldAlert, Check } from 'lucide-react';
 import {
   supabase,
-  Job,
   Flha,
   FlhaHazard,
   FlhaInput,
   FlhaRiskLevel,
+  FlhaTarget,
   FLHA_PPE_OPTIONS,
 } from '../lib/supabase';
 
 type Props = {
-  job: Job;
+  target: FlhaTarget;
   existing: Flha | null;
   /** Pre-fills worker name when creating a new FLHA. */
   defaultWorkerName?: string;
+  /** Active Consalty company id; required for inserts (existing rows keep their own). */
+  companyId: string | null;
   onSaved: (msg: string, flha: Flha) => void;
-  onDeleted: (msg: string, jobId: string) => void;
+  onDeleted: (msg: string, flha: Flha) => void;
   onError: (msg: string) => void;
   onClose: () => void;
 };
+
+function describeTarget(t: FlhaTarget): { activity: string; site: string; date: string } {
+  if (t.kind === 'job') {
+    return { activity: t.job.activity, site: t.job.site, date: t.job.job_date };
+  }
+  return { activity: t.activity, site: t.site, date: t.workDate };
+}
 
 function newHazardRow(): FlhaHazard & { id: string } {
   return {
@@ -36,10 +45,20 @@ const RISK_LEVELS: { id: FlhaRiskLevel; label: string; classes: string }[] = [
   { id: 'high', label: 'High', classes: 'bg-red-100 text-red-800 border-red-300' },
 ];
 
-export function FlhaModal({ job, existing, defaultWorkerName = '', onSaved, onDeleted, onError, onClose }: Props) {
+export function FlhaModal({
+  target,
+  existing,
+  defaultWorkerName = '',
+  companyId,
+  onSaved,
+  onDeleted,
+  onError,
+  onClose,
+}: Props) {
+  const meta = describeTarget(target);
   const [taskDescription, setTaskDescription] = useState('');
   const [location, setLocation] = useState('');
-  const [assessmentDate, setAssessmentDate] = useState(job.job_date);
+  const [assessmentDate, setAssessmentDate] = useState(meta.date);
   const [workerName, setWorkerName] = useState('');
   const [supervisorName, setSupervisorName] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
@@ -51,9 +70,9 @@ export function FlhaModal({ job, existing, defaultWorkerName = '', onSaved, onDe
 
   useEffect(() => {
     if (existing) {
-      setTaskDescription(existing.task_description || job.activity || '');
-      setLocation(existing.location || job.site || '');
-      setAssessmentDate(existing.assessment_date || job.job_date);
+      setTaskDescription(existing.task_description || meta.activity || '');
+      setLocation(existing.location || meta.site || '');
+      setAssessmentDate(existing.assessment_date || meta.date);
       setWorkerName(existing.worker_name || defaultWorkerName || '');
       setSupervisorName(existing.supervisor_name || '');
       setAdditionalNotes(existing.additional_notes || '');
@@ -62,9 +81,9 @@ export function FlhaModal({ job, existing, defaultWorkerName = '', onSaved, onDe
       setPpe(new Set(existing.ppe_required || []));
       setSigned(!!existing.signed_at);
     } else {
-      setTaskDescription(job.activity || '');
-      setLocation(job.site || '');
-      setAssessmentDate(job.job_date);
+      setTaskDescription(meta.activity || '');
+      setLocation(meta.site || '');
+      setAssessmentDate(meta.date);
       setWorkerName(defaultWorkerName || '');
       setSupervisorName('');
       setAdditionalNotes('');
@@ -72,7 +91,7 @@ export function FlhaModal({ job, existing, defaultWorkerName = '', onSaved, onDe
       setPpe(new Set());
       setSigned(false);
     }
-  }, [existing, job, defaultWorkerName]);
+  }, [existing, meta.activity, meta.site, meta.date, defaultWorkerName]);
 
   const togglePpe = (item: string) => {
     setPpe((prev) => {
@@ -106,9 +125,15 @@ export function FlhaModal({ job, existing, defaultWorkerName = '', onSaved, onDe
       onError('Add a task description before saving the FLHA.');
       return;
     }
+    if (!existing && !companyId) {
+      onError('Pick a company first to save the FLHA.');
+      return;
+    }
     setSaving(true);
     const payload: FlhaInput = {
-      job_id: job.id,
+      company_id: existing?.company_id ?? companyId,
+      job_id: target.kind === 'job' ? target.job.id : null,
+      client_task_key: target.kind === 'task' ? target.clientTaskKey : (existing?.client_task_key ?? null),
       assessment_date: assessmentDate,
       location: location.trim(),
       task_description: taskDescription.trim(),
@@ -120,18 +145,35 @@ export function FlhaModal({ job, existing, defaultWorkerName = '', onSaved, onDe
       signed_at: signed ? (existing?.signed_at || new Date().toISOString()) : null,
     };
 
-    const { data, error } = await supabase
-      .from('flhas')
-      .upsert({ ...payload, updated_at: new Date().toISOString() }, { onConflict: 'job_id' })
-      .select()
-      .single();
+    const nowIso = new Date().toISOString();
+    let savedData: Flha | null = null;
+    let saveError: { message: string } | null = null;
+
+    if (existing) {
+      const { data, error } = await supabase
+        .from('flhas')
+        .update({ ...payload, updated_at: nowIso })
+        .eq('id', existing.id)
+        .select()
+        .single();
+      savedData = data as Flha | null;
+      saveError = error;
+    } else {
+      const { data, error } = await supabase
+        .from('flhas')
+        .insert({ ...payload, updated_at: nowIso })
+        .select()
+        .single();
+      savedData = data as Flha | null;
+      saveError = error;
+    }
 
     setSaving(false);
-    if (error) {
-      onError(error.message);
+    if (saveError || !savedData) {
+      onError(saveError?.message || 'Failed to save FLHA');
       return;
     }
-    onSaved(existing ? 'FLHA updated' : 'FLHA created', data as Flha);
+    onSaved(existing ? 'FLHA updated' : 'FLHA created', savedData);
   };
 
   const handleDelete = async () => {
@@ -144,7 +186,7 @@ export function FlhaModal({ job, existing, defaultWorkerName = '', onSaved, onDe
       onError(error.message);
       return;
     }
-    onDeleted('FLHA deleted', job.id);
+    onDeleted('FLHA deleted', existing);
   };
 
   return (
@@ -169,7 +211,7 @@ export function FlhaModal({ job, existing, defaultWorkerName = '', onSaved, onDe
                 {existing ? 'Edit Field Level Hazard Assessment' : 'New Field Level Hazard Assessment'}
               </h2>
               <p className="text-xs text-jd-green-700/80 truncate">
-                {job.activity || 'Task'} {job.site ? `· ${job.site}` : ''}
+                {meta.activity || 'Task'} {meta.site ? `· ${meta.site}` : ''}
               </p>
             </div>
           </div>

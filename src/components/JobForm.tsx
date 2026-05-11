@@ -11,7 +11,7 @@ import {
   Send,
   BookmarkPlus,
 } from 'lucide-react';
-import { supabase, Job } from '../lib/supabase';
+import { supabase, Job, Flha, FlhaTarget } from '../lib/supabase';
 import { useCompanies } from '../contexts/CompanyContext';
 import {
   canonicalizeClockPairForWorkDay,
@@ -36,6 +36,10 @@ type Props = {
   editing?: Job | null;
   /** When logging (not editing), pre-fill the work day from e.g. ?date= on the Log page */
   initialWorkDate?: string | null;
+  /** All FLHAs for the active company, used to badge each task block as completed. */
+  flhas?: Flha[];
+  /** Opens the FLHA modal for a saved Job or a draft task block. */
+  onOpenFlha?: (target: FlhaTarget) => void;
   onSaved: (msg: string) => void;
   onError: (msg: string) => void;
   onCancelEdit?: () => void;
@@ -155,11 +159,21 @@ function emptyDailyState(): DailyFormState {
   };
 }
 
-export function JobForm({ editing, initialWorkDate, onSaved, onError, onCancelEdit }: Props) {
+export function JobForm({
+  editing,
+  initialWorkDate,
+  flhas,
+  onOpenFlha,
+  onSaved,
+  onError,
+  onCancelEdit,
+}: Props) {
   if (editing) {
     return (
       <SingleJobForm
         job={editing}
+        flhas={flhas}
+        onOpenFlha={onOpenFlha}
         onSaved={onSaved}
         onError={onError}
         onCancelEdit={onCancelEdit}
@@ -169,6 +183,8 @@ export function JobForm({ editing, initialWorkDate, onSaved, onError, onCancelEd
   return (
     <DailyJobTrackerForm
       initialWorkDate={initialWorkDate}
+      flhas={flhas}
+      onOpenFlha={onOpenFlha}
       onSaved={onSaved}
       onError={onError}
     />
@@ -209,15 +225,20 @@ function quickTimeChipLabel(hhmm: string): string {
 
 function SingleJobForm({
   job,
+  flhas,
+  onOpenFlha,
   onSaved,
   onError,
   onCancelEdit,
 }: {
   job: Job;
+  flhas?: Flha[];
+  onOpenFlha?: (target: FlhaTarget) => void;
   onSaved: (msg: string) => void;
   onError: (msg: string) => void;
   onCancelEdit?: () => void;
 }) {
+  const jobFlha = (flhas || []).find((f) => f.job_id === job.id) || null;
   const [form, setForm] = useState(emptySingleJobState());
   const [saving, setSaving] = useState(false);
   const [presets, setPresets] = useState<TaskPresets>(() => getTaskPresets());
@@ -483,10 +504,14 @@ function SingleJobForm({
 
 function DailyJobTrackerForm({
   initialWorkDate,
+  flhas,
+  onOpenFlha,
   onSaved,
   onError,
 }: {
   initialWorkDate?: string | null;
+  flhas?: Flha[];
+  onOpenFlha?: (target: FlhaTarget) => void;
   onSaved: (msg: string) => void;
   onError: (msg: string) => void;
 }) {

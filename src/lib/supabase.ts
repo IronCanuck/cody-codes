@@ -159,7 +159,11 @@ export const FLHA_PPE_OPTIONS: readonly string[] = [
 
 export type Flha = {
   id: string;
-  job_id: string;
+  company_id: string | null;
+  /** Null while the FLHA is attached only to a draft task block on the Log page. */
+  job_id: string | null;
+  /** Stable client-generated id of the JobForm task block this FLHA was drafted from. */
+  client_task_key: string | null;
   assessment_date: string;
   location: string;
   task_description: string;
@@ -174,6 +178,20 @@ export type Flha = {
 };
 
 export type FlhaInput = Omit<Flha, 'id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Target for the FLHA modal. Either a saved Job row (from History/Earnings) or a
+ * draft task block on the Log page that hasn't been persisted as a job yet.
+ */
+export type FlhaTarget =
+  | { kind: 'job'; job: Job }
+  | {
+      kind: 'task';
+      clientTaskKey: string;
+      workDate: string;
+      activity: string;
+      site: string;
+    };
 
 export type SavedDailyReport = {
   id: string;

@@ -1,10 +1,18 @@
 import { useOutletContext } from 'react-router-dom';
-import type { Company, Job, Settings as SettingsType, SavedDailyReport, Flha } from './supabase';
+import type {
+  Company,
+  Job,
+  Settings as SettingsType,
+  SavedDailyReport,
+  Flha,
+  FlhaTarget,
+} from './supabase';
 
 export type JobTrackerOutletContext = {
   jobs: Job[];
   flhas: Flha[];
-  onOpenFlha: (j: Job) => void;
+  /** Opens the FLHA modal for a saved job (History) or a draft task block (Log page). */
+  onOpenFlha: (target: FlhaTarget) => void;
   dailyReports: SavedDailyReport[];
   /** True until the first fetch of `saved_daily_reports` finishes (success or error). */
   dailyReportsLoading: boolean;

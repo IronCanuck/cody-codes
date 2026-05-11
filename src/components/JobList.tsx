@@ -9,7 +9,7 @@ import {
   ShieldAlert,
   ShieldCheck,
 } from 'lucide-react';
-import { Job, Flha } from '../lib/supabase';
+import { Job, Flha, FlhaTarget } from '../lib/supabase';
 import { formatDate, formatTime } from '../lib/time';
 
 type Filter = 'all' | 'today' | 'week' | 'month';
@@ -19,14 +19,16 @@ type Props = {
   flhas: Flha[];
   onEdit: (j: Job) => void;
   onDelete: (id: string) => void;
-  onOpenFlha: (j: Job) => void;
+  onOpenFlha: (target: FlhaTarget) => void;
   loading: boolean;
 };
 
 export function JobList({ jobs, flhas, onEdit, onDelete, onOpenFlha, loading }: Props) {
   const flhaByJobId = useMemo(() => {
     const map = new Map<string, Flha>();
-    for (const f of flhas) map.set(f.job_id, f);
+    for (const f of flhas) {
+      if (f.job_id) map.set(f.job_id, f);
+    }
     return map;
   }, [flhas]);
   const [filter, setFilter] = useState<Filter>('all');
@@ -187,7 +189,7 @@ export function JobList({ jobs, flhas, onEdit, onDelete, onOpenFlha, loading }: 
                         const hasFlha = flhaByJobId.has(j.id);
                         return (
                           <button
-                            onClick={() => onOpenFlha(j)}
+                            onClick={() => onOpenFlha({ kind: 'job', job: j })}
                             className={`p-2 rounded-lg ${
                               hasFlha
                                 ? 'text-jd-green-700 hover:bg-jd-green-100'
