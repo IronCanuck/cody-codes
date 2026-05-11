@@ -83,8 +83,19 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+export type Company = {
+  id: string;
+  name: string;
+  /** Currently informational; reserved for future per-company theming. */
+  color: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Job = {
   id: string;
+  company_id: string | null;
   job_date: string;
   start_time: string;
   end_time: string;
@@ -99,6 +110,7 @@ export type JobInput = Omit<Job, 'id' | 'created_at'>;
 
 export type Settings = {
   id: string;
+  company_id: string | null;
   full_name: string;
   hourly_rate: number;
   overtime_multiplier: number;
@@ -121,8 +133,51 @@ export const DEFAULT_SETTINGS: Omit<Settings, 'id' | 'updated_at'> = {
   extra_tax_per_pay_period: 150,
 };
 
+export type FlhaRiskLevel = 'low' | 'medium' | 'high';
+
+export type FlhaHazard = {
+  /** Stable id used for React keys; not persisted to Supabase. */
+  id?: string;
+  description: string;
+  risk_level: FlhaRiskLevel;
+  controls: string;
+};
+
+/** Standard PPE items shown as checkboxes in the FLHA modal. */
+export const FLHA_PPE_OPTIONS: readonly string[] = [
+  'Hard hat',
+  'Safety glasses',
+  'Hi-vis vest',
+  'Gloves',
+  'Steel-toe boots',
+  'Hearing protection',
+  'Fall protection',
+  'Respirator',
+  'Face shield',
+  'FR clothing',
+];
+
+export type Flha = {
+  id: string;
+  job_id: string;
+  assessment_date: string;
+  location: string;
+  task_description: string;
+  hazards: FlhaHazard[];
+  ppe_required: string[];
+  additional_notes: string;
+  worker_name: string;
+  supervisor_name: string;
+  signed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FlhaInput = Omit<Flha, 'id' | 'created_at' | 'updated_at'>;
+
 export type SavedDailyReport = {
   id: string;
+  company_id: string | null;
   report_date: string;
   day_start_time: string;
   day_end_time: string;

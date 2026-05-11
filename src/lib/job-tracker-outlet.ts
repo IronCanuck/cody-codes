@@ -1,8 +1,10 @@
 import { useOutletContext } from 'react-router-dom';
-import type { Job, Settings as SettingsType, SavedDailyReport } from './supabase';
+import type { Job, Settings as SettingsType, SavedDailyReport, Flha } from './supabase';
 
 export type JobTrackerOutletContext = {
   jobs: Job[];
+  flhas: Flha[];
+  onOpenFlha: (j: Job) => void;
   dailyReports: SavedDailyReport[];
   /** True until the first fetch of `saved_daily_reports` finishes (success or error). */
   dailyReportsLoading: boolean;

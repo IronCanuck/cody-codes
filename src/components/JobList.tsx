@@ -1,18 +1,34 @@
 import { useMemo, useState } from 'react';
-import { CreditCard as Edit2, Trash2, MapPin, Clock, Search, Inbox } from 'lucide-react';
-import { Job } from '../lib/supabase';
+import {
+  CreditCard as Edit2,
+  Trash2,
+  MapPin,
+  Clock,
+  Search,
+  Inbox,
+  ShieldAlert,
+  ShieldCheck,
+} from 'lucide-react';
+import { Job, Flha } from '../lib/supabase';
 import { formatDate, formatTime } from '../lib/time';
 
 type Filter = 'all' | 'today' | 'week' | 'month';
 
 type Props = {
   jobs: Job[];
+  flhas: Flha[];
   onEdit: (j: Job) => void;
   onDelete: (id: string) => void;
+  onOpenFlha: (j: Job) => void;
   loading: boolean;
 };
 
-export function JobList({ jobs, onEdit, onDelete, loading }: Props) {
+export function JobList({ jobs, flhas, onEdit, onDelete, onOpenFlha, loading }: Props) {
+  const flhaByJobId = useMemo(() => {
+    const map = new Map<string, Flha>();
+    for (const f of flhas) map.set(f.job_id, f);
+    return map;
+  }, [flhas]);
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
 
@@ -167,6 +183,23 @@ export function JobList({ jobs, onEdit, onDelete, loading }: Props) {
                       )}
                     </div>
                     <div className="flex gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                      {(() => {
+                        const hasFlha = flhaByJobId.has(j.id);
+                        return (
+                          <button
+                            onClick={() => onOpenFlha(j)}
+                            className={`p-2 rounded-lg ${
+                              hasFlha
+                                ? 'text-jd-green-700 hover:bg-jd-green-100'
+                                : 'text-amber-700 hover:bg-amber-100'
+                            }`}
+                            title={hasFlha ? 'View / edit FLHA' : 'Create FLHA'}
+                            aria-label={hasFlha ? 'View or edit FLHA' : 'Create FLHA'}
+                          >
+                            {hasFlha ? <ShieldCheck size={15} /> : <ShieldAlert size={15} />}
+                          </button>
+                        );
+                      })()}
                       <button
                         onClick={() => onEdit(j)}
                         className="p-2 hover:bg-jd-green-100 text-jd-green-700 rounded-lg"

@@ -11,6 +11,7 @@ import { RecentActivity } from './components/RecentActivity';
 import { Earnings } from './components/Earnings';
 import { Settings } from './components/Settings';
 import { Toast, ToastState } from './components/Toast';
+import { FlhaModal } from './components/FlhaModal';
 import type { JobTrackerOutletContext } from './lib/job-tracker-outlet';
 import { useJobTrackerOutlet } from './lib/job-tracker-outlet';
 import { getStoredEmployeeFullName, setStoredEmployeeFullName } from './lib/employee-name-storage';
@@ -20,6 +21,7 @@ import {
   Settings as SettingsType,
   DEFAULT_SETTINGS,
   SavedDailyReport,
+  Flha,
 } from './lib/supabase';
 import { canonicalizeClockPairForWorkDay, getWorkDayHoursWithLunch } from './lib/time';
 
@@ -98,8 +100,17 @@ export function JobTrackerLogPage() {
 }
 
 export function JobTrackerHistoryPage() {
-  const { jobs, loading, onEdit, onDelete } = useJobTrackerOutlet();
-  return <JobList jobs={jobs} onEdit={onEdit} onDelete={onDelete} loading={loading} />;
+  const { jobs, flhas, loading, onEdit, onDelete, onOpenFlha } = useJobTrackerOutlet();
+  return (
+    <JobList
+      jobs={jobs}
+      flhas={flhas}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      onOpenFlha={onOpenFlha}
+      loading={loading}
+    />
+  );
 }
 
 export function JobTrackerEarningsPage() {
@@ -158,6 +169,8 @@ export function JobTrackerApp() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [flhas, setFlhas] = useState<Flha[]>([]);
+  const [flhaJob, setFlhaJob] = useState<Job | null>(null);
   const [dailyReports, setDailyReports] = useState<SavedDailyReport[]>([]);
   const [dailyReportsLoading, setDailyReportsLoading] = useState(true);
   const [dailyReportsError, setDailyReportsError] = useState<string | null>(null);
@@ -247,10 +260,31 @@ export function JobTrackerApp() {
     }
   };
 
+  const loadFlhas = async () => {
+    const { data, error } = await supabase
+      .from('flhas')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (error) {
+      // Surface the issue once if the table is missing, otherwise stay silent so we don't spam.
+      if (/42P01|relation|does not exist|schema cache|PGRST205/i.test(error.message || '')) {
+        setToast({
+          message:
+            'FLHA archive unavailable: the flhas table is missing. Apply Supabase migrations (supabase/migrations).',
+          type: 'error',
+        });
+      }
+      setFlhas([]);
+    } else {
+      setFlhas((data as Flha[]) || []);
+    }
+  };
+
   useEffect(() => {
     loadJobs();
     loadSettings();
     void loadDailyReports();
+    void loadFlhas();
   }, []);
 
   const handleSaveSettings = async (next: SettingsType) => {
@@ -387,8 +421,16 @@ export function JobTrackerApp() {
     return true;
   };
 
+  const handleOpenFlha = (j: Job) => setFlhaJob(j);
+
+  const existingFlhaForJob = flhaJob
+    ? flhas.find((f) => f.job_id === flhaJob.id) || null
+    : null;
+
   const outletContext: JobTrackerOutletContext = {
     jobs,
+    flhas,
+    onOpenFlha: handleOpenFlha,
     dailyReports,
     dailyReportsLoading,
     dailyReportsError,
@@ -430,6 +472,29 @@ export function JobTrackerApp() {
         ) : null}
         <Outlet context={outletContext} />
       </main>
+
+      {flhaJob ? (
+        <FlhaModal
+          job={flhaJob}
+          existing={existingFlhaForJob}
+          defaultWorkerName={settings?.full_name || ''}
+          onSaved={(msg, saved) => {
+            setFlhas((prev) => {
+              const others = prev.filter((f) => f.job_id !== saved.job_id);
+              return [saved, ...others];
+            });
+            setToast({ message: msg, type: 'success' });
+            setFlhaJob(null);
+          }}
+          onDeleted={(msg, jobId) => {
+            setFlhas((prev) => prev.filter((f) => f.job_id !== jobId));
+            setToast({ message: msg, type: 'success' });
+            setFlhaJob(null);
+          }}
+          onError={(msg) => setToast({ message: msg, type: 'error' })}
+          onClose={() => setFlhaJob(null)}
+        />
+      ) : null}
 
       <footer className="mt-12 py-6 border-t border-gray-200 text-center text-sm text-gray-500 space-y-2">
         <p>Consalty — track your work, one job at a time</p>
