@@ -1,5 +1,5 @@
 import { useOutletContext } from 'react-router-dom';
-import type { Job, Settings as SettingsType, SavedDailyReport, Flha } from './supabase';
+import type { Company, Job, Settings as SettingsType, SavedDailyReport, Flha } from './supabase';
 
 export type JobTrackerOutletContext = {
   jobs: Job[];
@@ -14,6 +14,9 @@ export type JobTrackerOutletContext = {
   loading: boolean;
   editing: Job | null;
   setEditing: (j: Job | null) => void;
+  /** Active company (drives all data scoping); null until a company is created/selected. */
+  activeCompanyId: string | null;
+  activeCompany: Company | null;
   onSaved: (msg: string) => void;
   onError: (msg: string) => void;
   onEdit: (j: Job) => void;

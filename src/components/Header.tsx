@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
+  Building2,
+  Check,
+  ChevronDown,
   Leaf,
   LogOut,
   Plus,
@@ -13,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import { useCompanies } from '../contexts/CompanyContext';
 
 export const CONSALTY_APP_BASE = '/consaltyapp';
 
@@ -29,6 +33,7 @@ const navItems: { to: string; label: string; icon: typeof Leaf; end?: boolean }[
   { to: `${CONSALTY_APP_BASE}/earnings`, label: 'Earnings', icon: DollarSign },
   { to: `${CONSALTY_APP_BASE}/reports`, label: 'Reports', icon: FileText },
   { to: `${CONSALTY_APP_BASE}/history`, label: 'History', icon: List },
+  { to: `${CONSALTY_APP_BASE}/companies`, label: 'Companies', icon: Building2 },
   { to: `${CONSALTY_APP_BASE}/settings`, label: 'Settings', icon: Settings },
 ];
 
@@ -38,6 +43,96 @@ function drawerLinkClass(isActive: boolean) {
       ? 'bg-jd-yellow-400 text-jd-green-800 shadow'
       : 'text-white hover:bg-jd-green-700/80'
   }`;
+}
+
+function CompanySwitcher() {
+  const { companies, activeCompany, setActiveCompanyId } = useCompanies();
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (event: MouseEvent) => {
+      if (!wrapperRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const label = activeCompany?.name ?? (companies.length === 0 ? 'Add a company' : 'Pick company');
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((p) => !p)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="flex items-center gap-1.5 max-w-[10rem] sm:max-w-[14rem] rounded-lg border border-jd-yellow-400/60 bg-jd-green-700/60 hover:bg-jd-green-700 text-white px-2.5 py-1.5 text-sm font-semibold focus-visible:outline focus-visible:ring-2 focus-visible:ring-jd-yellow-400"
+        title="Switch company"
+      >
+        <Building2 size={16} aria-hidden className="shrink-0 text-jd-yellow-300" />
+        <span className="truncate">{label}</span>
+        <ChevronDown size={14} aria-hidden className="shrink-0 opacity-80" />
+      </button>
+      {open ? (
+        <div
+          role="listbox"
+          className="absolute right-0 mt-2 w-64 max-h-[60vh] overflow-y-auto rounded-lg border border-jd-green-200 bg-white shadow-xl ring-1 ring-black/5 z-50"
+        >
+          {companies.length === 0 ? (
+            <p className="px-4 py-3 text-sm text-gray-500">
+              No companies yet. Add one to get started.
+            </p>
+          ) : (
+            <ul className="py-1">
+              {companies.map((c) => {
+                const active = c.id === activeCompany?.id;
+                return (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      onClick={() => {
+                        setActiveCompanyId(c.id);
+                        setOpen(false);
+                      }}
+                      className={`w-full text-left flex items-center gap-2 px-3 py-2 text-sm ${
+                        active
+                          ? 'bg-jd-green-50 text-jd-green-800 font-semibold'
+                          : 'text-gray-800 hover:bg-jd-green-50/60'
+                      }`}
+                    >
+                      <span className="flex-1 truncate">{c.name}</span>
+                      {active ? <Check size={16} aria-hidden className="text-jd-green-600" /> : null}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <div className="border-t border-gray-100">
+            <Link
+              to={`${CONSALTY_APP_BASE}/companies`}
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-jd-green-700 hover:bg-jd-green-50"
+            >
+              <Plus size={16} aria-hidden />
+              Manage companies
+            </Link>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function Header({ onSignOut }: Props) {
@@ -76,7 +171,8 @@ export function Header({ onSignOut }: Props) {
             </div>
           </Link>
 
-          <div className="flex items-center shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
+            <CompanySwitcher />
             <button
               type="button"
               onClick={() => setMenuOpen(true)}

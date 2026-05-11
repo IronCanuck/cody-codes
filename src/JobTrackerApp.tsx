@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, Outlet, useNavigate, useSearchParams } from 'react-router-dom';
 import { Header } from './components/Header';
 import { useAuth } from './contexts/AuthContext';
+import { CompanyProvider, useCompanies } from './contexts/CompanyContext';
+import { CompaniesManager } from './components/CompaniesManager';
 import { JobForm } from './components/JobForm';
 import { JobList } from './components/JobList';
 import { Reports } from './components/Reports';
@@ -34,6 +36,7 @@ const SETTINGS_ROW_INSERT = {
   currency_symbol: DEFAULT_SETTINGS.currency_symbol,
   extra_tax_per_pay_period: DEFAULT_SETTINGS.extra_tax_per_pay_period,
 } as const;
+
 export function JobTrackerDashboardPage() {
   const { jobs, settings, dailyReports, loading } = useJobTrackerOutlet();
   return (
@@ -165,9 +168,28 @@ export function JobTrackerSettingsPage() {
   return <Settings settings={settings} onSave={onSettingsSave} />;
 }
 
+export function JobTrackerCompaniesPage() {
+  return <CompaniesManager />;
+}
+
 export function JobTrackerApp() {
+  return (
+    <CompanyProvider>
+      <JobTrackerAppShell />
+    </CompanyProvider>
+  );
+}
+
+function JobTrackerAppShell() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const {
+    activeCompanyId,
+    activeCompany,
+    companies,
+    loading: companiesLoading,
+    error: companiesError,
+  } = useCompanies();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [flhas, setFlhas] = useState<Flha[]>([]);
   const [flhaJob, setFlhaJob] = useState<Job | null>(null);
@@ -181,14 +203,16 @@ export function JobTrackerApp() {
   const [toast, setToast] = useState<ToastState>(null);
 
   useEffect(() => {
-    document.title = 'Consalty — Job & hour tracker | Cody James Fairburn';
-  }, []);
+    const suffix = activeCompany?.name ? ` · ${activeCompany.name}` : '';
+    document.title = `Consalty${suffix} — Job & hour tracker | Cody James Fairburn`;
+  }, [activeCompany?.name]);
 
-  const loadJobs = async () => {
+  const loadJobs = async (companyId: string) => {
     setLoading(true);
     const { data, error } = await supabase
       .from('jobs')
       .select('*')
+      .eq('company_id', companyId)
       .order('job_date', { ascending: false })
       .order('start_time', { ascending: false });
     if (error) {
@@ -199,12 +223,13 @@ export function JobTrackerApp() {
     setLoading(false);
   };
 
-  const loadDailyReports = async () => {
+  const loadDailyReports = async (companyId: string) => {
     setDailyReportsLoading(true);
     setDailyReportsError(null);
     const { data, error } = await supabase
       .from('saved_daily_reports')
       .select('*')
+      .eq('company_id', companyId)
       .order('created_at', { ascending: false })
       .limit(50);
     if (error) {
@@ -223,10 +248,11 @@ export function JobTrackerApp() {
     setDailyReportsLoading(false);
   };
 
-  const loadSettings = async () => {
+  const loadSettings = async (companyId: string) => {
     const { data, error } = await supabase
       .from('settings')
       .select('*')
+      .eq('company_id', companyId)
       .limit(1)
       .maybeSingle();
     if (error) {
@@ -249,7 +275,7 @@ export function JobTrackerApp() {
     } else {
       const { data: created, error: createErr } = await supabase
         .from('settings')
-        .insert(SETTINGS_ROW_INSERT)
+        .insert({ ...SETTINGS_ROW_INSERT, company_id: companyId })
         .select()
         .maybeSingle();
       if (createErr) {
@@ -260,13 +286,13 @@ export function JobTrackerApp() {
     }
   };
 
-  const loadFlhas = async () => {
+  const loadFlhas = async (companyId: string) => {
     const { data, error } = await supabase
       .from('flhas')
-      .select('*')
+      .select('*, jobs!inner(company_id)')
+      .eq('jobs.company_id', companyId)
       .order('updated_at', { ascending: false });
     if (error) {
-      // Surface the issue once if the table is missing, otherwise stay silent so we don't spam.
       if (/42P01|relation|does not exist|schema cache|PGRST205/i.test(error.message || '')) {
         setToast({
           message:
@@ -281,11 +307,21 @@ export function JobTrackerApp() {
   };
 
   useEffect(() => {
-    loadJobs();
-    loadSettings();
-    void loadDailyReports();
-    void loadFlhas();
-  }, []);
+    if (!activeCompanyId) {
+      setJobs([]);
+      setSettings(null);
+      setDailyReports([]);
+      setFlhas([]);
+      setLoading(false);
+      setDailyReportsLoading(false);
+      return;
+    }
+    setSettings(null);
+    void loadJobs(activeCompanyId);
+    void loadSettings(activeCompanyId);
+    void loadDailyReports(activeCompanyId);
+    void loadFlhas(activeCompanyId);
+  }, [activeCompanyId]);
 
   const handleSaveSettings = async (next: SettingsType) => {
     setStoredEmployeeFullName(next.full_name);
@@ -313,8 +349,10 @@ export function JobTrackerApp() {
   const handleSaved = (msg: string) => {
     setToast({ message: msg, type: 'success' });
     setEditing(null);
-    loadJobs();
-    void loadDailyReports();
+    if (activeCompanyId) {
+      void loadJobs(activeCompanyId);
+      void loadDailyReports(activeCompanyId);
+    }
   };
 
   const handleError = (msg: string) => {
@@ -334,7 +372,7 @@ export function JobTrackerApp() {
       setToast({ message: error.message, type: 'error' });
     } else {
       setToast({ message: 'Job deleted', type: 'success' });
-      loadJobs();
+      if (activeCompanyId) void loadJobs(activeCompanyId);
     }
   };
 
@@ -364,8 +402,10 @@ export function JobTrackerApp() {
           dayJobs.length === 1 ? 'Job entry deleted' : `${dayJobs.length} job entries deleted`,
         type: 'success',
       });
-      loadJobs();
-      void loadDailyReports();
+      if (activeCompanyId) {
+        void loadJobs(activeCompanyId);
+        void loadDailyReports(activeCompanyId);
+      }
     }
   };
 
@@ -373,6 +413,10 @@ export function JobTrackerApp() {
     sourceDate: string,
     targetDate: string,
   ): Promise<boolean> => {
+    if (!activeCompanyId) {
+      setToast({ message: 'Pick a company first to copy entries.', type: 'error' });
+      return false;
+    }
     const dayJobs = jobs
       .filter((j) => j.job_date === sourceDate)
       .sort((a, b) => a.start_time.localeCompare(b.start_time));
@@ -399,6 +443,7 @@ export function JobTrackerApp() {
       );
       const { hours } = getWorkDayHoursWithLunch(startIso, endIso);
       return {
+        company_id: activeCompanyId,
         job_date: targetDate,
         start_time: startIso,
         end_time: endIso,
@@ -417,7 +462,7 @@ export function JobTrackerApp() {
       message: `Copied ${dayJobs.length} ${dayJobs.length === 1 ? 'entry' : 'entries'} to ${targetDate}`,
       type: 'success',
     });
-    loadJobs();
+    void loadJobs(activeCompanyId);
     return true;
   };
 
@@ -438,6 +483,8 @@ export function JobTrackerApp() {
     loading,
     editing,
     setEditing,
+    activeCompanyId,
+    activeCompany,
     onSaved: handleSaved,
     onError: handleError,
     onEdit: handleEdit,
@@ -449,28 +496,46 @@ export function JobTrackerApp() {
     onEarningsSuccess: (m) => setToast({ message: m, type: 'success' }),
   };
 
+  const showCompaniesGate =
+    !companiesLoading && !companiesError && companies.length === 0;
+
   return (
     <div className="min-h-screen bg-white">
       <Header onSignOut={() => void signOut()} />
       <Toast toast={toast} onClose={() => setToast(null)} />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {dailyReportsError && !dismissArchiveBanner ? (
+        {companiesError ? (
           <div
             role="alert"
-            className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 flex gap-3 justify-between items-start"
+            className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
           >
-            <p className="leading-snug">{dailyReportsError}</p>
-            <button
-              type="button"
-              onClick={() => setDismissArchiveBanner(true)}
-              className="shrink-0 font-semibold text-amber-900 hover:text-amber-950 underline"
-            >
-              Dismiss
-            </button>
+            <p className="leading-snug">{companiesError}</p>
           </div>
         ) : null}
-        <Outlet context={outletContext} />
+
+        {showCompaniesGate ? (
+          <CompaniesGate />
+        ) : (
+          <>
+            {dailyReportsError && !dismissArchiveBanner ? (
+              <div
+                role="alert"
+                className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 flex gap-3 justify-between items-start"
+              >
+                <p className="leading-snug">{dailyReportsError}</p>
+                <button
+                  type="button"
+                  onClick={() => setDismissArchiveBanner(true)}
+                  className="shrink-0 font-semibold text-amber-900 hover:text-amber-950 underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            ) : null}
+            <Outlet context={outletContext} />
+          </>
+        )}
       </main>
 
       {flhaJob ? (
@@ -504,6 +569,24 @@ export function JobTrackerApp() {
           </Link>
         </p>
       </footer>
+    </div>
+  );
+}
+
+function CompaniesGate() {
+  return (
+    <div className="rounded-2xl border-2 border-dashed border-jd-green-300 bg-jd-green-50/40 p-8 text-center max-w-2xl mx-auto">
+      <h2 className="text-2xl font-bold text-jd-green-800 mb-2">Add your first company</h2>
+      <p className="text-jd-green-900/80 mb-6">
+        Consalty keeps your jobs, hours, settings, and report archive separate per company.
+        Add one to start tracking work.
+      </p>
+      <Link
+        to="/consaltyapp/companies"
+        className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-jd-green-600 hover:bg-jd-green-700 text-white font-semibold shadow"
+      >
+        Add a company
+      </Link>
     </div>
   );
 }

@@ -122,7 +122,7 @@ export type Settings = {
   updated_at: string;
 };
 
-export const DEFAULT_SETTINGS: Omit<Settings, 'id' | 'updated_at'> = {
+export const DEFAULT_SETTINGS: Omit<Settings, 'id' | 'company_id' | 'updated_at'> = {
   full_name: '',
   hourly_rate: 25,
   overtime_multiplier: 1.5,

@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import {
   JobTrackerApp,
+  JobTrackerCompaniesPage,
   JobTrackerDashboardPage,
   JobTrackerEarningsPage,
   JobTrackerHistoryPage,
@@ -150,6 +151,7 @@ export default function App() {
             <Route path="history" element={<JobTrackerHistoryPage />} />
             <Route path="earnings" element={<JobTrackerEarningsPage />} />
             <Route path="reports" element={<JobTrackerReportsPage />} />
+            <Route path="companies" element={<JobTrackerCompaniesPage />} />
             <Route path="settings" element={<JobTrackerSettingsPage />} />
             <Route path="*" element={<Navigate to="/consaltyapp" replace />} />
           </Route>

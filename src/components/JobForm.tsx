@@ -12,6 +12,7 @@ import {
   BookmarkPlus,
 } from 'lucide-react';
 import { supabase, Job } from '../lib/supabase';
+import { useCompanies } from '../contexts/CompanyContext';
 import {
   canonicalizeClockPairForWorkDay,
   combineDateAndTime,
@@ -489,6 +490,7 @@ function DailyJobTrackerForm({
   onSaved: (msg: string) => void;
   onError: (msg: string) => void;
 }) {
+  const { activeCompanyId } = useCompanies();
   const validInitial =
     initialWorkDate && /^\d{4}-\d{2}-\d{2}$/.test(initialWorkDate) ? initialWorkDate : null;
 
@@ -566,6 +568,10 @@ function DailyJobTrackerForm({
 
   const handleSubmitReport = async (e: FormEvent) => {
     e.preventDefault();
+    if (!activeCompanyId) {
+      onError('Pick a company before submitting a daily report.');
+      return;
+    }
     if (!form.workDate || !form.dayStartTime || !form.dayEndTime) {
       onError('Please set the work day date and overall start and end times');
       return;
@@ -576,6 +582,7 @@ function DailyJobTrackerForm({
     }
 
     const taskRows: {
+      company_id: string;
       job_date: string;
       start_time: string;
       end_time: string;
@@ -607,6 +614,7 @@ function DailyJobTrackerForm({
         return;
       }
       taskRows.push({
+        company_id: activeCompanyId,
         job_date: form.workDate,
         start_time: sCan,
         end_time: eCan,
@@ -622,6 +630,7 @@ function DailyJobTrackerForm({
         ? taskRows
         : [
             {
+              company_id: activeCompanyId,
               job_date: form.workDate,
               start_time: dayClockCanon.startIso,
               end_time: dayClockCanon.endIso,
@@ -671,6 +680,7 @@ function DailyJobTrackerForm({
 
       if (!upPdf && !upPng) {
         const { error: repErr } = await supabase.from('saved_daily_reports').insert({
+          company_id: activeCompanyId,
           report_date: form.workDate,
           day_start_time: dayClockCanon.startIso,
           day_end_time: dayClockCanon.endIso,
