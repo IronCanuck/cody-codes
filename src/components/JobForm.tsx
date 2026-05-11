@@ -12,6 +12,7 @@ import {
   BookmarkPlus,
   ShieldAlert,
   ShieldCheck,
+  Download,
 } from 'lucide-react';
 import { supabase, Job, Flha, FlhaTarget } from '../lib/supabase';
 import { useCompanies } from '../contexts/CompanyContext';
@@ -24,7 +25,7 @@ import {
   toLocalTimeInputValue,
 } from '../lib/time';
 import { QuarterHourTimeInput } from './QuarterHourTimeInput';
-import { dailyWorkReportPdfBlob } from '../lib/pdf';
+import { dailyWorkReportPdfBlob, downloadFlhaPdf } from '../lib/pdf';
 import { dailyWorkReportPngBlob } from '../lib/png';
 import {
   getTaskPresets,
@@ -324,21 +325,34 @@ function SingleJobForm({
           </h2>
           <p className="text-jd-green-100 text-sm mt-1">Update the details below</p>
         </div>
-        {onOpenFlha ? (
-          <button
-            type="button"
-            onClick={() => onOpenFlha({ kind: 'job', job })}
-            title={jobFlha ? 'View or edit FLHA for this task' : 'Create FLHA for this task'}
-            className={`flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg border shadow-sm ${
-              jobFlha
-                ? 'bg-jd-green-50 text-jd-green-800 border-jd-green-300 hover:bg-jd-green-100'
-                : 'bg-jd-yellow-400 text-jd-green-900 border-jd-yellow-500 hover:bg-jd-yellow-500'
-            }`}
-          >
-            {jobFlha ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
-            {jobFlha ? 'FLHA on file' : 'Add FLHA'}
-          </button>
-        ) : null}
+        <div className="flex items-center gap-2 flex-wrap">
+          {onOpenFlha ? (
+            <button
+              type="button"
+              onClick={() => onOpenFlha({ kind: 'job', job })}
+              title={jobFlha ? 'View or edit FLHA for this task' : 'Create FLHA for this task'}
+              className={`flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg border shadow-sm ${
+                jobFlha
+                  ? 'bg-jd-green-50 text-jd-green-800 border-jd-green-300 hover:bg-jd-green-100'
+                  : 'bg-jd-yellow-400 text-jd-green-900 border-jd-yellow-500 hover:bg-jd-yellow-500'
+              }`}
+            >
+              {jobFlha ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
+              {jobFlha ? 'FLHA on file' : 'Add FLHA'}
+            </button>
+          ) : null}
+          {jobFlha ? (
+            <button
+              type="button"
+              onClick={() => downloadFlhaPdf(jobFlha)}
+              title="Download FLHA PDF for the front office"
+              className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg border shadow-sm bg-white text-jd-green-800 border-jd-green-300 hover:bg-jd-green-50"
+            >
+              <Download size={16} />
+              PDF
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="p-6 space-y-5">
@@ -943,7 +957,7 @@ function DailyJobTrackerForm({
                   block={block}
                   workDate={form.workDate}
                   presets={presets}
-                  hasFlha={!!blockFlha}
+                  flha={blockFlha}
                   onOpenFlha={
                     onOpenFlha
                       ? () =>
@@ -999,7 +1013,7 @@ function TaskBlockCard({
   block,
   workDate,
   presets,
-  hasFlha,
+  flha,
   onOpenFlha,
   onPresetsUpdated,
   onChange,
@@ -1011,7 +1025,7 @@ function TaskBlockCard({
   block: TaskBlock;
   workDate: string;
   presets: TaskPresets;
-  hasFlha: boolean;
+  flha: Flha | null;
   onOpenFlha?: () => void;
   onPresetsUpdated: () => void;
   onChange: (p: Partial<TaskBlock>) => void;
@@ -1019,6 +1033,7 @@ function TaskBlockCard({
   onRemove: () => void;
   canDelete: boolean;
 }) {
+  const hasFlha = !!flha;
   const startIso = combineDateAndTime(workDate, block.startTime);
   const endIso = combineDateAndTime(workDate, block.endTime);
   const blockHours = computeHours(startIso, endIso);
@@ -1045,7 +1060,19 @@ function TaskBlockCard({
               }`}
             >
               {hasFlha ? <ShieldCheck size={14} aria-hidden /> : <ShieldAlert size={14} aria-hidden />}
-              {hasFlha ? 'FLHA' : 'FLHA'}
+              FLHA
+            </button>
+          ) : null}
+          {flha ? (
+            <button
+              type="button"
+              onClick={() => downloadFlhaPdf(flha)}
+              title="Download FLHA PDF for the front office"
+              aria-label="Download FLHA PDF"
+              className="flex items-center gap-1.5 text-xs font-semibold text-jd-green-800 bg-white border border-jd-green-300 hover:bg-jd-green-50 px-2.5 py-1.5 rounded-lg shadow-sm"
+            >
+              <Download size={14} aria-hidden />
+              PDF
             </button>
           ) : null}
           <button

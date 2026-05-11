@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Job, Settings } from './supabase';
+import { Job, Settings, Flha } from './supabase';
 import { formatTime, formatDate, getWorkDayHoursWithLunchAnchored } from './time';
 import { EarningsSummary, PayPeriod, formatMoney, formatPeriodLabel } from './earnings';
 import { payPeriodHoursTrackerFilename, reportEmployeeLabel } from './export-filename';
@@ -248,6 +248,238 @@ export function downloadDailyWorkReportPdf(
 ) {
   const doc = buildDailyWorkReportPdf(date, dayStartIso, dayEndIso, jobs);
   doc.save(`landscape-log-daily-${date}.pdf`);
+}
+
+/**
+ * Sanitize an arbitrary string into a filesystem-friendly slug. Used to compose
+ * FLHA filenames like `flha-2026-05-10-bobcat-site.pdf`.
+ */
+function slugifyForFilename(input: string, max = 40): string {
+  const cleaned = input
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, max);
+  return cleaned || 'task';
+}
+
+const RISK_LABEL: Record<Flha['hazards'][number]['risk_level'], string> = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+};
+
+/**
+ * Build a PDF for a single Field Level Hazard Assessment suitable for sending to
+ * the front office. Includes header info, task description, hazards/controls
+ * table, PPE list, additional notes, and sign-off lines.
+ */
+export function buildFlhaPdf(flha: Flha, companyName?: string | null): jsPDF {
+  const doc = new jsPDF();
+  const pageW = doc.internal.pageSize.getWidth();
+  const m = 14;
+
+  drawHeader(
+    doc,
+    'Field Level Hazard Assessment',
+    `${formatDate(flha.assessment_date)}${companyName ? ` · ${companyName}` : ''}`,
+  );
+
+  // Meta block (label / value pairs)
+  const meta: [string, string][] = [
+    ['Date', formatDate(flha.assessment_date)],
+    ['Location', flha.location || '-'],
+    ['Worker', flha.worker_name || '-'],
+    ['Supervisor', flha.supervisor_name || '-'],
+  ];
+  if (companyName) meta.unshift(['Company', companyName]);
+
+  autoTable(doc, {
+    startY: 60,
+    head: [],
+    body: meta,
+    theme: 'plain',
+    styles: { fontSize: 10, textColor: TEXT_DARK, cellPadding: { top: 1.2, bottom: 1.2, left: 0, right: 4 } },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 32 },
+      1: { cellWidth: 'auto' },
+    },
+    margin: { left: m, right: m },
+  });
+
+  type AutoTableDoc = jsPDF & { lastAutoTable?: { finalY: number } };
+  let cursorY = (doc as AutoTableDoc).lastAutoTable?.finalY ?? 90;
+  cursorY += 6;
+
+  // Task description
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...JD_GREEN);
+  doc.text('Task description', m, cursorY);
+  cursorY += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...TEXT_DARK);
+  const descLines = doc.splitTextToSize(flha.task_description || '-', pageW - 2 * m);
+  doc.text(descLines, m, cursorY);
+  cursorY += descLines.length * 5 + 4;
+
+  // Hazards table
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...JD_GREEN);
+  doc.text('Hazards & controls', m, cursorY);
+  cursorY += 2;
+
+  const hazardRows = (flha.hazards || []).map((h, idx) => [
+    String(idx + 1),
+    h.description || '-',
+    RISK_LABEL[h.risk_level] || '-',
+    h.controls || '-',
+  ]);
+
+  if (hazardRows.length === 0) {
+    autoTable(doc, {
+      startY: cursorY + 2,
+      head: [['#', 'Hazard', 'Residual risk', 'Controls / mitigation']],
+      body: [['-', 'No hazards listed', '-', '-']],
+      theme: 'grid',
+      headStyles: { fillColor: JD_GREEN, textColor: [255, 255, 255], fontSize: 10 },
+      bodyStyles: { fontSize: 9, textColor: TEXT_DARK },
+      alternateRowStyles: { fillColor: [241, 248, 238] },
+      margin: { left: m, right: m },
+    });
+  } else {
+    autoTable(doc, {
+      startY: cursorY + 2,
+      head: [['#', 'Hazard', 'Residual risk', 'Controls / mitigation']],
+      body: hazardRows,
+      theme: 'grid',
+      headStyles: { fillColor: JD_GREEN, textColor: [255, 255, 255], fontSize: 10 },
+      bodyStyles: { fontSize: 9, textColor: TEXT_DARK },
+      alternateRowStyles: { fillColor: [241, 248, 238] },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'right' },
+        1: { cellWidth: 60 },
+        2: { cellWidth: 24, halign: 'center' },
+        3: { cellWidth: 'auto' },
+      },
+      margin: { left: m, right: m },
+    });
+  }
+
+  cursorY = (doc as AutoTableDoc).lastAutoTable?.finalY ?? cursorY + 30;
+  cursorY += 8;
+
+  // Required PPE
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...JD_GREEN);
+  doc.text('Required PPE', m, cursorY);
+  cursorY += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...TEXT_DARK);
+  const ppeText =
+    flha.ppe_required && flha.ppe_required.length > 0
+      ? flha.ppe_required.join(' · ')
+      : 'None specified';
+  const ppeLines = doc.splitTextToSize(ppeText, pageW - 2 * m);
+  doc.text(ppeLines, m, cursorY);
+  cursorY += ppeLines.length * 5 + 4;
+
+  // Notes
+  if (flha.additional_notes && flha.additional_notes.trim()) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(...JD_GREEN);
+    doc.text('Additional notes', m, cursorY);
+    cursorY += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(...TEXT_DARK);
+    const noteLines = doc.splitTextToSize(flha.additional_notes, pageW - 2 * m);
+    doc.text(noteLines, m, cursorY);
+    cursorY += noteLines.length * 5 + 6;
+  }
+
+  // Sign-off block (page-break aware)
+  const pageH = doc.internal.pageSize.getHeight();
+  const neededForSignoff = 40;
+  if (cursorY + neededForSignoff > pageH - 22) {
+    doc.addPage();
+    cursorY = 20;
+  } else {
+    cursorY += 4;
+  }
+
+  doc.setDrawColor(...JD_GREEN);
+  doc.setLineWidth(0.4);
+  doc.line(m, cursorY, pageW - m, cursorY);
+  cursorY += 6;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...JD_GREEN);
+  doc.text('Sign-off', m, cursorY);
+  cursorY += 6;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...TEXT_DARK);
+  const signedLabel = flha.signed_at
+    ? `Worker confirmed at ${new Date(flha.signed_at).toLocaleString()}`
+    : 'Worker confirmation: pending';
+  doc.text(signedLabel, m, cursorY);
+  cursorY += 12;
+
+  const colW = (pageW - 2 * m - 10) / 2;
+  doc.line(m, cursorY, m + colW, cursorY);
+  doc.line(m + colW + 10, cursorY, pageW - m, cursorY);
+  doc.setFontSize(9);
+  doc.setTextColor(90, 90, 90);
+  doc.text(`Worker signature${flha.worker_name ? ` — ${flha.worker_name}` : ''}`, m, cursorY + 5);
+  doc.text(
+    `Supervisor signature${flha.supervisor_name ? ` — ${flha.supervisor_name}` : ''}`,
+    m + colW + 10,
+    cursorY + 5,
+  );
+
+  // Footer (reuse style without total-hours)
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(...JD_GREEN);
+    doc.setLineWidth(0.5);
+    doc.line(m, pageH - 16, pageW - m, pageH - 16);
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    doc.setFont('helvetica', 'normal');
+    doc.text(
+      `Generated ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+      m,
+      pageH - 10,
+    );
+    doc.text(`Page ${i} of ${pageCount}`, pageW - m, pageH - 10, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...JD_GREEN);
+    doc.text('FLHA — Consalty', pageW / 2, pageH - 10, { align: 'center' });
+  }
+
+  return doc;
+}
+
+export function flhaPdfBlob(flha: Flha, companyName?: string | null): Blob {
+  return buildFlhaPdf(flha, companyName).output('blob');
+}
+
+export function flhaPdfFilename(flha: Flha): string {
+  const slug = slugifyForFilename(flha.task_description || flha.location || 'task');
+  return `flha-${flha.assessment_date}-${slug}.pdf`;
+}
+
+export function downloadFlhaPdf(flha: Flha, companyName?: string | null): void {
+  buildFlhaPdf(flha, companyName).save(flhaPdfFilename(flha));
 }
 
 export function generateWeeklyPDF(startDate: string, endDate: string, jobs: Job[]) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X, Plus, Trash2, ShieldAlert, Check } from 'lucide-react';
+import { X, Plus, Trash2, ShieldAlert, Check, Download } from 'lucide-react';
 import {
   supabase,
   Flha,
@@ -9,6 +9,7 @@ import {
   FlhaTarget,
   FLHA_PPE_OPTIONS,
 } from '../lib/supabase';
+import { downloadFlhaPdf } from '../lib/pdf';
 
 type Props = {
   target: FlhaTarget;
@@ -434,7 +435,19 @@ export function FlhaModal({
               </button>
             ) : null}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {existing ? (
+              <button
+                type="button"
+                onClick={() => downloadFlhaPdf(existing)}
+                disabled={saving || deleting}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-jd-green-800 bg-white border border-jd-green-300 hover:bg-jd-green-50 disabled:opacity-50"
+                title="Download PDF for the front office"
+              >
+                <Download size={14} />
+                Download PDF
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={onClose}

@@ -8,9 +8,11 @@ import {
   Inbox,
   ShieldAlert,
   ShieldCheck,
+  Download,
 } from 'lucide-react';
 import { Job, Flha, FlhaTarget } from '../lib/supabase';
 import { formatDate, formatTime } from '../lib/time';
+import { downloadFlhaPdf } from '../lib/pdf';
 
 type Filter = 'all' | 'today' | 'week' | 'month';
 
@@ -186,20 +188,33 @@ export function JobList({ jobs, flhas, onEdit, onDelete, onOpenFlha, loading }: 
                     </div>
                     <div className="flex gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                       {(() => {
-                        const hasFlha = flhaByJobId.has(j.id);
+                        const existingFlha = flhaByJobId.get(j.id) || null;
+                        const hasFlha = !!existingFlha;
                         return (
-                          <button
-                            onClick={() => onOpenFlha({ kind: 'job', job: j })}
-                            className={`p-2 rounded-lg ${
-                              hasFlha
-                                ? 'text-jd-green-700 hover:bg-jd-green-100'
-                                : 'text-amber-700 hover:bg-amber-100'
-                            }`}
-                            title={hasFlha ? 'View / edit FLHA' : 'Create FLHA'}
-                            aria-label={hasFlha ? 'View or edit FLHA' : 'Create FLHA'}
-                          >
-                            {hasFlha ? <ShieldCheck size={15} /> : <ShieldAlert size={15} />}
-                          </button>
+                          <>
+                            <button
+                              onClick={() => onOpenFlha({ kind: 'job', job: j })}
+                              className={`p-2 rounded-lg ${
+                                hasFlha
+                                  ? 'text-jd-green-700 hover:bg-jd-green-100'
+                                  : 'text-amber-700 hover:bg-amber-100'
+                              }`}
+                              title={hasFlha ? 'View / edit FLHA' : 'Create FLHA'}
+                              aria-label={hasFlha ? 'View or edit FLHA' : 'Create FLHA'}
+                            >
+                              {hasFlha ? <ShieldCheck size={15} /> : <ShieldAlert size={15} />}
+                            </button>
+                            {existingFlha ? (
+                              <button
+                                onClick={() => downloadFlhaPdf(existingFlha)}
+                                className="p-2 rounded-lg text-jd-green-700 hover:bg-jd-green-100"
+                                title="Download FLHA PDF for the front office"
+                                aria-label="Download FLHA PDF"
+                              >
+                                <Download size={15} />
+                              </button>
+                            ) : null}
+                          </>
                         );
                       })()}
                       <button
