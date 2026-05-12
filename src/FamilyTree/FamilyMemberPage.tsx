@@ -44,7 +44,7 @@ const EMPTY_FORM = (): FormState => ({
   birthDate: '',
   deathDate: '',
   birthplace: '',
-  gender: 'unspecified',
+  gender: 'female',
   bio: '',
   notes: '',
   parentIds: [],

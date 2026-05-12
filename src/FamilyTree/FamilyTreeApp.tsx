@@ -184,7 +184,7 @@ function FamilyTreeShell() {
           birthDate: input?.birthDate ?? '',
           deathDate: input?.deathDate ?? '',
           birthplace: input?.birthplace ?? '',
-          gender: input?.gender ?? 'unspecified',
+          gender: input?.gender ?? 'female',
           bio: input?.bio ?? '',
           notes: input?.notes ?? '',
           parentIds: (input?.parentIds ?? []).slice(0, 2),

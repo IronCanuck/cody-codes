@@ -47,10 +47,7 @@ function sanitizeMember(raw: unknown): FamilyMember | null {
     birthDate: typeof r.birthDate === 'string' ? r.birthDate : '',
     deathDate: typeof r.deathDate === 'string' ? r.deathDate : '',
     birthplace: typeof r.birthplace === 'string' ? r.birthplace : '',
-    gender:
-      r.gender === 'female' || r.gender === 'male' || r.gender === 'nonbinary'
-        ? r.gender
-        : 'unspecified',
+    gender: r.gender === 'male' ? 'male' : 'female',
     bio: typeof r.bio === 'string' ? r.bio : '',
     notes: typeof r.notes === 'string' ? r.notes : '',
     parentIds: Array.isArray(r.parentIds)

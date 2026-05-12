@@ -1,6 +1,6 @@
 export const FAMILY_TREE_STORAGE_VERSION = 1 as const;
 
-export type FamilyGender = 'female' | 'male' | 'nonbinary' | 'unspecified';
+export type FamilyGender = 'female' | 'male';
 
 /**
  * A portrait or thumbnail stored either as a compressed data URL (uploaded)
@@ -87,10 +87,8 @@ export type FamilyTreeSnapshot = {
 };
 
 export const GENDER_OPTIONS: { value: FamilyGender; label: string }[] = [
-  { value: 'unspecified', label: 'Unspecified' },
   { value: 'female', label: 'Female' },
   { value: 'male', label: 'Male' },
-  { value: 'nonbinary', label: 'Non-binary' },
 ];
 
 export type FamilyTokens = {
@@ -112,15 +110,5 @@ export const GENDER_TOKENS: Record<FamilyGender, FamilyTokens> = {
     card: 'border-sky-300 hover:border-sky-500',
     surface: 'bg-sky-50',
     accent: 'text-sky-700',
-  },
-  nonbinary: {
-    card: 'border-amber-300 hover:border-amber-500',
-    surface: 'bg-amber-50',
-    accent: 'text-amber-700',
-  },
-  unspecified: {
-    card: 'border-evergreen/25 hover:border-evergreen/55',
-    surface: 'bg-evergreen-light/40',
-    accent: 'text-evergreen-dark',
   },
 };
