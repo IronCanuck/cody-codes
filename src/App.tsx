@@ -23,6 +23,7 @@ import { FamilyTreeApp } from './FamilyTree';
 import { TaskMasterApp } from './TaskMaster';
 import { VehicleHistoryApp } from './VehicleHistory';
 import { NotepadApp } from './Notepad';
+import { CandlesApp } from './Candles';
 import { Login } from './pages/Login';
 import { MemberDashboard } from './pages/MemberDashboard';
 import { ShellHome } from './pages/ShellHome';
@@ -131,6 +132,14 @@ function NotepadRoute() {
   );
 }
 
+function CandlesRoute() {
+  return (
+    <ProtectedRoute>
+      <CandlesApp />
+    </ProtectedRoute>
+  );
+}
+
 export default function App() {
   const native = Capacitor.isNativePlatform();
 
@@ -155,6 +164,7 @@ export default function App() {
           <Route path="/family-tree/*" element={<FamilyTreeRoute />} />
           <Route path="/vehicle-history/*" element={<VehicleHistoryRoute />} />
           <Route path="/notepad/*" element={<NotepadRoute />} />
+          <Route path="/candles/*" element={<CandlesRoute />} />
           <Route path="/consaltyapp" element={<ConsaltyRoute />}>
             <Route index element={<JobTrackerDashboardPage />} />
             <Route path="log" element={<JobTrackerLogPage />} />

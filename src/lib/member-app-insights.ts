@@ -8,6 +8,7 @@ import {
   type FireWatchSnapshot,
   type ShiftCode,
 } from '../FireWatch';
+import { loadCandlesSnapshot, type CandlesSnapshot } from '../Candles';
 
 const BUDGET_VERSION = 1 as const;
 const FURRIES_VERSION = 1 as const;
@@ -622,6 +623,58 @@ function notepadInsight(userId: string | undefined): AppInsight {
   };
 }
 
+function candlesInsight(userId: string | undefined): AppInsight {
+  if (!userId) return { lines: [{ label: '', value: 'Sign in to load birthdays' }], reminder: null };
+  const parsed: CandlesSnapshot | null = loadCandlesSnapshot(userId);
+  if (!parsed) {
+    return {
+      lines: [{ label: 'Birthdays', value: 'Not set up' }],
+      reminder: 'Open Candles to add your first birthday',
+    };
+  }
+  const birthdays = Array.isArray(parsed.birthdays) ? parsed.birthdays : [];
+  if (birthdays.length === 0) {
+    return {
+      lines: [{ label: 'Birthdays', value: '0 tracked' }],
+      reminder: 'Add someone to your birthday list',
+    };
+  }
+
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const next = birthdays
+    .map((birthday) => {
+      const parts = birthday.birthDate.split('-').map((part) => Number(part));
+      if (parts.length !== 3 || parts.some((part) => !Number.isInteger(part))) return null;
+      const [, month, day] = parts;
+      let nextDate = new Date(start.getFullYear(), month - 1, day);
+      if (nextDate.getTime() < start.getTime()) {
+        nextDate = new Date(start.getFullYear() + 1, month - 1, day);
+      }
+      const daysUntil = Math.round((nextDate.getTime() - start.getTime()) / 86_400_000);
+      return { name: birthday.name, daysUntil };
+    })
+    .filter((birthday): birthday is { name: string; daysUntil: number } => birthday !== null)
+    .sort((a, b) => a.daysUntil - b.daysUntil)[0];
+
+  const thisMonth = birthdays.filter((birthday) => {
+    const month = Number(birthday.birthDate.split('-')[1]);
+    return Number.isInteger(month) && month === today.getMonth() + 1;
+  }).length;
+
+  return {
+    lines: [
+      { label: 'Birthdays', value: String(birthdays.length) },
+      { label: 'This month', value: String(thisMonth) },
+    ],
+    reminder: next
+      ? next.daysUntil === 0
+        ? `${next.name}'s birthday is today`
+        : `${next.name} is next in ${next.daysUntil} day${next.daysUntil === 1 ? '' : 's'}`
+      : null,
+  };
+}
+
 function loadFireWatchSnapshot(userId: string): FireWatchSnapshot | null {
   let raw: string | null = null;
   try {
@@ -700,5 +753,6 @@ export async function loadMemberAppInsights(userId: string | undefined): Promise
     'family-tree': familyTreeInsight(userId),
     'vehicle-history': vehicleHistoryInsight(userId),
     notepad: notepadInsight(userId),
+    candles: candlesInsight(userId),
   };
 }

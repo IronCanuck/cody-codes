@@ -4,6 +4,7 @@ import {
   DollarSign,
   Flame,
   FlameKindling,
+  Gift,
   Kanban,
   Leaf,
   Notebook,
@@ -197,6 +198,21 @@ export const APP_LIBRARY_SCHEMES = {
     cardTitle: 'text-legalpad-ink',
     cardCta: 'text-legalpad-accent-dark',
   },
+  candles: {
+    menuLink:
+      'hover:bg-candles-pink-light/45 hover:border-candles-pink/45 focus-visible:ring-candles-berry',
+    menuIconWrap:
+      'bg-gradient-to-br from-candles-vanilla via-candles-pink-light to-candles-pink ring-1 ring-candles-pink/35',
+    menuIconColor: 'text-candles-berry',
+    menuTitle: 'text-candles-berry',
+    menuArrow: 'text-candles-berry opacity-75',
+    card: 'border-candles-pink/35 hover:border-candles-berry/55 focus-visible:ring-candles-berry',
+    cardIconWrap:
+      'bg-gradient-to-br from-candles-vanilla via-candles-pink-light to-candles-pink ring-candles-pink/35 group-hover:ring-candles-berry/45',
+    cardIcon: 'text-candles-berry',
+    cardTitle: 'text-candles-berry',
+    cardCta: 'text-candles-berry',
+  },
 } as const satisfies Record<string, AppLibraryScheme>;
 
 export type AppLibrarySchemeKey = keyof typeof APP_LIBRARY_SCHEMES;
@@ -318,5 +334,14 @@ export const PAYWALLED_APPS: MemberApp[] = [
     path: '/notepad',
     icon: Notebook,
     scheme: 'notepad',
+  },
+  {
+    id: 'candles',
+    title: 'Candles',
+    description:
+      'Birthday tracker with upcoming celebrations, ages, cake preferences, notes, and sweet reminders.',
+    path: '/candles',
+    icon: Gift,
+    scheme: 'candles',
   },
 ];
