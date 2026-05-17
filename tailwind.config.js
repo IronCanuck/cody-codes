@@ -129,6 +129,23 @@ export default {
           'accent-soft': '#F0C45A',
           'accent-dark': '#A77100',
         },
+        /** Candles - pink and vanilla sprinkle-cake palette */
+        candles: {
+          vanilla: '#FFF1D6',
+          'vanilla-soft': '#FFF8EA',
+          pink: '#FF8FBC',
+          'pink-light': '#FFD1E3',
+          berry: '#C62868',
+          'berry-dark': '#9F1D51',
+          cocoa: '#6B3F2A',
+          ink: '#3C2330',
+          mint: '#7ED7C1',
+          sky: '#8FD8FF',
+          plate: '#FFE6F1',
+          flame: '#FFD166',
+          'flame-deep': '#F97316',
+          wick: '#7C4A2D',
+        },
         /** Plant-Based Menu — rich evergreen palette */
         evergreen: {
           DEFAULT: '#1E5631',

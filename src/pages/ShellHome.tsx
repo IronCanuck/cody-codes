@@ -5,6 +5,7 @@ import {
   Car,
   ExternalLink,
   Flame,
+  Gift,
   Kanban,
   Leaf,
   Notebook,
@@ -137,7 +138,7 @@ export function ShellHome() {
             <p className="mt-2 text-slate-600 max-w-2xl">
               Consalty for hours and pay; Task Master for project boards; Chorios for recurring chores;
               Plant-Based Menu for recipe scaling and ingredient libraries; Budget Pal for profiles,
-              accounts, and monthly budgets. Sign in to use any app.
+              accounts and monthly budgets; Candles for birthdays. Sign in to use any app.
             </p>
 
             <ul className="mt-10 grid gap-6 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 max-w-5xl">
@@ -302,6 +303,27 @@ export function ShellHome() {
                       every thought organized.
                     </p>
                     <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-legalpad-accent-dark group-hover:gap-2 transition-all">
+                      Open app
+                      <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
+                    </p>
+                  </div>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/candles"
+                  className="group flex gap-5 rounded-2xl border-2 border-candles-pink/35 bg-white p-6 shadow-sm hover:border-candles-berry/55 hover:shadow-md transition-all h-full"
+                >
+                  <div className="shrink-0 rounded-xl bg-gradient-to-br from-candles-vanilla via-candles-pink-light to-candles-pink p-3.5 ring-2 ring-candles-pink/35 group-hover:ring-candles-berry/45 transition-shadow">
+                    <Gift className="text-candles-berry" size={28} strokeWidth={2} aria-hidden />
+                  </div>
+                  <div className="min-w-0 flex-1 text-left">
+                    <h3 className="font-bold text-candles-berry text-xl">Candles</h3>
+                    <p className="text-slate-600 text-sm mt-2 leading-relaxed">
+                      Birthday tracker with upcoming celebrations, ages, cake preferences, notes,
+                      and sweet reminders.
+                    </p>
+                    <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-candles-berry group-hover:gap-2 transition-all">
                       Open app
                       <ArrowRight className="h-4 w-4" strokeWidth={2.25} aria-hidden />
                     </p>
